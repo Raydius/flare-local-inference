@@ -31,6 +31,7 @@ mod inspect;
 mod launch;
 #[cfg(unix)]
 mod orbit;
+mod serving_overrides;
 mod trust;
 #[cfg(windows)]
 use flare::windows;
@@ -155,6 +156,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .generation_defaults
         .as_deref()
         .map(generation_defaults::GenerationDefaults::parse)
+        .transpose()?;
+    let chat_template = args
+        .chat_template
+        .as_deref()
+        .map(serving_overrides::ChatTemplate::read)
         .transpose()?;
     if args.rank.is_some_and(|rank| rank != 0) {
         args.serving.select_gpus(1);
@@ -293,6 +299,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     config["thinking_token_budget"] = serde_json::json!(configuration.thinking_token_budget());
     if let Some(defaults) = generation_defaults {
         defaults.apply(&mut config)?;
+    }
+    if let Some(tokens) = args.max_context_tokens {
+        serving_overrides::apply_max_context_tokens(&mut config, tokens.get())?;
+    }
+    if let Some(template) = chat_template {
+        template.apply(&mut config)?;
     }
     phase.finish(config["model_id"].as_str().unwrap_or_default());
     serve(owner, config, progress, cluster, shape)?;
