@@ -532,6 +532,7 @@ impl OrbitPush {
             scheduler_terminal_age_price: None,
             scheduler_checkpoint_extra_work_fraction: None,
             bypass_performance_check: false,
+            generation_defaults: None,
             serving: self.serving.clone(),
         }
     }
@@ -717,6 +718,7 @@ impl OrbitRun {
             scheduler_terminal_age_price: self.scheduler_terminal_age_price,
             scheduler_checkpoint_extra_work_fraction: self.scheduler_checkpoint_extra_work_fraction,
             bypass_performance_check: false,
+            generation_defaults: None,
             serving: self.serving.clone(),
         }
     }
@@ -846,6 +848,13 @@ pub struct Run {
     /// Skip Linux PCIe TP>1 host performance checks (NVIDIA driver params and IOMMU) after GPU init.
     #[arg(long, help_heading = "Serving options")]
     pub bypass_performance_check: bool,
+
+    /// Server-side defaults for requests that omit them, as a JSON object: sampling keys
+    /// (seed, temperature, top_p, top_k, min_p, repetition_penalty, presence_penalty,
+    /// frequency_penalty), max_new_tokens, and chat_template_kwargs. Values must fit the
+    /// package's sampling ranges.
+    #[arg(long, value_name = "JSON", help_heading = "Serving options")]
+    pub generation_defaults: Option<String>,
 
     #[command(flatten)]
     pub serving: ServingOptions,

@@ -80,3 +80,4 @@ cargo test --locked --release --manifest-path helios/Cargo.toml \
 | Branch | Layer | Purpose |
 | --- | --- | --- |
 | `patch/00-fork-tooling` | — | This file + `scripts/fork/{sync,rebase}.sh` (copied from `~/dev/vllm`) |
+| `patch/01-generation-defaults` | Serving (+ `ignition/cli`) | `flare run --generation-defaults <JSON>` merges sampling keys, `max_new_tokens` and `chat_template_kwargs` into the package's server config (unknown key or out-of-range value is a startup error naming it); `ignition run` forwards the flag. Packages keep loading; the `ignition/` edit re-keys Ignition's package cache once |
