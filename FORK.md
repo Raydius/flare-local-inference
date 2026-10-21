@@ -81,3 +81,5 @@ cargo test --locked --release --manifest-path helios/Cargo.toml \
 | --- | --- | --- |
 | `patch/00-fork-tooling` | — | This file + `scripts/fork/{sync,rebase}.sh` (copied from `~/dev/vllm`) |
 | `patch/01-generation-defaults` | Serving (+ `ignition/cli`) | `flare run --generation-defaults <JSON>` merges sampling keys, `max_new_tokens` and `chat_template_kwargs` into the package's server config (unknown key or out-of-range value is a startup error naming it); `ignition run` forwards the flag. Packages keep loading; the `ignition/` edit re-keys Ignition's package cache once |
+| `patch/03-context-and-chat-template` | Serving (+ `ignition/cli`) | `flare run --max-context-tokens <N>` lowers the per-request context (`max_sequence_tokens`) in the server config; above the package's prepared context, or off its page size, is a startup error naming both. `flare run --chat-template <FILE>` replaces the package's `chat_template` asset with the file (hashed at startup); a package with no Jinja frontend is a startup error. The package file is never written |
+
