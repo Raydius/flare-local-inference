@@ -14,6 +14,7 @@ mod environment;
 mod fabric;
 #[cfg(unix)]
 mod fabric_transport;
+mod generation_defaults;
 mod hardware;
 mod hub;
 mod identity;
@@ -138,6 +139,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
     let bind = args.bind_address();
+    let generation_defaults = args
+        .generation_defaults
+        .as_deref()
+        .map(generation_defaults::GenerationDefaults::parse)
+        .transpose()?;
     if args.rank.is_some_and(|rank| rank != 0) {
         args.serving.select_gpus(1);
     }
@@ -271,6 +277,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         config["served_names"] = serde_json::json!([name]);
     }
     config["api_key"] = key.into();
+    if let Some(defaults) = generation_defaults {
+        defaults.apply(&mut config)?;
+    }
     phase.finish(config["model_id"].as_str().unwrap_or_default());
     serve(owner, config, progress, cluster, shape)?;
     #[cfg(unix)]
