@@ -483,6 +483,7 @@ impl OrbitPush {
             scheduler_terminal_value: None,
             scheduler_terminal_age_price: None,
             scheduler_checkpoint_extra_work_fraction: None,
+            generation_defaults: None,
             serving: self.serving.clone(),
         }
     }
@@ -667,6 +668,7 @@ impl OrbitRun {
             scheduler_terminal_value: self.scheduler_terminal_value,
             scheduler_terminal_age_price: self.scheduler_terminal_age_price,
             scheduler_checkpoint_extra_work_fraction: self.scheduler_checkpoint_extra_work_fraction,
+            generation_defaults: None,
             serving: self.serving.clone(),
         }
     }
@@ -792,6 +794,13 @@ pub struct Run {
     /// Terminal checkpoints also earn allowance from completed decode work.
     #[arg(long, value_name = "FRACTION", value_parser = checkpoint_extra_work_fraction, help_heading = "Serving options")]
     pub scheduler_checkpoint_extra_work_fraction: Option<f64>,
+
+    /// Server-side defaults for requests that omit them, as a JSON object: sampling keys
+    /// (seed, temperature, top_p, top_k, min_p, repetition_penalty, presence_penalty,
+    /// frequency_penalty), max_new_tokens, and chat_template_kwargs. Values must fit the
+    /// package's sampling ranges.
+    #[arg(long, value_name = "JSON", help_heading = "Serving options")]
+    pub generation_defaults: Option<String>,
 
     #[command(flatten)]
     pub serving: ServingOptions,
