@@ -484,6 +484,8 @@ impl OrbitPush {
             scheduler_terminal_age_price: None,
             scheduler_checkpoint_extra_work_fraction: None,
             generation_defaults: None,
+            max_context_tokens: None,
+            chat_template: None,
             serving: self.serving.clone(),
         }
     }
@@ -669,6 +671,8 @@ impl OrbitRun {
             scheduler_terminal_age_price: self.scheduler_terminal_age_price,
             scheduler_checkpoint_extra_work_fraction: self.scheduler_checkpoint_extra_work_fraction,
             generation_defaults: None,
+            max_context_tokens: None,
+            chat_template: None,
             serving: self.serving.clone(),
         }
     }
@@ -801,6 +805,14 @@ pub struct Run {
     /// package's sampling ranges.
     #[arg(long, value_name = "JSON", help_heading = "Serving options")]
     pub generation_defaults: Option<String>,
+
+    /// Per-request context limit; at most the package's prepared context.
+    #[arg(long, value_name = "N", help_heading = "Serving options")]
+    pub max_context_tokens: Option<NonZeroUsize>,
+
+    /// Jinja chat template replacing the package's.
+    #[arg(long, value_name = "FILE", help_heading = "Serving options")]
+    pub chat_template: Option<PathBuf>,
 
     #[command(flatten)]
     pub serving: ServingOptions,
