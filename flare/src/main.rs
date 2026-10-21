@@ -22,6 +22,7 @@ mod launch;
 mod orbit;
 #[cfg(unix)]
 mod package_cache;
+mod serving_overrides;
 mod trust;
 #[cfg(windows)]
 mod windows;
@@ -123,6 +124,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .generation_defaults
         .as_deref()
         .map(generation_defaults::GenerationDefaults::parse)
+        .transpose()?;
+    let chat_template = args
+        .chat_template
+        .as_deref()
+        .map(serving_overrides::ChatTemplate::read)
         .transpose()?;
     environment::configure(&args.gpus)?;
     let key = args
@@ -237,6 +243,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     config["api_key"] = key.unwrap_or_default().into();
     if let Some(defaults) = generation_defaults {
         defaults.apply(&mut config)?;
+    }
+    if let Some(tokens) = args.max_context_tokens {
+        serving_overrides::apply_max_context_tokens(&mut config, tokens.get())?;
+    }
+    if let Some(template) = chat_template {
+        template.apply(&mut config)?;
     }
     phase.finish(config["model_id"].as_str().unwrap_or_default());
     serve(owner, config, progress, cluster, roce_ring)?;

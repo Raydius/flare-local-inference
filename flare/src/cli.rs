@@ -301,6 +301,8 @@ impl OrbitPush {
             api_key_file: None,
             scheduler_policy: "balanced".into(),
             generation_defaults: None,
+            max_context_tokens: None,
+            chat_template: None,
             serving: self.serving.clone(),
         }
     }
@@ -456,6 +458,8 @@ impl OrbitRun {
                 .clone()
                 .unwrap_or_else(|| "balanced".into()),
             generation_defaults: None,
+            max_context_tokens: None,
+            chat_template: None,
             serving: self.serving.clone(),
         }
     }
@@ -570,6 +574,14 @@ pub struct Run {
     /// package's sampling ranges.
     #[arg(long, value_name = "JSON", help_heading = "Serving options")]
     pub generation_defaults: Option<String>,
+
+    /// Per-request context limit; at most the package's prepared context.
+    #[arg(long, value_name = "N", help_heading = "Serving options")]
+    pub max_context_tokens: Option<NonZeroUsize>,
+
+    /// Jinja chat template replacing the package's.
+    #[arg(long, value_name = "FILE", help_heading = "Serving options")]
+    pub chat_template: Option<PathBuf>,
 
     #[command(flatten)]
     pub serving: ServingOptions,
