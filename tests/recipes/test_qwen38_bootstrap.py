@@ -307,3 +307,33 @@ def test_snapshot_budget_covers_the_selected_speculative_layout():
     config = PreparationConfig(mtp=True,
                                snapshot_budget_bytes=speculative)
     assert config.snapshot_budget_bytes == speculative
+
+
+def test_context_bound_requires_declared_rope_scaling_beyond_the_native_context():
+    from ignition.recipes.declaration import RopeScaling
+    from ignition.recipes.qwen38.bootstrap import PreparationConfig
+
+    PreparationConfig(context=262144)
+    with pytest.raises(ValueError, match="64-aligned in \[64,262,144\]"):
+        PreparationConfig(context=262208)
+    scaling = RopeScaling(4., 262144)
+    with pytest.raises(ValueError, match="extending the 262,144-token checkpoint"):
+        PreparationConfig(context=262144, rope_scaling=scaling)
+    with pytest.raises(ValueError, match="anchor at the checkpoint's 262,144-token context"):
+        PreparationConfig(context=524_288, rope_scaling=RopeScaling(4., 131072))
+    with pytest.raises(ValueError, match="64-aligned in \[64,524,288\]"):
+        PreparationConfig(context=1_048_576, rope_scaling=RopeScaling(2., 262144))
+    config = PreparationConfig(context=1_048_576, rope_scaling=scaling)
+    assert config.context == 1_048_576 and config.rope_scaling is scaling
+
+
+def test_identity_separates_rope_scaling_preparations():
+    from ignition.recipes.declaration import RopeScaling
+    from ignition.recipes.qwen38.bootstrap import _identity
+
+    manifest = SimpleNamespace(headers_sha256="headers", metadata_sha256={"config.json": "config"})
+    native = _identity(manifest)
+    assert _identity(manifest, rope_scaling=None) == native
+    scaled = _identity(manifest, rope_scaling=RopeScaling(4., 262144))
+    other_factor = _identity(manifest, rope_scaling=RopeScaling(8., 262144))
+    assert len({native, scaled, other_factor}) == 3

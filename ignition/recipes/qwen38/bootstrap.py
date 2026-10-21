@@ -44,7 +44,9 @@ from ignition.preparation.qwen38 import (
     FRONTEND_SHA256,
     MODEL_ID,
     REVISION,
+    TEXT_GEOMETRY,
 )
+from ignition.recipes.declaration import RopeScaling
 from ignition.preparation.scratch import GraphBufferPool, ScratchArena, bind_scratch
 from ignition.progress import phase
 
@@ -84,6 +86,7 @@ class PreparationConfig:
     retain_graphs: bool = False
     max_active: int = 4
     context: int = 262144
+    rope_scaling: RopeScaling | None = None
     prefill_chunk_size: int = 4096
     mixed_prefill: bool = False
     snapshot_budget_bytes: int = 4 << 30
@@ -122,8 +125,17 @@ class PreparationConfig:
         for name in ("device", "context", "prefill_chunk_size", "snapshot_budget_bytes", "headroom_bytes"):
             if type(getattr(self, name)) is not int:
                 raise TypeError(f"{name} must be an integer")
-        if self.device < 0 or not 64 <= self.context <= 262144 or self.context % 64:
-            raise ValueError("device must be nonnegative and context must be 64-aligned in [64,262144]")
+        if self.device < 0 or self.context % 64:
+            raise ValueError("device must be nonnegative and context must be 64-aligned")
+        native = TEXT_GEOMETRY["max_position_embeddings"]
+        if self.rope_scaling is not None and self.rope_scaling.original_max_position_embeddings != native:
+            raise ValueError(f"rope scaling must anchor at the checkpoint's {native:,}-token context")
+        ceiling = native if self.rope_scaling is None else self.rope_scaling.context
+        if not 64 <= self.context <= ceiling or (
+                self.rope_scaling is not None and self.context <= native):
+            raise ValueError(f"context must be 64-aligned in [64,{ceiling:,}]"
+                             + ("" if self.rope_scaling is None else
+                                f", extending the {native:,}-token checkpoint by rope scaling"))
         if not 64 <= self.prefill_chunk_size <= self.context or self.prefill_chunk_size % 64:
             raise ValueError("prefill chunk size must be 64-aligned in [64,context]")
         if self.pages is not None and (type(self.pages) is not int or self.pages <= 0):
@@ -195,14 +207,18 @@ class PreparationConfig:
 
 
 
-def _identity(manifest, world_size=1):
+def _identity(manifest, world_size=1, rope_scaling=None):
     sources = {path.name: hashlib.sha256(path.read_bytes()).hexdigest()
                for path in sorted(Path(__file__).parent.glob("*.py"))}
     components = Path(__file__).parents[2] / "components"
     sources.update({f"components/{path.name}": hashlib.sha256(path.read_bytes()).hexdigest()
                     for path in sorted(components.glob("*.py"))})
     value = {"checkpoint": REVISION, "headers": manifest.headers_sha256,
-             "config": manifest.metadata_sha256["config.json"], "recipe": sources, "kv_dtype": "float8_e4m3fn", "page_size": 64, "world_size": world_size}
+             "config": manifest.metadata_sha256["config.json"], "recipe": sources, "kv_dtype": "float8_e4m3fn", "page_size": 64, "world_size": world_size,
+             "rope_scaling": None if rope_scaling is None else {
+                 "factor": rope_scaling.factor,
+                 "original_max_position_embeddings": rope_scaling.original_max_position_embeddings,
+                 "beta_fast": rope_scaling.beta_fast, "beta_slow": rope_scaling.beta_slow}}
     return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 
@@ -327,7 +343,8 @@ def _prepare_model(snapshot: Path, config: PreparationConfig | None = None, *, t
                 world_size=shard.world_size, buffers=graph_buffers.cursor(),
                 hyperconnection_lowrank=320 // shard.world_size if config.shard_hyperconnections else 320)
             workspaces = ScratchArena(device, overlap=config.stream_overlap)
-            rotary = RotaryTables.allocate(weights.tree.config.text_config, config.context, device)
+            rotary = RotaryTables.allocate(weights.tree.config.text_config, config.context, device,
+                scaling=config.rope_scaling)
             cache = {index: QSAState.allocate(pages=1, slots=slots + 1, device=device, draft_tokens=speculative_tokens, kv_heads=max(1, 2 // shard.world_size))
                      for index in (*range(3, 48, 4), *((48,) if has_mtp else ()))}
             page_bytes = sum(sum(getattr(value, name).nbytes for name in
@@ -575,7 +592,7 @@ def _prepare_model(snapshot: Path, config: PreparationConfig | None = None, *, t
             for layer, value in (final_cache or cache).items()
             for name in ("main_k_cache", "main_v_cache", "compressed_k_cache")]
         buffers["request_pending_token"] = requests.pending_token
-        server_config = {"model_id": MODEL_ID, "identity": _identity(manifest, shard.world_size),
+        server_config = {"model_id": MODEL_ID, "identity": _identity(manifest, shard.world_size, config.rope_scaling),
             "max_sequence_tokens": config.context, "prefill_chunk_size": config.prefill_chunk_size,
             "pages": page_capacity, "state_rows": state_rows, "snapshots": snapshots, "page_tokens": 64,
             "frontend": prepare_frontend(manifest.snapshot, eos_token_ids=[248046, 248044], image_profile="qwen"),
