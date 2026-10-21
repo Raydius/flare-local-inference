@@ -24,10 +24,11 @@ def recipe_help(model=None):
         return "\n".join(lines)
 
     recipe, checkpoint = selected
+    context = checkpoint.context or recipe.context
     lines = [f"Model recipe: {checkpoint.alias}", f"  Checkpoint: {checkpoint.repository}",
              f"  --gpus: select {', '.join(map(str, recipe.tensor_parallel))} GPUs",
              f"  --max-concurrency: 1..{recipe.max_concurrency}; recipe default {recipe.concurrency}",
-             f"  --prefill-chunk-size: 64..{recipe.context}, multiple of 64; default {recipe.prefill_chunk}"]
+             f"  --prefill-chunk-size: 64..{context}, multiple of 64; default {recipe.prefill_chunk}"]
     speculation = recipe.speculation
     if speculation is not None:
         lines.extend((
