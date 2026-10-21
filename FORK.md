@@ -63,7 +63,8 @@ Then in the console: duplicate a Flare profile into a dated one, set its Docker 
 outcome in `docs/models/qwen3-flash-next.md`'s Tuning-findings table.
 
 **Control image:** `local/flare:e7b8c016` is `base/current` built unpatched — the
-comparison point for every patched build.
+comparison point for every patched build. Its `/usr/local/bin/flare` is byte-identical to the pulled
+image's (checked 2026-10-20), so the local build path reproduces upstream exactly.
 
 ## Tests
 
