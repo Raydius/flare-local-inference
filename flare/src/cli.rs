@@ -421,6 +421,7 @@ impl OrbitPush {
             scheduler_policy: "balanced".into(),
             scheduler_terminal_value: None,
             scheduler_terminal_age_price: None,
+            generation_defaults: None,
             serving: self.serving.clone(),
         }
     }
@@ -597,6 +598,7 @@ impl OrbitRun {
                 .unwrap_or_else(|| "balanced".into()),
             scheduler_terminal_value: self.scheduler_terminal_value,
             scheduler_terminal_age_price: self.scheduler_terminal_age_price,
+            generation_defaults: None,
             serving: self.serving.clone(),
         }
     }
@@ -722,6 +724,13 @@ pub struct Run {
     /// Terminal waiting cost in value/ms², independent of output cadence [default: 1].
     #[arg(long, value_name = "PRICE", value_parser = scheduler_coefficient, help_heading = "Serving options")]
     pub scheduler_terminal_age_price: Option<f64>,
+
+    /// Server-side defaults for requests that omit them, as a JSON object: sampling keys
+    /// (seed, temperature, top_p, top_k, min_p, repetition_penalty, presence_penalty,
+    /// frequency_penalty), max_new_tokens, and chat_template_kwargs. Values must fit the
+    /// package's sampling ranges.
+    #[arg(long, value_name = "JSON", help_heading = "Serving options")]
+    pub generation_defaults: Option<String>,
 
     #[command(flatten)]
     pub serving: ServingOptions,
