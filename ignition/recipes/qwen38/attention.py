@@ -16,6 +16,7 @@ from b12x.preparation import PreparationSession, PreparedCall
 from transformers.models.qwen4_exp.modeling_qwen4_exp import apply_rotary_pos_emb
 
 from ignition.components import sm103
+from ignition.components.rotary import interpolated_frequencies
 from ignition.components.sm103_sparse_attention import PARTIAL_ROWS, SPLIT_ROWS, PreparedSparseAttention
 from ignition.components.linear import QuantizedProjection, UnquantizedProjection
 from ignition.preparation.fixtures import qsa as qsa_fixtures
@@ -24,6 +25,7 @@ from ignition.preparation.tuning import declare, register_finalizer
 
 from .attention_overlap import ConcurrentAttention, FunctionalQSA
 from ignition.preparation.persistent import persistent_copy, persistent_empty, persistent_zeros
+from ignition.recipes.declaration import RopeScaling
 
 
 # b12x attends at most this many rows with its split schedule: it splits each row's selected
@@ -37,9 +39,10 @@ class RotaryTables:
     cos: torch.Tensor
     sin: torch.Tensor
     axes: torch.Tensor
+    scaling: RopeScaling | None = None
 
     @classmethod
-    def allocate(cls, config, capacity: int, device: torch.device) -> RotaryTables:
+    def allocate(cls, config, capacity: int, device: torch.device, scaling=None) -> RotaryTables:
         if capacity <= 0:
             raise ValueError("rotary position capacity must be positive")
         rope = config.rope_parameters
@@ -47,7 +50,14 @@ class RotaryTables:
                 or tuple(rope["mrope_section"]) != (11, 11, 10)
                 or rope["rope_theta"] != 10000000):
             raise ValueError("Qwen rotary geometry differs from the checkpoint contract")
-        inverse = (1.0 / (rope["rope_theta"] ** (torch.arange(0, 64, 2, dtype=torch.float32) / 64))).to(device)
+        if scaling is not None:
+            if (scaling.original_max_position_embeddings != config.max_position_embeddings
+                    or not scaling.original_max_position_embeddings < capacity <= scaling.context):
+                raise ValueError("rope scaling must extend the checkpoint's declared context")
+            inverse = interpolated_frequencies(rope["rope_theta"], 32, scaling.factor,
+                scaling.original_max_position_embeddings, scaling.beta_fast, scaling.beta_slow, device)
+        else:
+            inverse = (1.0 / (rope["rope_theta"] ** (torch.arange(0, 64, 2, dtype=torch.float32) / 64))).to(device)
         frequency = torch.arange(capacity, device=device, dtype=torch.float32)[:, None] * inverse
         axes = persistent_zeros((32,), dtype=torch.int64, device=device)
         axes[1:33:3] = 1
@@ -56,7 +66,7 @@ class RotaryTables:
         sin = persistent_empty(frequency.shape, dtype=torch.float32, device=device)
         torch.cos(frequency, out=cos)
         torch.sin(frequency, out=sin)
-        return cls(cos, sin, axes)
+        return cls(cos, sin, axes, scaling)
 
     def gather(self, positions: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         # Negative metadata marks inactive rows; their arithmetic uses position zero.
@@ -220,7 +230,11 @@ class PreparedAttention:
         self.cache_page_capacity = cache_pages
         # On SM103 one score workspace covers every representative group of a
         # prefill chunk, so selection makes a single pass instead of one per 128 MiB.
-        score_workspace = self.tokens * (context // 4) * 4 if sm103.is_sm103(source.device) else None
+        # Scaled contexts keep the native single-pass budget; selection chunks over
+        # the remaining groups within the same plan.
+        workspace_context = context if rotary.scaling is None \
+            else min(context, rotary.scaling.original_max_position_embeddings)
+        score_workspace = self.tokens * (workspace_context // 4) * 4 if sm103.is_sm103(source.device) else None
         caps = qsa.Caps(device=source.device, max_batch=batch, kv_dtype=state.main_k_cache.dtype,
                         max_raw_state_slots=state.raw_k_ring.shape[0], max_q_rows=self.tokens,
                         max_seq_len=context, num_main_cache_pages=cache_pages,
