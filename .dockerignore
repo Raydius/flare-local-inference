@@ -18,3 +18,15 @@ helios/**
 !helios/proto/**
 !helios/native/
 !helios/native/**
+!ignition/
+ignition/**
+!ignition/recipes/
+!ignition/recipes/qwen38/
+!ignition/recipes/qwen38/assets/
+!ignition/recipes/qwen38/assets/chat_template.jinja
+!ignition/recipes/step5/
+!ignition/recipes/step5/assets/
+!ignition/recipes/step5/assets/chat_template.jinja
+!ignition/recipes/kimi3/
+!ignition/recipes/kimi3/assets/
+!ignition/recipes/kimi3/assets/chat_template.jinja
