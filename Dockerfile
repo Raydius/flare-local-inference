@@ -13,6 +13,9 @@ RUN apt-get update \
 WORKDIR /src
 COPY flare/ flare/
 COPY helios/ helios/
+# helios/src/frontend/templates.rs embeds these recipe templates (include_str!).
+COPY ignition/recipes/qwen38/assets/chat_template.jinja ignition/recipes/qwen38/assets/
+COPY ignition/recipes/step5/assets/chat_template.jinja ignition/recipes/step5/assets/
 
 ARG TARGETARCH
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
