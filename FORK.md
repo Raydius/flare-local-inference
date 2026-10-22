@@ -31,10 +31,16 @@ base/current (tag → an upstream commit)
 
 - **`main`** — pristine mirror of `upstream/main`; only ever fast-forwarded
   (`scripts/fork/sync.sh`, `NO_PUSH=1` to skip pushing it to `origin`).
-- **`base/current`** — the upstream commit the stack sits on. Starts at **`e7b8c016`**,
-  the revision inside the pulled image the console pins
-  (`ghcr.io/local-inference-lab/flare@sha256:d872de72…8429`, flare 0.1.0), so a patched
-  build differs from the known-good image only by the patches.
+- **`base/current`** — the upstream commit the stack sits on. Started at **`e7b8c016`**,
+  the revision inside the pulled image (`ghcr.io/local-inference-lab/flare@sha256:d872de72…8429`,
+  flare 0.1.0). **2026-10-22: moved to `upstream/main` `947a5a6d`** (127 commits). Retired on that
+  rebase, because upstream now does the same thing: `patch/02-graph-shared-memory` (upstream
+  `37c87e1d` raises a function's shared-memory allowance from its captured nodes),
+  `patch/04-minijinja-empty-reverse-slice` (Helios renders templates with its own Jinja VM;
+  minijinja is only a test oracle, and the VM's `slice` returns an empty list for `[][::-1]`) and
+  `patch/05-replace-cached` (upstream `7d3331c5` removed `ignition run`). `patch/01` and `patch/03`
+  lost their `ignition run` forwarding for the same reason. Pre-rebase refs:
+  `backup/pre-rebase-20261022-*` tags.
 - **Moving to a newer upstream:** `scripts/fork/sync.sh`, then
   `STACK_TIP=patch/NN-<top> scripts/fork/rebase.sh upstream/main` (or a sha). The script
   refuses a tip that shares a commit with another branch (`--update-refs` would skip it).
@@ -80,6 +86,8 @@ cargo test --locked --release --manifest-path helios/Cargo.toml \
 | Branch | Layer | Purpose |
 | --- | --- | --- |
 | `patch/00-fork-tooling` | — | This file + `scripts/fork/{sync,rebase}.sh` (copied from `~/dev/vllm`) |
-| `patch/01-generation-defaults` | Serving (+ `ignition/cli`) | `flare run --generation-defaults <JSON>` merges sampling keys, `max_new_tokens` and `chat_template_kwargs` into the package's server config (unknown key or out-of-range value is a startup error naming it); `ignition run` forwards the flag. Packages keep loading; the `ignition/` edit re-keys Ignition's package cache once |
-| `patch/03-context-and-chat-template` | Serving (+ `ignition/cli`) | `flare run --max-context-tokens <N>` lowers the per-request context (`max_sequence_tokens`) in the server config; above the package's prepared context, or off its page size, is a startup error naming both. `flare run --chat-template <FILE>` replaces the package's `chat_template` asset with the file (hashed at startup); a package with no Jinja frontend is a startup error. The package file is never written |
+| `patch/01-generation-defaults` | Serving | `flare run --generation-defaults <JSON>` merges sampling keys, `max_new_tokens` and `chat_template_kwargs` into the package's server config (unknown key or out-of-range value is a startup error naming it). Packages keep loading |
+| `patch/03-context-and-chat-template` | Serving | `flare run --max-context-tokens <N>` lowers the per-request context (`max_sequence_tokens`) in the server config; above the package's prepared context, or off its page size, is a startup error naming both. `flare run --chat-template <FILE>` replaces the package's `chat_template` asset with the file (hashed at startup); a package with no Jinja frontend is a startup error. The package file is never written |
+| `patch/06-qwen38-yarn-declaration` | Prepared (`ignition/`) | Johannes Bertens's `ec0a64f2` (`github.com/JohannesBertens/flare-local-inference` branch `pr-yarn4`), cherry-picked unchanged: `RopeScaling` declaration (factor, original context, beta_fast/beta_slow), YaRN frequency-only interpolation of the Qwen3.8 rotary tables, the `qwen3.8-flash-yarn4` alias (1,048,576 tokens), and plan/identity/limits derived from the declared context. No attention temperature: sparse attention has no logit scale. No Helios or package-format change |
+| `patch/07-rope-parameters` | Prepared (`ignition/cli`) | `ignition export` / `ignition serve` `--rope-parameters <JSON>` applies `patch/06`'s scaling to any resolved checkpoint (an alias or a checkpoint directory such as the console's `/ckpt`), as a Hugging Face / vLLM YaRN `rope_parameters` object: `factor` (required), `original_max_position_embeddings`, `beta_fast`, `beta_slow`, `max_position_embeddings` (serving context, default factor × original). Same validation as a declared variant; `mscale` / `attention_factor` / unknown keys are refused; recipes that declare no rope scaling refuse the flag. Not forwarded to multi-host peer ranks |
 
