@@ -27,7 +27,13 @@ base/current (tag → an upstream commit)
   └─ patch/00-fork-tooling      # this file + scripts/fork/ (never upstreamed)
        └─ patch/01-<topic>       # one logical change each
             └─ patch/NN-<topic>  # topmost patch = what you build
+                 └─ deploy           # README patch notes; GitHub default branch
 ```
+
+- **`deploy`** — one commit above the topmost patch: README's patch notes and this file's
+  inventory pointer. It is the GitHub default branch, so the notes show on the repo page, and
+  `rebase.sh`'s default `STACK_TIP`. A new patch goes below it: `git rebase --onto patch/NN-<new>
+  patch/NN-<old> deploy`, then add the README row and amend.
 
 - **`main`** — pristine mirror of `upstream/main`; only ever fast-forwarded
   (`scripts/fork/sync.sh`, `NO_PUSH=1` to skip pushing it to `origin`).
@@ -42,7 +48,7 @@ base/current (tag → an upstream commit)
   lost their `ignition run` forwarding for the same reason. Pre-rebase refs:
   `backup/pre-rebase-20261022-*` tags.
 - **Moving to a newer upstream:** `scripts/fork/sync.sh`, then
-  `STACK_TIP=patch/NN-<top> scripts/fork/rebase.sh upstream/main` (or a sha). The script
+  `scripts/fork/rebase.sh upstream/main` (or a sha; the tip defaults to `deploy`). The script
   refuses a tip that shares a commit with another branch (`--update-refs` would skip it).
   `rerere` is enabled so conflict resolutions replay.
 
@@ -83,12 +89,9 @@ cargo test --locked --release --manifest-path helios/Cargo.toml \
 
 ## Patch inventory
 
-| Branch | Layer | Purpose |
-| --- | --- | --- |
-| `patch/00-fork-tooling` | — | This file + `scripts/fork/{sync,rebase}.sh` (copied from `~/dev/vllm`) |
-| `patch/01-generation-defaults` | Serving | `flare run --generation-defaults <JSON>` merges sampling keys, `max_new_tokens` and `chat_template_kwargs` into the package's server config (unknown key or out-of-range value is a startup error naming it). Packages keep loading |
-| `patch/03-context-and-chat-template` | Serving | `flare run --max-context-tokens <N>` lowers the per-request context (`max_sequence_tokens`) in the server config; above the package's prepared context, or off its page size, is a startup error naming both. `flare run --chat-template <FILE>` replaces the package's `chat_template` asset with the file (hashed at startup); a package with no Jinja frontend is a startup error. The package file is never written |
-| `patch/06-qwen38-yarn-declaration` | Prepared (`ignition/`) | Johannes Bertens's `ec0a64f2` (`github.com/JohannesBertens/flare-local-inference` branch `pr-yarn4`), cherry-picked unchanged: `RopeScaling` declaration (factor, original context, beta_fast/beta_slow), YaRN frequency-only interpolation of the Qwen3.8 rotary tables, the `qwen3.8-flash-yarn4` alias (1,048,576 tokens), and plan/identity/limits derived from the declared context. No attention temperature: sparse attention has no logit scale. No Helios or package-format change |
-| `patch/07-rope-parameters` | Prepared (`ignition/cli`) | `ignition export` / `ignition serve` `--rope-parameters <JSON>` applies `patch/06`'s scaling to any resolved checkpoint (an alias or a checkpoint directory such as the console's `/ckpt`), as a Hugging Face / vLLM YaRN `rope_parameters` object: `factor` (required), `original_max_position_embeddings`, `beta_fast`, `beta_slow`, `max_position_embeddings` (serving context, default factor × original). Same validation as a declared variant; `mscale` / `attention_factor` / unknown keys are refused; recipes that declare no rope scaling refuse the flag. Not forwarded to multi-host peer ranks |
-| `patch/08-docker-context-templates` | Build (`Dockerfile`, `.dockerignore`) | Upstream `947a5a6d`'s repo `Dockerfile` no longer builds: `helios/src/frontend/templates.rs` `include_str!`s `ignition/recipes/{qwen38,step5}/assets/chat_template.jinja` (and, since upstream `bce032c0`'s base, `ignition/recipes/kimi3/assets/chat_template.jinja`), which the build context excludes. The context and the build stage now carry those three files. Retire when upstream fixes its Dockerfile |
+The inventory lives in [README.md](README.md#raydius-fork-patch-notes) on `deploy`, so it shows on
+the fork's GitHub page. Keep both tables current there:
 
+- **Active patches** — add a row when a patch lands.
+- **Retired patches** — when upstream absorbs a patch or makes it obsolete, delete its branch and
+  move its row to that table with the retirement date and why. Never drop a row.
