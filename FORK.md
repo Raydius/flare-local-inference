@@ -46,7 +46,12 @@ base/current (tag → an upstream commit)
   minijinja is only a test oracle, and the VM's `slice` returns an empty list for `[][::-1]`) and
   `patch/05-replace-cached` (upstream `7d3331c5` removed `ignition run`). `patch/01` and `patch/03`
   lost their `ignition run` forwarding for the same reason. Pre-rebase refs:
-  `backup/pre-rebase-20261022-*` tags.
+  `backup/pre-rebase-20261022-*` tags. **2026-10-23: moved to `upstream/main` `a66c4e41`** (33 commits;
+  Qwen Flash export defaults 32 requests / 128 speculative target rows, representative QSA tuning,
+  prefix-cache retention repair). No patch retired; `patch/08` stays because upstream `2de0a539`
+  fixed only the Debian build context. Conflicts (upstream multi-host GPU selection and
+  `roce_chain`, the Qwen default concurrency, the alias list) kept both sides. Pre-rebase refs:
+  `backup/pre-rebase-20261023-*` tags.
 - **Moving to a newer upstream:** `scripts/fork/sync.sh`, then
   `scripts/fork/rebase.sh upstream/main` (or a sha; the tip defaults to `deploy`). The script
   refuses a tip that shares a commit with another branch (`--update-refs` would skip it).
