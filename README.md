@@ -3,7 +3,7 @@
 This fork carries local patches on top of
 [NVIDIA/flare-local-inference](https://github.com/NVIDIA/flare-local-inference).
 `deploy` (this branch) is the full patch stack; `main` mirrors upstream unchanged.
-Stack base: upstream `a66c4e41` (2026-10-23).
+Stack base: upstream `bce032c0` (2026-10-24).
 Maintenance workflow: [FORK.md](FORK.md).
 
 ## Active patches
@@ -15,7 +15,7 @@ Maintenance workflow: [FORK.md](FORK.md).
 | `patch/03-context-and-chat-template` | 2026-10-21 | Serving | `flare run --max-context-tokens <N>` lowers the per-request context (`max_sequence_tokens`); above the package's prepared context, or off its page size, is a startup error naming both. `flare run --chat-template <FILE>` replaces the package's `chat_template` asset with the file (hashed at startup); a package with no Jinja frontend is a startup error. The package file is never written |
 | `patch/06-qwen38-yarn-declaration` | 2026-10-21 | Prepared (`ignition/`) | Johannes Bertens's `ec0a64f2` ([`pr-yarn4`](https://github.com/JohannesBertens/flare-local-inference/tree/pr-yarn4)), cherry-picked unchanged: `RopeScaling` declaration (factor, original context, beta_fast/beta_slow), YaRN frequency-only interpolation of the Qwen3.8 rotary tables, the `qwen3.8-flash-yarn4` alias (1,048,576 tokens), and plan/identity/limits derived from the declared context. No Helios or package-format change |
 | `patch/07-rope-parameters` | 2026-10-22 | Prepared (`ignition/cli`) | `ignition export` / `ignition serve` `--rope-parameters <JSON>` applies `patch/06`'s scaling to any resolved checkpoint, as a Hugging Face / vLLM YaRN `rope_parameters` object (`factor` required; `original_max_position_embeddings`, `beta_fast`, `beta_slow`, `max_position_embeddings` optional). `mscale` / `attention_factor` / unknown keys are refused; recipes that declare no rope scaling refuse the flag. Not forwarded to multi-host peer ranks |
-| `patch/08-docker-context-templates` | 2026-10-22 | Build (`Dockerfile`, `.dockerignore`) | Upstream's `Dockerfile` no longer builds (since `947a5a6d`; still true at `a66c4e41`, whose `2de0a539` fixed only the Debian build context): `helios/src/frontend/templates.rs` `include_str!`s `ignition/recipes/{qwen38,step5}/assets/chat_template.jinja`, which the build context excluded. The context and build stage now carry those two files. Retire when upstream fixes its Dockerfile |
+| `patch/08-docker-context-templates` | 2026-10-22 | Build (`Dockerfile`, `.dockerignore`) | Upstream's `Dockerfile` no longer builds (since `947a5a6d`; still true at `bce032c0` — `a66c4e41`'s `2de0a539` fixed only the Debian build context): `helios/src/frontend/templates.rs` `include_str!`s `ignition/recipes/{qwen38,step5,kimi3}/assets/chat_template.jinja` (`kimi3` since `bce032c0`), which the build context excluded. The context and build stage now carry those three files. Retire when upstream fixes its Dockerfile |
 
 ## Retired patches
 
