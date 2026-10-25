@@ -51,7 +51,13 @@ base/current (tag → an upstream commit)
   prefix-cache retention repair). No patch retired; `patch/08` stays because upstream `2de0a539`
   fixed only the Debian build context. Conflicts (upstream multi-host GPU selection and
   `roce_chain`, the Qwen default concurrency, the alias list) kept both sides. Pre-rebase refs:
-  `backup/pre-rebase-20261023-*` tags.
+  `backup/pre-rebase-20261023-*` tags. **2026-10-24: moved to upstream `bce032c0`** (42 commits;
+  scheduler/graph overlap, Qwen3.8 27B MTP, `flare run --history-drafts`, cuTile preparation, and
+  `601b6b11`'s cache-only `ignition export` — no `--output`, packages land in Flare's model cache).
+  No patch retired. Conflicts (upstream scheduler terminal coefficients beside `patch/01`'s
+  `--generation-defaults`, the API-key type, the recipe help's new image/MLA lines) kept both sides.
+  `patch/08` now also carries `ignition/recipes/kimi3/assets/chat_template.jinja`, which
+  `templates.rs` embeds since this base. Pre-rebase refs: `backup/pre-rebase-20261024-*` tags.
 - **Moving to a newer upstream:** `scripts/fork/sync.sh`, then
   `scripts/fork/rebase.sh upstream/main` (or a sha; the tip defaults to `deploy`). The script
   refuses a tip that shares a commit with another branch (`--update-refs` would skip it).
