@@ -64,6 +64,25 @@ class BufferForward:
         return self.output
 
 
+class SizedStorageForward(BufferForward):
+    """BufferForward's views over an allocation whose total size does not reach any input shape."""
+
+    def __init__(self, handle, nbytes):
+        super().__init__(handle)
+        self.storage = torch.zeros(nbytes, dtype=torch.uint8, device="cuda")
+        self.part = self.storage.view(torch.float32)[16:48]
+        self.alias = self.storage.view(torch.bfloat16)[:512]
+        self.before = torch.empty_like(self.alias)
+
+    def __call__(self):
+        self.alias.zero_()
+        _fill(self.part, self.handle)
+        self.before.copy_(self.alias)
+        torch.library.wrap_triton(_copy)[(1,)](self.source, self.output)
+        self.output.add_(self.part)
+        return self.output
+
+
 class ElementwiseForward:
     def __init__(self):
         self.source = torch.randn(4096, device="cuda")
@@ -647,3 +666,27 @@ def test_catalog_recompiles_changed_aliases_before_warmup(tmp_path, monkeypatch,
             assert hits == [False, True, False, True, False]
     finally:
         dist.destroy_process_group()
+
+
+@torch.no_grad()
+@pytest.mark.parametrize("deferred", [False, True])
+def test_catalog_recompiles_forwards_restored_onto_smaller_storage(tmp_path, monkeypatch, deferred):
+    from ignition.preparation.compile_pool import CompilePool
+    from ignition.preparation.execution import GraphSignature
+
+    submitted = []
+    submit = CompilePool.submit
+    def record(pool, forward, path):
+        submitted.append(path)
+        return submit(pool, forward, path)
+    monkeypatch.setattr(CompilePool, "submit", record)
+    cache = ForwardCache(namespace={"model": "storage-size"}, device="cuda:0", root=tmp_path, compile_workers=1)
+    signatures = {"decode": GraphSignature("decode", 1, 1)}
+    compilations = []
+    # Same input shapes each time; only the allocation behind the shared views changes.
+    for nbytes in [2048, 1536, 4096, 1536]:
+        forward = SizedStorageForward(23, nbytes)
+        cache.prepare_many({"decode": forward}, signatures, materialize=(lambda: None) if deferred else None)
+        compilations.append(len(submitted))
+        torch.testing.assert_close(forward.output, forward.source + 23.25)
+    assert compilations == [1, 2, 2, 2]

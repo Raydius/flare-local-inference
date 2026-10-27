@@ -188,6 +188,13 @@ class _Input:
             value = _byte_storage(value).view(dtype).as_strided(shape, stride, offset)
         return value
 
+    def required_bytes(self):
+        """Bytes of live storage the rebound view spans, including whole-storage bases."""
+        dtype, shape, stride, offset = self.view
+        if 0 in shape:
+            return 0
+        return (offset + 1 + sum((size - 1) * step for size, step in zip(shape, stride))) * dtype.itemsize
+
 
 def _serialized_triton_launch(kernel, constants, arguments):
     """Preserve one traced launch config without serializing an autotuner."""
@@ -301,6 +308,13 @@ class StorageBackend(SerializableCallable):
                 raise BindingMismatch('compiled forward input shapes, layouts, or storage aliases changed: '
                     f'{len(self.signature)} expected inputs, {len(signature)} supplied; '
                     f'first differences (index, expected, actual): {differences[:4]}')
+            # Equal views can sit in a smaller allocation than the storage base compiled over.
+            sizes = [(item.index, item.required_bytes(), args[item.index].untyped_storage().nbytes())
+                     for item in self.inputs if item.view is not None]
+            short = [size for size in sizes if size[1] > size[2]]
+            if short:
+                raise BindingMismatch('compiled forward storage is smaller than its compiled views: '
+                    f'first differences (input, required bytes, storage bytes): {short[:4]}')
             if _CHECK_BINDINGS.get():
                 raise _BindingsChecked
             self._bound = identity, [item.bind(args) for item in self.inputs]
