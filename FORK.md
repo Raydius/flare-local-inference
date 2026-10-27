@@ -57,7 +57,15 @@ base/current (tag → an upstream commit)
   No patch retired. Conflicts (upstream scheduler terminal coefficients beside `patch/01`'s
   `--generation-defaults`, the API-key type, the recipe help's new image/MLA lines) kept both sides.
   `patch/08` now also carries `ignition/recipes/kimi3/assets/chat_template.jinja`, which
-  `templates.rs` embeds since this base. Pre-rebase refs: `backup/pre-rebase-20261024-*` tags.
+  `templates.rs` embeds since this base. Pre-rebase refs: `backup/pre-rebase-20261024-*` tags. **2026-10-26:
+  moved to upstream `0ce6de86`** (19 commits; `<think>` text no longer a reasoning delimiter (#94),
+  prose `<tool_call>` / `<function=` no longer abort a response (#67), resident embedding-table scales
+  by default (`c370a85c`), `ignition serve` renamed `ignition debug-serve`). Retired
+  `patch/08-docker-context-templates`: upstream `230c5b40` admits and copies the qwen38 / step5 /
+  kimi3 template assets itself. Conflicts (`patch/06`'s `docs/TODO.txt` entry beside upstream's new
+  one; this file's old inventory table) kept both sides; `patch/07`'s `--rope-parameters` stays in the
+  preparation arguments `export` and `debug-serve` share. Pinned to `0ce6de86`, not the moving
+  `upstream/main`. Pre-rebase refs: `backup/pre-rebase-20261026-*` tags.
 - **Moving to a newer upstream:** `scripts/fork/sync.sh`, then
   `scripts/fork/rebase.sh upstream/main` (or a sha; the tip defaults to `deploy`). The script
   refuses a tip that shares a commit with another branch (`--update-refs` would skip it).
