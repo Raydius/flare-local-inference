@@ -1,3 +1,14 @@
+[ ] Decide on a DFlash2 recipe for Qwen3.8-Flash-Next (incoai/Qwen3.8-Flash-Next-DFlash2)
+    from the greedy teacher-forced acceptance in qualify/results/dflash2-acceptance/
+    (qualify/dflash2_acceptance.py: DFlash2 and MTP arms on the same canonical
+    traces at widths 4 and 8; the four 6.6k-token prefix_branch cases are absent
+    because the canonical prefill exceeded the 16 GB GPU used). Overall DFlash2
+    leads MTP by 2% (width 4) and 5% (width 8); on code_edit, the fork's main
+    workload, by 2% and 15%, so a recipe pays only at width 8. A recipe needs
+    completed-layer taps 5/15/25/35/45 averaged over the four hyperconnection
+    streams, five 2048-token draft K/V windows per state row, and the shared
+    parallel-draft round.
+
 [ ] Expose the selected deployment's rebuild metadata in flare inspect --json.
     Payload packages report rebuild: null even when DeploymentBody.rebuild is present.
 
