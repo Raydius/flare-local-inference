@@ -75,6 +75,26 @@ base/current (tag → an upstream commit)
   `patch/09-forward-storage-fit` (coincident with the stack top), re-pointed to its rebased
   commit `ec2f234d` by hand. Pinned to `56f5702a`, not the moving `upstream/main` (already at
   `acbf2858` when this move ran). Pre-rebase refs: `backup/pre-rebase-20261028-*` tags.
+  **2026-10-28: retired `patch/09-forward-storage-fit`** (branch deleted; kept in
+  `backup/pre-rebase-20261028-patch-09-forward-storage-fit`): upstream `317c1ecc` binds compiled
+  storage as regions without cloning whole buffers, so a cached forward restores onto a smaller
+  allocation with correct outputs and the guard never fires — in-image on
+  `local/flare-ignition:ec2f234d` the patch's own regression test fails only because the expected
+  recompiles (`[1,2,2,2]`) no longer occur (`[1,1,1,1]`). The stack tip is
+  `patch/07-rope-parameters` (`e8bac4a6`); five patches remain.
+  **2026-11-02: moved to upstream `6fa01a49`** (61 commits; Muse Spark, Qwen3.8-27B DFlash2
+  through shared `components/dflash2.py`, vocabulary-parallel sampling (#135), the collective
+  ladder, and FlashInfer floated to `@main`). All 14 stack commits replayed; two conflicts
+  (`ignition/planning.py`, `tests/cli/test_models.py`) kept both sides. No patch retired. Pinned
+  to `6fa01a49`, not the moving `upstream/main`. Pre-rebase refs:
+  `backup/pre-rebase-20261102-*` tags.
+  **2026-11-04: moved to upstream `585159c9`** (60 commits; execution ABI 6 with package-defined
+  completion capacity and sixteen-token completions, DFlash2 compact prefill and window staging,
+  QAD draft quantization, warmup mapping reuse across compiled warmup (#154), the Selene host
+  tier, FlashInfer pinned to `560fef16`). All 14 stack commits replayed; one conflict
+  (`flare/src/main.rs`: upstream's `thinking_token_budget` beside `patch/01`'s defaults apply)
+  kept both sides. No patch retired. Pinned to `585159c9`, not the moving `upstream/main`.
+  Pre-rebase refs: `backup/pre-rebase-20261104-*` tags.
 - **Moving to a newer upstream:** `scripts/fork/sync.sh`, then
   `scripts/fork/rebase.sh upstream/main` (or a sha; the tip defaults to `deploy`). The script
   refuses a tip that shares a commit with another branch (`--update-refs` would skip it).
