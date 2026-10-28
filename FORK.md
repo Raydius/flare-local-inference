@@ -66,6 +66,15 @@ base/current (tag → an upstream commit)
   one; this file's old inventory table) kept both sides; `patch/07`'s `--rope-parameters` stays in the
   preparation arguments `export` and `debug-serve` share. Pinned to `0ce6de86`, not the moving
   `upstream/main`. Pre-rebase refs: `backup/pre-rebase-20261026-*` tags.
+  **2026-10-28: moved to upstream `56f5702a`** (35 commits; fused BF16 Markov sampling with
+  block-broadcast speculation (#107), storage mutations preserved without cloning (`317c1ecc`),
+  captured startup tuning graphs with runtime collective tuning (`f617022d`, execution ABI 5 /
+  model contract 3 — prepared packages must be re-exported), bundled Inductor patches before
+  preparation (#117), FlashInfer pin `f91f257e` (`7c1a9fde`), row-scaled FP8 Markov-head choices
+  (#121)). All 18 stack commits replayed with zero conflicts; `--update-refs` skipped
+  `patch/09-forward-storage-fit` (coincident with the stack top), re-pointed to its rebased
+  commit `ec2f234d` by hand. Pinned to `56f5702a`, not the moving `upstream/main` (already at
+  `acbf2858` when this move ran). Pre-rebase refs: `backup/pre-rebase-20261028-*` tags.
 - **Moving to a newer upstream:** `scripts/fork/sync.sh`, then
   `scripts/fork/rebase.sh upstream/main` (or a sha; the tip defaults to `deploy`). The script
   refuses a tip that shares a commit with another branch (`--update-refs` would skip it).
