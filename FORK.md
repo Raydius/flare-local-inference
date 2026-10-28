@@ -75,6 +75,13 @@ base/current (tag → an upstream commit)
   `patch/09-forward-storage-fit` (coincident with the stack top), re-pointed to its rebased
   commit `ec2f234d` by hand. Pinned to `56f5702a`, not the moving `upstream/main` (already at
   `acbf2858` when this move ran). Pre-rebase refs: `backup/pre-rebase-20261028-*` tags.
+  **2026-10-28: retired `patch/09-forward-storage-fit`** (branch deleted; kept in
+  `backup/pre-rebase-20261028-patch-09-forward-storage-fit`): upstream `317c1ecc` binds compiled
+  storage as regions without cloning whole buffers, so a cached forward restores onto a smaller
+  allocation with correct outputs and the guard never fires — in-image on
+  `local/flare-ignition:ec2f234d` the patch's own regression test fails only because the expected
+  recompiles (`[1,2,2,2]`) no longer occur (`[1,1,1,1]`). The stack tip is
+  `patch/07-rope-parameters` (`e8bac4a6`); five patches remain.
 - **Moving to a newer upstream:** `scripts/fork/sync.sh`, then
   `scripts/fork/rebase.sh upstream/main` (or a sha; the tip defaults to `deploy`). The script
   refuses a tip that shares a commit with another branch (`--update-refs` would skip it).
