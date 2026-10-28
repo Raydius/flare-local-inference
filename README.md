@@ -3,7 +3,7 @@
 This fork carries local patches on top of
 [NVIDIA/flare-local-inference](https://github.com/NVIDIA/flare-local-inference).
 `deploy` (this branch) is the full patch stack; `main` mirrors upstream unchanged.
-Stack base: upstream `0ce6de86` (2026-10-26).
+Stack base: upstream `56f5702a` (2026-10-28).
 Maintenance workflow: [FORK.md](FORK.md).
 
 ## Active patches
