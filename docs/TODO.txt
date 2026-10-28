@@ -17,6 +17,17 @@
     legacy review still requires the files that VerifiedCore::open reads.
     Verify a legacy acquisition with an unknown key and missing companions.
 
+[ ] Decide on a DFlash2 recipe for Qwen3.8-Flash-Next (incoai/Qwen3.8-Flash-Next-DFlash2)
+    from the greedy teacher-forced acceptance in qualify/results/dflash2-acceptance/
+    (qualify/dflash2_acceptance.py: DFlash2 and MTP arms on the same canonical
+    traces at widths 4 and 8; the four 6.6k-token prefix_branch cases are absent
+    because the canonical prefill exceeded the 16 GB GPU used). Overall DFlash2
+    leads MTP by 2% (width 4) and 5% (width 8); on code_edit, the fork's main
+    workload, by 2% and 15%, so a recipe pays only at width 8. A recipe needs
+    completed-layer taps 5/15/25/35/45 averaged over the four hyperconnection
+    streams, five 2048-token draft K/V windows per state row, and the shared
+    parallel-draft round.
+
 [ ] Report rebuild_weights for payload cores in flare inspect --json.
     Payload inspection reports the selected deployment's rebuild manifest but
     leaves each rank's rebuild_weights unset, so the JSON reports null. Remove
