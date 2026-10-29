@@ -237,6 +237,9 @@ def prepare(snapshot, config, *, progress=None, core_storage):
         from .dflash import SpeculativePreparation
         speculation = SpeculativePreparation(weights, pool, requests, inputs, completion=completion, frame=frame,
             sequence=sequence, session=session, workspace=arena, coordinator=coordinator, examples=examples)
+        from ignition.components.parallel_draft import allocate_copy_buffers
+        speculation.copy_buffers = allocate_copy_buffers(requests.capacity, device)
+        buffers.update(speculation.copy_buffers)
     modes = (drafting,) if config.benchmark_selection is not None else serving_modes(drafting, config.mtp_only)
     count = (len(modes) * (prefill_graph_count(prefill_sizes, scoring) + 4 * len(batch_sizes))
              + (len(batch_sizes) if False in modes else 0) + len(config.speculative_round_shapes) + len(patches))
@@ -290,7 +293,8 @@ def prepare(snapshot, config, *, progress=None, core_storage):
                 forward = PreparedParallelDraftRound(speculation, batch, width, name,
                     target_token_capacity=packed)
                 forward.prepare()
-                add(name, forward, "speculative", batch, width, (*inputs.buffers(), "sampling_grammar_mask"),
+                add(name, forward, "speculative", batch, width,
+                    (*inputs.buffers(), "sampling_grammar_mask", *speculation.copy_buffers),
                     enabled=True, packed_tokens=packed)
         row_inputs = ("request_state_rows", "row_slot_ids", "row_generations", "live_rows")
         for enabled in modes:

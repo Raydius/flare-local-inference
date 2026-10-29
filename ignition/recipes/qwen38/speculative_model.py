@@ -329,6 +329,8 @@ class PreparedSpeculativeRound:
             copy = (active & (o.copy_generation[safe] == o.requests.generation[safe])
                     & (o.copy_expected[safe] == before) & (index < o.copy_count[safe])
                     & (o.copy_ids[safe, index] >= 0) & (o.copy_ids[safe, index] < o.requests.vocab_size))
+            if token_limits is not None:
+                copy &= index < token_limits - 1
             point_mass = (target.vocab_ids == o.copy_ids[safe, index, None]).float()
             draft_probabilities[:, index].copy_(torch.where(copy[:, None], point_mass, probabilities[:, 0]))
             sampled = torch.where(copy, o.copy_ids[safe, index], sampled)

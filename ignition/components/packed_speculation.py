@@ -91,6 +91,7 @@ class PreparedPackedSpeculativeRound:
         admitted = admitted & (~submitted | (agreement[0, :batch] == self.world)).all()
         o.inputs.query_lengths[:batch].copy_(torch.where(admitted, o.inputs.query_lengths[:batch], 0))
         pad = t.width - s.width
+        # The proposal carries its copy mask; the target commit bounds it against the allocated lengths.
         proposal = replace(proposal, active=proposal.active & admitted,
             candidates=torch.nn.functional.pad(proposal.candidates, (0, pad)),
             drafts=torch.nn.functional.pad(proposal.drafts, (0, pad)),
