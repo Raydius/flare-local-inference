@@ -358,3 +358,20 @@
     dense Qwen3.8, and read each one's pre-tokenizer for Metaspace (see the test
     header). Close when each passes and none uses Metaspace, or loading rejects
     one that does.
+
+[ ] Gate the Triton kernel-resolution freeze guard on planning state rather
+    than module name: b12x compile_plan.py:548-556 and 587-593 only check
+    `b12x.*` JITs, so an unprepared Ignition kernel can lower during capture
+    without raise_if_kernel_resolution_frozen firing.
+
+[ ] Retire the manual _NATIVE_JITS registrations in
+    ignition/components/moe_sm103.py:353,383 and
+    ignition/components/sm103_projection.py:254 now that planning eviction
+    covers every JIT module (_PLANNED_TRITON_JITS); they opt those kernels into
+    retention reclaim, which other Ignition kernels do not get.
+
+[ ] Retention reclaim (b12x compile_plan.py:141-156, evict_unretained_triton)
+    skips non-registered Ignition Triton kernels, so losing warp candidates
+    stay module-loaded after tuning. Measure the retained footprint and decide
+    whether Ignition kernels should join the reclaim.
+
