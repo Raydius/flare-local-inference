@@ -19,13 +19,13 @@ Ignition prepares the recipe's learned drafter unless `--no-mtp` is given.
 default policy. `flare run` accepts `--mtp-draft-tokens` within the core's
 prepared capacities and selects the policy with `--mtp-adaptive-verification`
 or `--no-mtp-adaptive-verification`.
-`flare run CORE --history-drafts` augments Qwen's learned MTP proposals
-with continuations from shared decoded history. `--no-history-drafts` disables
+`flare run CORE --history-drafts` augments learned proposals with
+continuations from shared decoded history. `--no-history-drafts` disables
 that augmentation. History drafting defaults to off and is selected at startup;
 Ignition exports no history preference. It requires speculative graphs that
-declare copy-token inputs, which only the `qwen3.8-flash` MTP graphs do. Both
-settings use the same captured
-MTP graphs and buffers. Native `ignition debug-serve` accepts the same
+declare copy-token inputs: Qwen's MTP round and the shared parallel-draft
+round of MiMo V2.6 Pro and Nemotron Bolt declare them. Both settings use the
+same captured speculative graphs and buffers. Native `ignition debug-serve` accepts the same
 options.
 
 With copying enabled, each loaded model retains the most recent 65,536 committed
@@ -463,7 +463,13 @@ top-k/top-p/min-p filtering at each conditional prefix. The proposal may use a
 different filter when its retained `q` describes the actual draw. A copied token
 has a point-mass proposal law:
 `q(copy_token)=1`, with zero mass elsewhere. Copy substitutions use that law
-at every temperature, including when replacing a native MTP proposal.
+at every temperature, including when replacing a native MTP proposal. The
+shared parallel-draft round substitutes copies after every drafter path has
+produced its proposals and keeps the learned proposals after a copied run
+offered with their retained `q`, which remains exact under rejection sampling.
+The commit records the copy mask bounded by the offered-draft count derived
+from the request's token limit, so a history continuation longer than a
+request's remaining budget never claims positions the round cannot verify.
 
 Temperature must be positive. Requests use the checkpoint's sampling defaults
 unless explicit values override them. Target distributions use the same

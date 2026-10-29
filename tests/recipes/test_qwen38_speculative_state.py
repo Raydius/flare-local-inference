@@ -124,9 +124,10 @@ def test_live_row_state_survives_width_one_and_retains_accepted_endpoint():
     graph.reset()
 
 
+@pytest.mark.parametrize("limit", [None, 3])
 @pytest.mark.parametrize("temperature", [.7, 1.])
 @pytest.mark.parametrize("copy_epoch", [12, 13])
-def test_recursive_draft_reorders_residuals_and_physical_copy_hints(temperature, copy_epoch):
+def test_recursive_draft_reorders_residuals_and_physical_copy_hints(temperature, copy_epoch, limit):
     from ignition.recipes.qwen38.sampling import DeviceRequestState, RequestAdmission
     from ignition.recipes.qwen38.speculative_model import PreparedSpeculativeRound
 
@@ -150,15 +151,18 @@ def test_recursive_draft_reorders_residuals_and_physical_copy_hints(temperature,
             query_lengths=torch.full((batch,), width, dtype=torch.int32)),
         cache={48: cache},
         draft_rng_generation=torch.zeros(4, dtype=torch.int64), draft_rng_offset=torch.zeros(4, dtype=torch.int64),
-        copy_expected=torch.tensor([-1, -1, -1, 64]), copy_count=torch.tensor([0, 0, 0, 1]),
+        copy_expected=torch.tensor([-1, -1, -1, 64]), copy_count=torch.tensor([0, 0, 0, 7]),
         copy_ids=torch.full((4, 7), -1, dtype=torch.int64),
         draft_tables=torch.ones((4, 4), dtype=torch.int32))
-    owner.copy_ids[3, 0] = 27
+    # A seven-token history hit: the lane's token budget bounds how many are copied.
+    owner.copy_ids[3] = torch.arange(27, 34)
     operation = PreparedSpeculativeRound.__new__(PreparedSpeculativeRound)
     operation.owner, operation.batch, operation.width = owner, batch, width
     operation.gdn_commit = None
     operation.draft_metadata = DraftMetadata(tokens=batch, rows=batch, context=256, device="cpu").functional()
     operation.absorb_metadata = DraftMetadata(tokens=batch * width, rows=batch, context=256, device="cpu").functional()
+    if limit is not None:
+        owner.inputs.query_lengths.fill_(limit)
 
     class Draft:
         inputs = []
@@ -213,11 +217,14 @@ def test_recursive_draft_reorders_residuals_and_physical_copy_hints(temperature,
     operation.decoder = lambda runtime: (torch.zeros((batch * width, 2560), dtype=torch.bfloat16),
         torch.zeros((batch * width, 128)), SimpleNamespace(residual=torch.zeros((batch * width, 10240), dtype=torch.bfloat16)), None)
     operation()
-    chosen = 27 if copy_epoch == 13 else 21
-    assert verification.drafts[1].tolist() == [chosen, 21, 21]
-    assert commit.mask.tolist() == [0, int(copy_epoch == 13)]
-    assert verification.probabilities[1, 0, chosen] == 1
-    assert verification.probabilities[1, 0].count_nonzero() == 1
+    copied = (3 if limit is None else limit - 1) if copy_epoch == 13 else 0
+    chosen = 27 if copied else 21
+    drafts = [27 + i if i < copied else 21 for i in range(3)]
+    assert verification.drafts[1].tolist() == (drafts if limit is None else drafts[:limit - 1] + [0] * (4 - limit))
+    assert commit.mask.tolist() == [0, (1 << copied) - 1]
+    for i in range(3):
+        assert verification.probabilities[1, i, drafts[i]] == 1
+        assert verification.probabilities[1, i].count_nonzero() == 1
     assert operation.draft.tokens[1][0] == chosen
     assert operation.draft.inputs[1][0].eq(100).all()
     assert operation.draft.inputs[2][0].eq(101).all()

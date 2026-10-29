@@ -20,6 +20,35 @@ from .speculation import (
 from .state import save_hidden
 
 
+def allocate_copy_buffers(capacity, device):
+    """Decoded-history copy inputs packed per request slot; count 0 leaves a round's proposals unchanged."""
+    return {"copy_token_ids": torch.full((capacity, 7), -1, dtype=torch.int64, device=device),
+            "copy_token_count": torch.zeros(capacity, dtype=torch.int32, device=device),
+            "copy_expected_consumed": torch.full((capacity,), -1, dtype=torch.int64, device=device),
+            "copy_generation": torch.zeros(capacity, dtype=torch.int64, device=device)}
+
+
+def substitute_copies(drafts, probabilities, valid, copy_mask, *, active, before, limits, slots, generation,
+                      copy_ids, copy_count, copy_expected, copy_generation, vocab_ids):
+    """Replace leading drafts with the history copies offered for the round's consumed position.
+
+    Copied positions carry an exact one-hot distribution and are valid; drafter
+    proposals after the copied run stay offered with their retained distributions.
+    Runs after every drafter path and the proposal broadcast, with no collective.
+    """
+    copy_mask.zero_()
+    safe = slots.clamp(0, copy_count.shape[0] - 1)
+    offered = active & (copy_generation[safe] == generation[safe]) & (copy_expected[safe] == before)
+    ids, vocab = copy_ids[safe], vocab_ids.numel()
+    for i in range(drafts.shape[1]):
+        copy = offered & (i < copy_count[safe]) & (ids[:, i] >= 0) & (ids[:, i] < vocab) & (i < limits - 1)
+        drafts[:, i].copy_(torch.where(copy, ids[:, i], drafts[:, i]))
+        probabilities[:, i].copy_(torch.where(copy[:, None], (vocab_ids == ids[:, i, None]).float(),
+                                              probabilities[:, i]))
+        valid[:, i].logical_or_(copy)
+        copy_mask.bitwise_or_(copy.long() << i)
+
+
 def prepare_sampling_broadcasts(proposals, verification, *, collectives, session, name, result_runtime=None):
     """Synchronize proposals before dependent work and acceptance before state commits."""
     operations = [(f"proposal{index}", proposal) for index, proposal in enumerate(proposals)]
@@ -41,6 +70,8 @@ class DraftProposalState:
     base_offset: torch.Tensor
     metadata: Metadata | None
     features: dict[str, torch.Tensor] | None = None
+    # Bit i marks a history copy offered at draft position i; the commit records it.
+    copy_mask: torch.Tensor | None = None
 
 
 class PreparedParallelDraftRound:
@@ -156,6 +187,10 @@ class PreparedParallelDraftRound:
         self.active = torch.zeros(b, dtype=torch.bool, device=device)
         self.candidates = torch.zeros((b, w), dtype=torch.int64, device=device)
         self.drafts = torch.zeros((b, w - 1), dtype=torch.int64, device=device)
+        self.copy_mask = torch.zeros(b, dtype=torch.int64, device=device)
+        self.copy_buffers = getattr(o, "copy_buffers", None)
+        if self.copy_buffers is not None and self.vocabulary_parallel:
+            raise ValueError("history copies and vocabulary-parallel sampling are exclusive")
 
         local_vocab = o.scratch.local_logits.shape[-1] if self.vocabulary_parallel else o.requests.vocab_size
         self.probability_shape = (b, w - 1, local_vocab)
@@ -293,6 +328,7 @@ class PreparedParallelDraftRound:
             logits=None if private else self.decoder.scratch.logits.view(b, w, -1), rng=o.rng,
             draft_context_lag=0,
             token_limits=o.inputs.query_lengths[:b],
+            copy_offered_mask=self.copy_mask,
         )
         commit.prepare()
         if commit.logprobs is not None:
@@ -317,7 +353,7 @@ class PreparedParallelDraftRound:
         self.metadata = self.draft_metadata = None
         self.rows = self.draft_positions = None
         for name in ("draft_inputs", "markov_token", "before", "active", "candidates", "drafts",
-                     "valid", "seed", "offset", "base_offset", "sampled", "logits", "probabilities"):
+                     "valid", "seed", "offset", "base_offset", "sampled", "logits", "probabilities", "copy_mask"):
             setattr(self, name, None)
 
     def _prepare_vocabulary_parallel(self):
@@ -501,8 +537,17 @@ class PreparedParallelDraftRound:
                     drafts, valid, sampled = self.proposal_block.finish(drafts, valid, active, limits)
                 else:
                     self.proposal_block.finish(block_state, drafts, probabilities, valid, sampled, active, limits)
+        copy_mask = torch.zeros(b, dtype=torch.int64, device=device)
+        if self.copy_buffers is not None:
+            c = self.copy_buffers
+            substitute_copies(drafts, probabilities, valid, copy_mask, active=active,
+                before=before, limits=limits, slots=slots, generation=o.requests.generation,
+                copy_ids=c["copy_token_ids"], copy_count=c["copy_token_count"],
+                copy_expected=c["copy_expected_consumed"], copy_generation=c["copy_generation"],
+                vocab_ids=torch.arange(o.requests.vocab_size, device=device))
         candidates[:, 1:].copy_(drafts)
-        proposal = DraftProposalState(before, active, candidates, drafts, valid, base_offset, draft_metadata, features)
+        proposal = DraftProposalState(before, active, candidates, drafts, valid, base_offset, draft_metadata, features,
+                                      copy_mask=copy_mask)
         if advance_rng and self.draft is not None:
             self.commit_draft_rng(proposal=proposal)
         return proposal
@@ -543,7 +588,8 @@ class PreparedParallelDraftRound:
                 target_scratch["valid"], disjoint=True, drafts=proposal.drafts, draft_valid=proposal.valid)
         if proposal_valid is not None:
             acceptance.valid.logical_and_(proposal_valid)
-        committed = commit(logits.view(b, w, -1), acceptance=acceptance, inputs=proposal.candidates)
+        committed = commit(logits.view(b, w, -1), acceptance=acceptance, inputs=proposal.candidates,
+                           copy_offered_mask=proposal.copy_mask)
         counts = committed.emitted_count
         if w > 1:
             self.decoder.commit(counts, records, metadata)

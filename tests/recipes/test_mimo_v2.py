@@ -141,3 +141,29 @@ def test_attention_scratch_requires_shared_query_geometry():
     text = dict(c.text, swa_head_dim=128)
     with pytest.raises(ValueError, match="matching query head counts and head dimensions"):
         AttentionScratch.allocate(ModelConfig.from_dict(text, checkpoint_ranks=8), TensorParallelShard(0, 2), 4, "cpu")
+
+
+def test_speculative_graphs_bind_copy_inputs_only_when_declared():
+    """History copies opt in by listing the round owner's buffers on the speculative signature."""
+    from ignition.components.parallel_draft import allocate_copy_buffers
+    from ignition.components.state import StateLayout
+    from ignition.preparation import runtime_package_pb2 as p
+    from ignition.preparation.execution import GraphSignature
+    from ignition.recipes.mimo_v2.contract import prepare
+
+    copies = allocate_copy_buffers(2, "cpu")
+    assert copies["copy_token_ids"].shape == (2, 7) and int(copies["copy_token_count"].sum()) == 0
+    pool = SimpleNamespace(layout=StateLayout.from_specs([("consumed_tokens", (1,), torch.int64)]))
+    plain = ("request_state_rows", "row_slot_ids", "row_generations", "live_rows", "sampling_grammar_mask")
+    signatures = {"round": GraphSignature("speculative", 2, 4, (*plain, *copies), speculation_enabled=True),
+                  "bare": GraphSignature("speculative", 2, 4, plain, speculation_enabled=True)}
+    contract = prepare(signatures, dict(copies), pool, page_tokens=64, draft_lag=0)
+    graphs = {graph["graph"]: graph for graph in contract["graphs"]}
+    bound = {b["buffer"]: b["source"] for b in graphs["round"]["inputs"]}
+    assert {name: bound[name] for name in copies} == {
+        "copy_token_ids": p.COPY_TOKEN_IDS, "copy_token_count": p.COPY_TOKEN_COUNT,
+        "copy_expected_consumed": p.COPY_CONSUMED_TOKENS, "copy_generation": p.COPY_GENERATION}
+    assert all(b["indexing"] == p.REQUEST_ROW for b in graphs["round"]["inputs"] if b["buffer"] in copies)
+    assert not any(b["buffer"] in copies for b in graphs["bare"]["inputs"])
+    assert [b["buffer"] for b in graphs["bare"]["inputs"]] == [
+        b["buffer"] for b in graphs["round"]["inputs"] if b["buffer"] not in copies]
