@@ -292,6 +292,10 @@ def prepare_rank(snapshot, config, *, rank, group, progress=None, core_storage=N
                 context_runtime=context_collective,
                 coordinator=coordinator,
             )
+            from ignition.components.parallel_draft import allocate_copy_buffers
+
+            speculation.copy_buffers = allocate_copy_buffers(requests.capacity, device)
+            buffers.update(speculation.copy_buffers)
 
     scoring = PromptScoring.allocate(config, device, buffers, frame=frame, group=group,
         ipc=core_storage.peer_storage, runtime=collective, coordinator=coordinator)
@@ -384,7 +388,8 @@ def prepare_rank(snapshot, config, *, rank, group, progress=None, core_storage=N
                 forward = PreparedParallelDraftRound(speculation, batch, width, name,
                                                      buffers=speculation.sampling_buffers.cursor(), target_token_capacity=packed)
                 forward.prepare()
-                add(name, forward, "speculative", batch, width, forward_inputs, enabled=True, packed_tokens=packed)
+                add(name, forward, "speculative", batch, width, (*forward_inputs, *speculation.copy_buffers),
+                    enabled=True, packed_tokens=packed)
         for capacity in reversed(PATCH_CAPACITIES):
             name = f"vision{capacity}"
             cursor = graph_buffers.cursor()
