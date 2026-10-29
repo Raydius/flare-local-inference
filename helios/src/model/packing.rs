@@ -365,9 +365,11 @@ impl Inputs {
             for (row, lane) in frame.step.lanes.iter().enumerate() {
                 let live = frame.scheduler.request(lane.request)?;
                 if frame.step.lane_kind(row) == GraphKind::Speculative && live.copy_allowed() {
+                    // The lane verifies at most `tokens - 1` drafts; a lane near its
+                    // output budget offers fewer positions than the graph width.
                     history_proposals[row] = Some(frame.scheduler.history_proposal(
                         live.tokens(),
-                        frame.step.token_capacity - 1,
+                        lane.tokens.saturating_sub(1),
                     ));
                 }
             }

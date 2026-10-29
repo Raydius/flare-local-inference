@@ -181,7 +181,8 @@ graphs, and maximum virtual extents for cache storage. `--max-concurrency N`
 and `--mtp-draft-tokens N` select supported reductions at load time;
 `--mtp-adaptive-verification` and `--no-mtp-adaptive-verification` select the
 verification policy. `--history-drafts` enables host history tracking and feeds
-continuations into existing graph inputs; it does not change the captured graphs.
+continuations into existing graph inputs; it does not change the captured graphs,
+and packages whose speculative graphs do not bind the copy inputs reject the flag at load.
 `--no-history-drafts` disables those proposals. Packages exported by Ignition
 record no history preference. Package defaults fill omitted settings; explicit
 startup settings win. Serving requires execution ABI 5 and prepared model
@@ -501,7 +502,7 @@ Help exits with status 0; usage errors go to stderr with status 2. Its options a
 | `--memory-limit LIMIT` | Per-GPU occupied size (`30G`), free-memory reserve (`-30G`, including `-0G`), or fraction of total memory (`0.8`) | `[memory] reserve`, otherwise package serving reserve |
 | `--mtp-draft-tokens N` | Reduce the maximum draft count; zero selects ordinary execution without draft generation, absorption, or draft-state maintenance | Package default |
 | `--mtp-adaptive-verification` / `--no-mtp-adaptive-verification` | Adaptive or fixed selection among captured widths | Package default |
-| `--history-drafts` / `--no-history-drafts` | Augment learned drafts with shared decoded-history continuations; requires enabled speculation and captured history inputs, as Qwen Flash provides | Off; package defaults apply unless overridden |
+| `--history-drafts` / `--no-history-drafts` | Augment learned drafts with shared decoded-history continuations; requires enabled speculation and captured history inputs, as Qwen Flash, MiMo V2.6 Pro, and Nemotron Bolt packages provide | Off; package defaults apply unless overridden |
 | `--mtp-adaptive-verification-alpha ALPHA` | Positive finite exponent on completed prefix-survival scheduling scores; below 1 favors longer verification prefixes | `1.0` |
 | `--mtp-verification-token-budget N` | Select one exact captured packed verification capacity per batch | All captured capacities |
 | `--mtp-max-verification-token-budget N` | Retain all captured packed verification capacities at or below a total-row ceiling | All captured capacities |

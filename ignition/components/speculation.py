@@ -519,7 +519,8 @@ class PreparedSpeculativeCommit:
         live = enabled & valid
         record = torch.cat((torch.stack((generation, self.sequence.expand_as(generation), consumed, generated,
             torch.where(emitted > 0, pending, -1), status.long(), error.long(), torch.zeros_like(emitted), emitted,
-            torch.where(live, offered, 0), emitted_drafts, torch.where(live, self.copy_offered_mask[row], 0),
+            torch.where(live, offered, 0), emitted_drafts,
+            torch.where(live, self.copy_offered_mask[row] & ((1 << offered.clamp_min(0)) - 1), 0),
             torch.full_like(emitted, -1),
             ((consumed - self.draft_context_lag).clamp_min(0) if self.draft_context_lag is not None
              else torch.full_like(emitted, -1)),

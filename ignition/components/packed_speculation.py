@@ -108,9 +108,10 @@ class PreparedPackedSpeculativeRound:
         self.admitted.logical_and_(cohort_valid)
         o.inputs.query_lengths[:b].copy_(torch.where(self.admitted, o.inputs.query_lengths[:b], 0))
         s.active.logical_and_(self.admitted)
+        # The target commit bounds the copy mask against the allocated lengths.
         for source, destination in ((s.before, t.before), (s.base_offset, t.base_offset),
                 (s.candidates, t.candidates), (s.drafts, t.drafts),
-                (s.probabilities, t.probabilities), (s.valid, t.valid)):
+                (s.probabilities, t.probabilities), (s.valid, t.valid), (s.copy_mask, t.copy_mask)):
             if destination.numel():
                 if destination.ndim > 1:
                     destination.zero_()

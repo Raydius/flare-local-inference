@@ -182,6 +182,9 @@ def prepare(snapshot, config, *, progress=None, package_storage):
         speculation = SpeculativePreparation(weights, pool, requests, inputs, completion=completion, frame=frame,
             sequence=sequence, session=session, workspace=arena, coordinator=coordinator,
             buffers=graph_buffers, layer_buffers=layer_buffers)
+        from ignition.components.parallel_draft import allocate_copy_buffers
+        speculation.copy_buffers = allocate_copy_buffers(requests.capacity, device)
+        buffers.update(speculation.copy_buffers)
     modes = (True, False) if drafting else (False,)
     count = (len(modes) * (prefill_graph_count(prefill_sizes, scoring) + 4 * len(batch_sizes))
              + len(batch_sizes) + len(config.speculative_round_shapes) + len(PATCH_CAPACITIES))
@@ -235,7 +238,8 @@ def prepare(snapshot, config, *, progress=None, package_storage):
                 forward = PreparedParallelDraftRound(speculation, batch, width, name,
                     buffers=speculation.cursor, target_token_capacity=packed)
                 forward.prepare()
-                add(name, forward, "speculative", batch, width, (*inputs.buffers(), "sampling_grammar_mask"),
+                add(name, forward, "speculative", batch, width,
+                    (*inputs.buffers(), "sampling_grammar_mask", *speculation.copy_buffers),
                     enabled=True, packed_tokens=packed)
         row_inputs = ("request_state_rows", "row_slot_ids", "row_generations", "live_rows")
         for enabled in modes:

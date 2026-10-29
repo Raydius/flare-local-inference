@@ -116,9 +116,10 @@ def test_live_row_state_survives_width_one_and_retains_accepted_endpoint():
     graph.reset()
 
 
+@pytest.mark.parametrize("limit", [None, 3])
 @pytest.mark.parametrize("temperature", [.7, 1.])
 @pytest.mark.parametrize("copy_epoch", [12, 13])
-def test_recursive_draft_reorders_residuals_and_physical_copy_hints(temperature, copy_epoch):
+def test_recursive_draft_reorders_residuals_and_physical_copy_hints(temperature, copy_epoch, limit):
     from ignition.recipes.qwen38.sampling import DeviceRequestState, RequestAdmission
     from ignition.recipes.qwen38.speculative_model import PreparedSpeculativeRound
 
@@ -137,13 +138,14 @@ def test_recursive_draft_reorders_residuals_and_physical_copy_hints(temperature,
         inputs=SimpleNamespace(request_state_rows=torch.arange(1, 5)[:, None].expand(4, 8), row_slot_ids=slots, row_generations=epochs, live_rows=torch.tensor([2], dtype=torch.int32)),
         cache={48: SimpleNamespace()},
         draft_rng_generation=torch.zeros(4, dtype=torch.int64), draft_rng_offset=torch.zeros(4, dtype=torch.int64),
-        copy_expected=torch.tensor([-1, -1, -1, 64]), copy_count=torch.tensor([0, 0, 0, 1]),
+        copy_expected=torch.tensor([-1, -1, -1, 64]), copy_count=torch.tensor([0, 0, 0, 7]),
         copy_ids=torch.full((4, 7), -1, dtype=torch.int64), candidates=torch.zeros((4, 8), dtype=torch.int64),
         draft_tables=torch.ones((4, 4), dtype=torch.int32))
-    owner.copy_ids[3, 0] = 27
+    # A seven-token history hit: the lane's token budget bounds how many are copied.
+    owner.copy_ids[3] = torch.arange(27, 34)
     operation = PreparedSpeculativeRound.__new__(PreparedSpeculativeRound)
     operation.owner, operation.batch, operation.width = owner, batch, width
-    operation.token_limits = None
+    operation.token_limits = None if limit is None else torch.full((batch,), limit, dtype=torch.int32)
     operation.state = SimpleNamespace(_validate=lambda: None, token_ids=torch.zeros(batch * width, dtype=torch.int64),
         qsa=SimpleNamespace(rope_positions=torch.zeros((batch * width, 3), dtype=torch.int64)))
     for name in ("before", "pending", "seed", "offset", "base_offset", "sampled", "copy_mask"):
@@ -156,7 +158,7 @@ def test_recursive_draft_reorders_residuals_and_physical_copy_hints(temperature,
     operation.draft_valid = torch.zeros((batch, width - 1), dtype=torch.bool)
     operation.draft_probabilities = torch.zeros((batch, width - 1, 128), dtype=torch.float32)
     operation.raw_backup = {}
-    operation.rows = torch.arange(batch)
+    operation.rows, operation.columns = torch.arange(batch), torch.arange(width)
     operation.target_residual = torch.zeros((batch * width, 10240), dtype=torch.bfloat16)
     feedback = torch.zeros((batch * width, 10240), dtype=torch.bfloat16)
     operation.draft_metadata = DraftMetadata(tokens=batch, rows=batch, context=256, device="cpu", hidden=feedback[:batch])
@@ -193,11 +195,14 @@ def test_recursive_draft_reorders_residuals_and_physical_copy_hints(temperature,
     operation.absorb = lambda: None
     operation.operations = (Proposal(), (Proposal(),) * 3, lambda: None, Commit(), ())
     operation()
-    chosen = 27 if copy_epoch == 13 else 21
-    assert operation.drafts[1].tolist() == [chosen, 21, 21]
-    assert operation.copy_mask.tolist() == [0, int(copy_epoch == 13)]
-    assert operation.draft_probabilities[1, 0, chosen] == 1
-    assert operation.draft_probabilities[1, 0].count_nonzero() == 1
+    copied = (3 if limit is None else limit - 1) if copy_epoch == 13 else 0
+    chosen = 27 if copied else 21
+    drafts = [27 + i if i < copied else 21 for i in range(3)]
+    assert operation.drafts[1].tolist() == (drafts if limit is None else drafts[:limit - 1] + [0] * (4 - limit))
+    assert operation.copy_mask.tolist() == [0, (1 << copied) - 1]
+    for i in range(3):
+        assert operation.draft_probabilities[1, i, drafts[i]] == 1
+        assert operation.draft_probabilities[1, i].count_nonzero() == 1
     assert operation.draft.tokens[1][0] == chosen
     assert operation.draft.inputs[1][0].eq(100).all()
     assert operation.draft.inputs[2][0].eq(101).all()

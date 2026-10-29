@@ -43,6 +43,35 @@ def prepare_sampling_scratch(batch, width, vocab, device, *, buffers=None, propo
     return result
 
 
+def allocate_copy_buffers(capacity, device):
+    """Decoded-history copy inputs packed per request slot; count 0 leaves a round's proposals unchanged."""
+    return {"copy_token_ids": torch.full((capacity, 7), -1, dtype=torch.int64, device=device),
+            "copy_token_count": torch.zeros(capacity, dtype=torch.int32, device=device),
+            "copy_expected_consumed": torch.full((capacity,), -1, dtype=torch.int64, device=device),
+            "copy_generation": torch.zeros(capacity, dtype=torch.int64, device=device)}
+
+
+def substitute_copies(drafts, probabilities, valid, copy_mask, *, active, before, limits, slots, generation,
+                      copy_ids, copy_count, copy_expected, copy_generation, vocab_ids):
+    """Replace leading drafts with the history copies offered for the round's consumed position.
+
+    Copied positions carry an exact one-hot distribution and are valid; drafter
+    proposals after the copied run stay offered with their retained distributions.
+    Runs after every drafter path and the proposal broadcast, with no collective.
+    """
+    copy_mask.zero_()
+    safe = slots.clamp(0, copy_count.shape[0] - 1)
+    offered = active & (copy_generation[safe] == generation[safe]) & (copy_expected[safe] == before)
+    ids, vocab = copy_ids[safe], vocab_ids.numel()
+    for i in range(drafts.shape[1]):
+        copy = offered & (i < copy_count[safe]) & (ids[:, i] >= 0) & (ids[:, i] < vocab) & (i < limits - 1)
+        drafts[:, i].copy_(torch.where(copy, ids[:, i], drafts[:, i]))
+        probabilities[:, i].copy_(torch.where(copy[:, None], (vocab_ids == ids[:, i, None]).float(),
+                                              probabilities[:, i]))
+        valid[:, i].logical_or_(copy)
+        copy_mask.bitwise_or_(copy.long() << i)
+
+
 def prepare_sampling_broadcasts(proposals, verification, *, collectives, session, name, buffers=None,
                                 result_runtime=None):
     """Synchronize proposals before dependent work and acceptance before state commits."""
@@ -170,6 +199,9 @@ class PreparedParallelDraftRound:
         self.active = torch.zeros(b, dtype=torch.bool, device=device)
         self.candidates = torch.zeros((b, w), dtype=torch.int64, device=device)
         self.drafts = torch.zeros((b, w - 1), dtype=torch.int64, device=device)
+        self.copy_mask = torch.zeros(b, dtype=torch.int64, device=device)
+        self.copy_buffers = getattr(o, "copy_buffers", None)
+        self.vocab_ids = torch.arange(o.requests.vocab_size, device=device)
         self.argmax = None
         if self.draft is not None and getattr(o, "draft_argmax", None) is not None:
             from .collectives import PreparedVocabularyArgmax
@@ -300,6 +332,7 @@ class PreparedParallelDraftRound:
             logits=self.decoder.scratch.logits.view(b, w, -1), rng=o.rng,
             draft_context_lag=0,
             token_limits=o.inputs.query_lengths[:b],
+            copy_offered_mask=self.copy_mask,
         )
         commit.prepare()
         self.operations = target, proposals, verify, commit
@@ -380,6 +413,14 @@ class PreparedParallelDraftRound:
                 self.markov_token.copy_(self.sampled)
             if advance_rng:
                 self.commit_draft_rng()
+        self.copy_mask.zero_()
+        if self.copy_buffers is not None:
+            c = self.copy_buffers
+            substitute_copies(self.drafts, self.probabilities, self.valid, self.copy_mask, active=self.active,
+                before=self.before, limits=limits, slots=slots, generation=o.requests.generation,
+                copy_ids=c["copy_token_ids"], copy_count=c["copy_token_count"],
+                copy_expected=c["copy_expected_consumed"], copy_generation=c["copy_generation"],
+                vocab_ids=self.vocab_ids)
         self.candidates[:, 1:].copy_(self.drafts)
 
     def commit_draft_rng(self, drafts=None):

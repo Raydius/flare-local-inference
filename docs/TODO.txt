@@ -9,6 +9,23 @@
     streams, five 2048-token draft K/V windows per state row, and the shared
     parallel-draft round.
 
+[ ] Declare the history-draft copy inputs on the remaining recipes that use the
+    shared parallel-draft round: DeepSeek V4 (ignition/recipes/deepseek4/bootstrap.py:387),
+    DeepSeek V4.1 (ignition/recipes/deepseek41/bootstrap.py:260), Kimi K3
+    (ignition/recipes/kimi3/bootstrap.py:360), MiniMax M3.1
+    (ignition/recipes/minimax_m3/bootstrap.py:384), Gemma 4
+    (ignition/recipes/gemma4/bootstrap.py:425), Step-5
+    (ignition/recipes/step5/bootstrap.py:262). Each needs a served qualification
+    before its package admits --history-drafts.
+
+[ ] Packed-prefix confidence is recorded from the learned token at positions a
+    copy later replaces (ignition/components/split_draft.py:103 via
+    ignition/components/parallel_draft.py:401), biasing prefix allocation for copies.
+
+[ ] Scheduler acceptance learning ignores the copy mask (helios/src/scheduler.rs:2421),
+    so copies inflate the learned MTP acceptance curve used for packed-round
+    allocation. Pre-existing on Qwen.
+
 [ ] Expose the selected deployment's rebuild metadata in flare inspect --json.
     Payload packages report rebuild: null even when DeploymentBody.rebuild is present.
 

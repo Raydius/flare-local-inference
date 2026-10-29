@@ -428,3 +428,28 @@ def test_qwen_yarn_variant_extends_the_declared_serving_context(monkeypatch, tmp
     config = seen.pop()
     assert isinstance(config, PreparationConfig)
     assert config.context == 1_048_576 and config.rope_scaling is scaled.checkpoint.rope_scaling
+
+
+def test_nemotron_speculative_graphs_bind_copy_inputs_only_when_declared():
+    """History copies opt in by listing the round owner's buffers on the speculative signature."""
+    import torch
+
+    from ignition.components.parallel_draft import allocate_copy_buffers
+    from ignition.components.state import StateLayout
+    from ignition.preparation import runtime_package_pb2 as p
+    from ignition.preparation.execution import GraphSignature
+    from ignition.recipes.nemotron_h.contract import prepare
+
+    copies = allocate_copy_buffers(2, "cpu")
+    pool = SimpleNamespace(layout=StateLayout.from_specs([("consumed_tokens", (1,), torch.int64)]), pages={})
+    plain = ("request_state_rows", "row_slot_ids", "row_generations", "live_rows", "sampling_grammar_mask")
+    signatures = {"round": GraphSignature("speculative", 2, 4, (*plain, *copies), speculation_enabled=True),
+                  "bare": GraphSignature("speculative", 2, 4, plain, speculation_enabled=True)}
+    contract = prepare(signatures, dict(copies), pool, vocabulary=131072, draft_lag=0)
+    graphs = {graph["graph"]: graph for graph in contract["graphs"]}
+    bound = {b["buffer"]: b["source"] for b in graphs["round"]["inputs"]}
+    assert {name: bound[name] for name in copies} == {
+        "copy_token_ids": p.COPY_TOKEN_IDS, "copy_token_count": p.COPY_TOKEN_COUNT,
+        "copy_expected_consumed": p.COPY_CONSUMED_TOKENS, "copy_generation": p.COPY_GENERATION}
+    assert not any(b["buffer"] in copies for b in graphs["bare"]["inputs"])
+    assert graphs["round"]["draft_cursor"]["lag_tokens"] == 0

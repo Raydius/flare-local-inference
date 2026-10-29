@@ -634,6 +634,195 @@ fn copied_proposals_require_concrete_graph_inputs() {
 }
 
 #[test]
+fn history_proposal_graphs_validate_with_prepared_copy_inputs() {
+    use InputIndexing::RequestRow;
+    use ValueSource::*;
+    let mut config = config();
+    config.speculative_widths = (1..=8).collect();
+    config.history_drafts = true;
+    for graph in &mut config.contract.graphs {
+        if graph.kind != GraphOperation::Speculative {
+            continue;
+        }
+        graph.draft_cursor = None;
+        for (name, source) in [
+            ("copy_token_ids", CopyTokenIds),
+            ("copy_token_count", CopyTokenCount),
+            ("copy_expected_consumed", CopyConsumedTokens),
+            ("copy_generation", CopyGeneration),
+        ] {
+            graph
+                .inputs
+                .push(testing::binding(name, source, RequestRow, 0, 0));
+        }
+    }
+    let mut manifest = manifest(&config);
+    manifest
+        .graphs
+        .retain(|graph| graph.kind != GraphKind::Prefill || graph.batch_capacity == 1);
+    for (index, graph) in manifest.graphs.iter_mut().enumerate() {
+        graph.handle = index + 1;
+    }
+    assert!(manifest
+        .graphs
+        .iter()
+        .any(|graph| graph.kind == GraphKind::Speculative && graph.token_capacity > 1));
+    catalog::validate(&config, &manifest).unwrap();
+}
+
+#[test]
+fn history_proposal_count_is_bounded_by_the_lane_verification_width() {
+    let mut config = config();
+    config.speculative_widths = (1..=8).collect();
+    config.speculative_fixed_width = Some(8);
+    config.history_drafts = true;
+    add_copy_inputs(&mut config);
+    let mut scheduler = RequestScheduler::new(
+        config.identity,
+        config.limits,
+        scheduler_capabilities(&config),
+    )
+    .unwrap();
+    scheduler.enable_history_drafts().unwrap();
+    scheduler
+        .measured_graph_durations(&self::manifest(&config).graphs)
+        .unwrap();
+    scheduler
+        .enable_speculation(&config.speculative_widths)
+        .unwrap();
+    scheduler.fixed_speculative_width(Some(8)).unwrap();
+    let admit = |scheduler: &mut RequestScheduler, prompt: Vec<u32>, max_new_tokens: u32| {
+        scheduler
+            .admit(RequestSpec {
+                message_boundaries: vec![],
+                prompt,
+                conditioning: vec![],
+                max_new_tokens,
+                grammar_constrained: false,
+                host_stops: false,
+                prompt_logprobs: false,
+                growable_output: false,
+            })
+            .unwrap()
+    };
+    let state_step = |scheduler: &mut RequestScheduler, handle: crate::scheduler::RequestHandle, fence: u64| {
+        let step = scheduler.plan().unwrap();
+        scheduler.commit(&step, Fence(fence)).unwrap();
+        let mut completed = [CompletionRecord::default(); 4];
+        completed[handle.slot as usize] = CompletionRecord {
+            generation: handle.generation as i64,
+            submission_sequence: fence as i64,
+            token_id: -1,
+            status: 1,
+            ..Default::default()
+        };
+        scheduler
+            .complete(Fence(fence), &completed, Default::default())
+            .unwrap();
+    };
+    let prefill = |scheduler: &mut RequestScheduler,
+                   handle: crate::scheduler::RequestHandle,
+                   fence: u64,
+                   consumed: i64,
+                   token: i64| {
+        let step = scheduler.plan().unwrap();
+        assert_eq!(step.kind, GraphKind::Prefill);
+        scheduler.commit(&step, Fence(fence)).unwrap();
+        let mut completed = [CompletionRecord::default(); 4];
+        completed[handle.slot as usize] = CompletionRecord {
+            generation: handle.generation as i64,
+            submission_sequence: fence as i64,
+            consumed_tokens: consumed,
+            generated_tokens: 1,
+            token_id: token,
+            status: 1,
+            ..Default::default()
+        };
+        scheduler
+            .complete(Fence(fence), &completed, Default::default())
+            .unwrap();
+    };
+    // Teach the shared history a context whose continuation runs seven tokens.
+    let teacher = admit(&mut scheduler, vec![7; 65], 32);
+    state_step(&mut scheduler, teacher, 1);
+    prefill(&mut scheduler, teacher, 2, 65, 10);
+    retain_prompt(&mut scheduler, 3);
+    let mut consumed = 65;
+    let mut generated = 1;
+    for (fence, first) in [(4, 11), (5, 19)] {
+        let step = scheduler.plan().unwrap();
+        assert_eq!(step.kind, GraphKind::Speculative);
+        assert_eq!(step.token_capacity, 8);
+        scheduler.commit(&step, Fence(fence)).unwrap();
+        let tokens: [i64; 8] = std::array::from_fn(|i| first + i as i64);
+        consumed += 8;
+        generated += 8;
+        let mut completed = [CompletionRecord::default(); 4];
+        completed[teacher.slot as usize] = CompletionRecord {
+            generation: teacher.generation as i64,
+            submission_sequence: fence as i64,
+            consumed_tokens: consumed,
+            generated_tokens: generated,
+            token_id: tokens[7],
+            status: 1,
+            vector: Some(crate::execution::TokenVector {
+                emitted_count: 8,
+                offered_drafts: 7,
+                accepted_drafts: 7,
+                draft_cache_consumed: consumed - 1,
+                verification_width: 8,
+                tokens,
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        scheduler
+            .complete(Fence(fence), &completed, Default::default())
+            .unwrap();
+    }
+    assert_eq!(scheduler.history_proposal(&[11, 12, 13, 14], 7).1, 7);
+    scheduler.cancel(teacher).unwrap();
+    // A learner with three output tokens left verifies at most two drafts.
+    let prompt = [vec![7; 61], vec![11, 12, 13]].concat();
+    let learner = admit(&mut scheduler, prompt.clone(), 4);
+    state_step(&mut scheduler, learner, 6);
+    prefill(&mut scheduler, learner, 7, 64, 14);
+    retain_prompt(&mut scheduler, 8);
+    let mut admissions: [Option<Admission>; 4] = std::array::from_fn(|_| None);
+    admissions[learner.slot as usize] = Some(Admission {
+        handle: learner,
+        sampling: SamplingParameters::default(),
+        max_new_tokens: 4,
+        prompt: prompt.clone(),
+        data: PromptData {
+            positions: (0..64).map(|p| [p; 3]).collect(),
+            vision_token_indices: vec![-1; 64],
+            ..Default::default()
+        },
+        grammar_mask: None,
+        ignore_eos: false,
+        prompt_logprobs: false,
+    });
+    let mut inputs = Inputs::new(&config, &manifest(&config)).unwrap();
+    let step = scheduler.plan().unwrap();
+    assert_eq!(step.kind, GraphKind::Speculative);
+    assert_eq!(step.token_capacity, 8);
+    assert_eq!(step.lanes[0].tokens, 3);
+    scheduler.commit(&step, Fence(9)).unwrap();
+    crate::model::pack_inputs(&mut inputs, &config, &scheduler, &step, &admissions).unwrap();
+    let uploads = inputs.uploads();
+    let bytes = |name| uploads.iter().find(|u| u.buffer == name).unwrap().bytes;
+    let count = i32::from_le_bytes(bytes("copy_token_count")[..4].try_into().unwrap());
+    assert!(count as usize <= step.lanes[0].tokens - 1, "{count}");
+    assert_eq!(count, 2);
+    let ids = bytes("copy_token_ids")
+        .chunks_exact(8)
+        .map(|b| i64::from_le_bytes(b.try_into().unwrap()))
+        .collect::<Vec<_>>();
+    assert_eq!(ids, [15, 16, -1, -1, -1, -1, -1]);
+}
+
+#[test]
 fn copy_staging_uses_physical_slots_stochastic_defaults_and_bonus_mask() {
     use crate::scheduler::speculation::{CopyProposal, ProposalSource};
     let mut config = config();

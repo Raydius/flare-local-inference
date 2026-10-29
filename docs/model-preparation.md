@@ -341,10 +341,6 @@ retain draft context so adaptive verification can resume wider rounds.
 
 ## Qwen3.8 Flash
 
-Enable hybrid history drafting at serving startup with
-`flare run PACKAGE --history-drafts`; disable it with `--no-history-drafts`.
-These options use the package's existing MTP graphs and are not export settings.
-
 Export Qwen with up to five MTP draft tokens per round:
 
 ```sh
@@ -1003,6 +999,14 @@ retain their prepared layouts. Continuation rows and KV pages occupy separate
 fixed virtual ranges with declared maximum extents. Helios backs those ranges
 according to selected concurrency, verification width, and available GPU memory;
 reducing execution state leaves more physical memory for KV pages.
+
+History drafting is a serving-time option, never an export setting:
+`flare run PACKAGE --history-drafts` enables it and `--no-history-drafts`
+disables it. It copies continuations from the serving process's decoded history
+into a package's existing speculative graphs as point-mass proposals. Packages
+whose speculative graphs bind the copy inputs support it: Qwen3.8 Flash (its
+MTP round), MiMo V2.6 Pro, and Nemotron 3.5 Bolt (the shared parallel-draft
+round). Other recipes' packages reject the flag at load.
 
 The selected GPU count must match the package, and each GPU must match its
 rank's architecture and memory requirements. Flare serves all ranks in one

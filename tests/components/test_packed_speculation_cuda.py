@@ -16,7 +16,8 @@ from ignition.components.collectives import PreparedAllReduce
 from ignition.components.packed_speculation import PreparedPackedSpeculativeRound
 from ignition.components.paged_batch import BatchInputs, Metadata, PreparedBatch
 from ignition.components.parallel import TensorParallelShard
-from ignition.components.parallel_draft import PreparedParallelDraftRound
+from ignition.components.parallel_draft import (PreparedParallelDraftRound, allocate_copy_buffers,
+                                                substitute_copies)
 from ignition.components.sampling import DeviceRequestState, RequestAdmission
 from ignition.components.speculation import (PreparedSpeculativeCommit, PreparedSpeculativeDistributions,
                                              PreparedStochasticVerification, SpeculativeRngState)
@@ -51,6 +52,8 @@ class _ProposalBackbone:
         self.drafts = cursor.zeros((4, depth), torch.int64)
         self.probabilities = cursor.zeros((4, depth, 256), torch.float32)
         self.valid = cursor.zeros((4, depth), torch.bool)
+        self.copy_mask = cursor.zeros((4,), torch.int64)
+        self.vocab_ids = torch.arange(owner.requests.vocab_size, device="cuda")
         self.validator = PreparedBatch(owner.inputs, owner.requests, Metadata.allocate(4, 4, 2, "cuda"),
             mode="decode", shard=owner.weights.shard, pool=owner.pool, verification_width=depth + 1)
         self.validation = PreparedAllReduce(self.validator.validation_input, self.validator.validation_sum,
@@ -73,6 +76,15 @@ class _ProposalBackbone:
         self.candidates[:, 1:].copy_(self.drafts)
         self.probabilities.zero_()
         self.probabilities.scatter_(2, self.drafts[:, :, None], 1.)
+        self.copy_mask.zero_()
+        copies = getattr(o, "copy_buffers", None)
+        if copies is not None:
+            substitute_copies(self.drafts, self.probabilities, self.valid, self.copy_mask, active=self.active,
+                before=self.before, limits=o.inputs.query_lengths[:4], slots=o.inputs.row_slot_ids[:4].long(),
+                generation=o.requests.generation, copy_ids=copies["copy_token_ids"],
+                copy_count=copies["copy_token_count"], copy_expected=copies["copy_expected_consumed"],
+                copy_generation=copies["copy_generation"], vocab_ids=self.vocab_ids)
+            self.candidates[:, 1:].copy_(self.drafts)
         if advance_rng:
             self.commit_draft_rng()
 
@@ -165,7 +177,8 @@ def _fixture(depth, *, token_capacity=12, rank=0, world=1, runtime=None, broadca
         before=target_cursor.zeros((batch,), torch.int64), base_offset=target_cursor.zeros((batch,), torch.int64),
         candidates=target_cursor.zeros((batch, width), torch.int64), drafts=target_cursor.zeros((batch, width - 1), torch.int64),
         probabilities=target_cursor.zeros((batch, width - 1, vocab), torch.float32),
-        valid=target_cursor.zeros((batch, width - 1), torch.bool))
+        valid=target_cursor.zeros((batch, width - 1), torch.bool),
+        copy_mask=target_cursor.zeros((batch,), torch.int64))
     logits = torch.zeros((batch, width, vocab), device=device)
     distributions = PreparedSpeculativeDistributions(logits, state, inputs.row_slot_ids,
         inputs.row_generations, inputs.live_rows, target.drafts)
@@ -179,7 +192,8 @@ def _fixture(depth, *, token_capacity=12, rank=0, world=1, runtime=None, broadca
     stochastic.prepare()
     commit = PreparedSpeculativeCommit(state, stochastic.output, target.candidates, inputs.row_slot_ids,
         inputs.row_generations, inputs.live_rows, owner.completion, owner.frame, owner.sequence,
-        rng=rng, logits=logits, token_limits=inputs.query_lengths, draft_context_lag=0)
+        rng=rng, logits=logits, token_limits=inputs.query_lengths, draft_context_lag=0,
+        copy_offered_mask=target.copy_mask)
     commit.prepare()
 
     target.distributions, target.stochastic, target.commit = distributions, stochastic, commit
@@ -195,7 +209,7 @@ def _handoff(f, admitted):
     s.active.logical_and_(admitted)
     for source, destination in ((s.before, t.before), (s.base_offset, t.base_offset),
             (s.candidates, t.candidates), (s.drafts, t.drafts),
-            (s.probabilities, t.probabilities), (s.valid, t.valid)):
+            (s.probabilities, t.probabilities), (s.valid, t.valid), (s.copy_mask, t.copy_mask)):
         destination.zero_()
         if source.ndim > 1:
             destination[:, :source.shape[1]].copy_(source)
@@ -316,6 +330,85 @@ def test_captured_packed_round_matches_prefix_oracle_state_rng_and_poison(depth,
                         assert torch.equal(getattr(state, name)[0], value[0]), name
                     assert state.status[1:].eq(3).all()
                     assert state.error_code[1:].eq(6).all()
+    finally:
+        graph.reset()
+
+
+@pytest.mark.parametrize("compiled", [False, True])
+@torch.no_grad()
+def test_packed_round_copy_mask_bounded_after_allocation(compiled):
+    """A seven-token copy on a lane the allocator shortens to three tokens records a two-bit mask."""
+    depth, row, slot = 7, 1, 0
+    f = _fixture(depth, token_capacity=12)
+    state, inputs, owner = f.state, f.inputs, f.owner
+    copy_ids = [100 + position for position in range(depth)]
+    owner.copy_buffers = allocate_copy_buffers(state.capacity, "cuda")
+    owner.copy_buffers["copy_token_ids"][slot].copy_(torch.tensor(copy_ids, device="cuda"))
+    owner.copy_buffers["copy_token_count"][slot] = depth
+    owner.copy_buffers["copy_expected_consumed"][slot] = state.consumed_tokens[slot]
+    owner.copy_buffers["copy_generation"][slot] = state.generation[slot]
+    assert inputs.row_slot_ids[row].item() == slot
+    # The host ceiling admits every draft at proposal time; the allocator then
+    # starves the copied lane after two drafts while the other lanes keep winning.
+    f.prefix_limits.fill_(depth + 1)
+    f.confidence.values.fill_(.5)
+    f.confidence.values[row].fill_(0.)
+    f.confidence.values[row, :2] = .9
+    f.logits.fill_(-torch.inf)
+    for position in range(8):
+        f.logits[:, position, 5 + position] = 8.
+    f.logits[row].fill_(-torch.inf)
+    for position in range(depth):
+        f.logits[row, position, copy_ids[position]] = 8.
+    f.logits[row, depth, 5 + depth] = 8.
+    originals = {name: value.clone() for name, value in vars(state).items()}
+    rng_originals = {name: value.clone() for name, value in vars(f.rng).items()}
+    offset, generation = owner.offset.clone(), owner.generation.clone()
+
+    def restore():
+        for name, value in originals.items():
+            getattr(state, name).copy_(value)
+        for name, value in rng_originals.items():
+            getattr(f.rng, name).copy_(value)
+        owner.offset.copy_(offset)
+        owner.generation.copy_(generation)
+        inputs.query_lengths.fill_(-111)
+        f.target.copy_mask.fill_(-1)
+        owner.completion.records.fill_(-91)
+
+    def check():
+        torch.cuda.synchronize()
+        lengths = inputs.query_lengths.tolist()
+        expected, _ = allocate(f.confidence.values.tolist(), inputs.row_slot_ids.tolist(), [True] * 4,
+                               [True] * 4, f.prefix_limits.tolist(), 12, 4)
+        assert lengths == expected and lengths[row] == 3, lengths
+        assert torch.equal(f.target.copy_mask, f.source.copy_mask)
+        assert f.source.copy_mask.tolist()[row] == (1 << depth) - 1
+        records = owner.completion.records[0].cpu()
+        for lane in range(4):
+            assert records[lane, 11].item() < 1 << records[lane, 9].item(), (lane, records[lane].tolist())
+        record = records[slot]
+        assert record[9].item() == 2 and record[11].item() == 0b11, record.tolist()
+        assert record[8].item() == 3 and record[16:18].tolist() == copy_ids[:2], record.tolist()
+        assert f.commit.emitted_count.tolist() == lengths
+        assert (records[:, 11] == 0).tolist() == [lane != slot for lane in range(4)]
+
+    operation = compile_forward(f.operation) if compiled else f.operation
+    restore()
+    operation()
+    check()
+    restore()
+    graph = torch.cuda.CUDAGraph()
+    with torch.cuda.graph(graph):
+        operation()
+    try:
+        restore()
+        torch.cuda.synchronize()
+        allocated = torch.cuda.memory_stats()["allocation.all.allocated"]
+        graph.replay()
+        torch.cuda.synchronize()
+        assert torch.cuda.memory_stats()["allocation.all.allocated"] == allocated
+        check()
     finally:
         graph.reset()
 

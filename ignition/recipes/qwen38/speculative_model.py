@@ -278,6 +278,8 @@ class PreparedSpeculativeRound:
                     & (o.copy_expected[safe] == self.before)
                     & (index < o.copy_count[safe]) & (o.copy_ids[safe, index] >= 0)
                     & (o.copy_ids[safe, index] < o.requests.vocab_size))
+            if self.token_limits is not None:
+                copy &= index < self.token_limits - 1
             point_mass = (target.vocab_ids == o.copy_ids[safe, index, None]).float()
             self.draft_probabilities[:, index].copy_(torch.where(copy[:, None], point_mass,
                                                                 proposal.probabilities[:, 0]))
