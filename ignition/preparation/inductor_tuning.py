@@ -167,8 +167,16 @@ class InductorSelections:
                 if identity in self.winners:
                     _install(tuner, self.winners[identity])
         # Epilogue-fusion benchmarking bundles template candidates that final code never names.
-        if any(entries[key].kernel_name in graph.source_code for key in set(entries) - set(bindings)):
-            raise ValueError("compiled forward has unbound static Inductor kernels")
+        unbound = sorted(key for key in set(entries) - set(bindings) if entries[key].kernel_name in graph.source_code)
+        if unbound:
+            def describe(key):
+                kernel = entries[key].kernel
+                return key[:12], entries[key].kernel_name, kernel.fn.__name__ if hasattr(kernel, "fn") else "?"
+
+            raise ValueError(f"compiled forward has unbound static Inductor kernels in graph {graph.cache_key}: "
+                             f"{len(unbound)} bundled without a source kernel {[describe(key) for key in unbound[:6]]}, "
+                             f"{len(set(bindings) - set(entries))} source kernels without a bundle entry, "
+                             f"{len(entries)} bundled, {len(bindings)} in source")
         self.forwards[id(bound)] = backend, graph, bindings
 
     @contextmanager
