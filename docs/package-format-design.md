@@ -2,7 +2,7 @@
 
 This document specifies the package format and cache contract.
 [Runtime packages](runtime-package-design.md) describes the implemented format;
-[TODO.txt](TODO.txt) tracks implementation. Payload format version 2 is current.
+[TODO.md](TODO.md) tracks implementation. Payload format version 2 is current.
 
 The format separates immutable payload bytes, authenticated execution metadata,
 and physical container placement. Weight identity depends on prepared weight
