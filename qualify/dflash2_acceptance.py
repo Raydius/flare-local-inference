@@ -234,6 +234,13 @@ def dflash2_arm(args, traces, dev, target):
 
     draft = DFlash2Reference.load(args.draft, dev)
     embedding, head = target
+    if args.e4m3_kv:
+        # The prepared block stores and stages every key/value as E4M3; round the reference's the same way.
+        exact = draft._kv
+
+        def rounded(i, h, positions):
+            return tuple(t.clamp(-448, 448).to(torch.float8_e4m3fn).to(t.dtype) for t in exact(i, h, positions))
+        draft._kv = rounded
 
     def for_trace(trace):
         tokens = trace_tokens(trace)
@@ -376,7 +383,8 @@ def measure(args, *, arms=None):
                 print(f"{name:8} w={width} {key:24} acceptance {value['acceptance_length']:.3f} "
                       f"rounds {value['rounds']}", flush=True)
     digests = sorted(trace['digest'] for trace in traces)
-    return {'arms': names, 'widths': widths, 'shuffle_features': bool(args.shuffle_features), 'seed': args.seed,
+    return {'arms': names, 'widths': widths, 'shuffle_features': bool(args.shuffle_features),
+            'e4m3_kv': bool(args.e4m3_kv), 'seed': args.seed,
             'traces': [{'case': trace['case'], 'category': trace['category'], 'digest': trace['digest'],
                         'tokens': len(trace_tokens(trace)), 'prompt_tokens': len(trace['prompt_tokens'])}
                        for trace in traces],
@@ -401,6 +409,8 @@ def main():
     parser.add_argument('--arms', default='dflash2,mtp', help='measure: comma-separated arms')
     parser.add_argument('--shuffle-features', action='store_true',
                         help='measure: control that permutes the trace rows fed to the drafts')
+    parser.add_argument('--e4m3-kv', action='store_true',
+                        help='measure: round the DFlash2 reference key/value to E4M3 as the prepared rings do')
     parser.add_argument('--seed', type=int, default=0)
     args = parser.parse_args()
     if args.command == 'generate' and args.server is None:
