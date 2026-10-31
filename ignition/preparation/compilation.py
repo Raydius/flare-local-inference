@@ -507,22 +507,42 @@ def _lower_storage(module):
     # Inductor can recompute the source when writing inputs back after the graph, but it then
     # substitutes that source for the destination in every later opaque call, whose region-relative
     # operands require the region's own base. Such copies execute in order instead.
-    deferred, opaque = set(), set()
-    for node in reversed(originals):
-        mutated = mutations.get(node)
-        if not mutated:
-            continue
-        # Opaque operands retain their prepared alignment and contiguous layout, and a source that
-        # reads the destination region would be gathered in place by the writeback.
-        source = node.args[1].meta['val'] if node.target is torch.ops.aten.copy_.default else None
-        if (node.target is torch.ops.aten.copy_.default
-                and source.is_contiguous() and source.storage_offset() == 0
-                and {key_for(arg) for arg in mutated}.isdisjoint(accesses[node.args[1]])
-                and not any(last_write.get(key, -1) > positions[node] for key in accesses[node.args[1]])
-                and all(complete_write(arg) and key_for(arg) not in opaque for arg in mutated)):
-            deferred.add(node)
-        else:
-            opaque.update(key_for(arg) for arg in tensor_operands(node) if key_for(arg) in bases)
+    # The write-back also recomputes a deferred copy's source from the region's traced value, not
+    # from storage an earlier opaque invocation wrote, and would clobber a destination written again
+    # later; such copies execute in order too. Each copy made opaque can disqualify an earlier one,
+    # so both passes repeat until no copy changes.
+    forced = set()
+    while True:
+        deferred, opaque = set(), set()
+        for node in reversed(originals):
+            mutated = mutations.get(node)
+            if not mutated:
+                continue
+            # Opaque operands retain their prepared alignment and contiguous layout, and a source that
+            # reads the destination region would be gathered in place by the writeback.
+            source = node.args[1].meta['val'] if node.target is torch.ops.aten.copy_.default else None
+            if (node not in forced and node.target is torch.ops.aten.copy_.default
+                    and source.is_contiguous() and source.storage_offset() == 0
+                    and {key_for(arg) for arg in mutated}.isdisjoint(accesses[node.args[1]])
+                    and not any(last_write.get(key, -1) > positions[node] for key in accesses[node.args[1]])
+                    and all(complete_write(arg) and key_for(arg) not in opaque for arg in mutated)):
+                deferred.add(node)
+            else:
+                opaque.update(key_for(arg) for arg in tensor_operands(node) if key_for(arg) in bases)
+        opaque_written, late = set(), set()
+        for node in originals:
+            mutated = mutations.get(node)
+            if not mutated:
+                continue
+            mutable_keys = {key_for(arg) for arg in mutated}
+            if node not in deferred:
+                opaque_written.update(mutable_keys)
+            elif (accesses[node.args[1]] & opaque_written
+                    or any(last_write.get(key, -1) > positions[node] for key in mutable_keys)):
+                late.add(node)
+        if not late:
+            break
+        forced |= late
     calls, mutation_calls = [], {}
     for node in originals:
         if node.op != 'call_function':
