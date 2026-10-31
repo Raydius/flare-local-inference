@@ -1014,7 +1014,10 @@ class ForwardCache:
             bound = self._load(bound.owner, path, required=True, before_run=before_run)
             bound.cache_hit = cached
         report("warming restored forward" if bound.cache_hit else "warming compiled forward")
-        selections.register(bound)
+        try:
+            selections.register(bound)
+        except ValueError as error:
+            raise ValueError(f"{name}: {error}") from error
         selections.warm(bound, warmup, before_run=before_run)
         selections.freeze(bound)
         report("saving compiled forward")

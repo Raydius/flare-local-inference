@@ -152,7 +152,15 @@ class InductorSelections:
                 if identity in self.winners:
                     _install(tuner, self.winners[identity])
         if set(bindings) != set(entries):
-            raise ValueError("compiled forward has unbound static Inductor kernels")
+            def describe(key):
+                kernel = entries[key].kernel
+                return key[:12], entries[key].kernel_name, kernel.fn.__name__ if hasattr(kernel, "fn") else "?"
+
+            unbound = sorted(set(entries) - set(bindings))
+            raise ValueError(f"compiled forward has unbound static Inductor kernels in graph {graph.cache_key}: "
+                             f"{len(unbound)} bundled without a source kernel {[describe(key) for key in unbound[:6]]}, "
+                             f"{len(set(bindings) - set(entries))} source kernels without a bundle entry, "
+                             f"{len(entries)} bundled, {len(bindings)} in source")
         self.forwards[id(bound)] = backend, graph, bindings
 
     @contextmanager

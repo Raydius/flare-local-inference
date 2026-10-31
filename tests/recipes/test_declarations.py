@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import pytest
 
 from ignition import planning
+from ignition.errors import UsageError
 from ignition.recipes import resolve
 from ignition.recipes.declaration import Speculation
 
@@ -453,3 +454,115 @@ def test_nemotron_speculative_graphs_bind_copy_inputs_only_when_declared():
         "copy_expected_consumed": p.COPY_CONSUMED_TOKENS, "copy_generation": p.COPY_GENERATION}
     assert not any(b["buffer"] in copies for b in graphs["bare"]["inputs"])
     assert graphs["round"]["draft_cursor"]["lag_tokens"] == 0
+
+
+DFLASH = resolve("qwen3.8-flash-dflash2")
+
+
+DFLASH_TARGET = "local-inference-lab/Qwen3.8-Flash-Next-NVFP4-MXFP8-CSF-QAD"
+DFLASH_REVISION = "dc5b8ab2fa14bc4fecd6886273b7ebc6095662e2"
+
+
+def test_dflash_alias_declares_its_own_target_checkpoint():
+    from ignition.recipes.qwen38.state import HybridStateLayout
+
+    recipe = DFLASH.recipe
+    assert recipe.name == "qwen38_dflash" and QWEN.recipe.name == "qwen38"
+    assert recipe.served_model_name == QWEN.recipe.served_model_name
+    assert DFLASH.checkpoint.repository == DFLASH_TARGET and DFLASH.checkpoint.revision == DFLASH_REVISION
+    assert DFLASH.checkpoint.architecture == QWEN.checkpoint.architecture
+    assert DFLASH.checkpoint.repository != QWEN.checkpoint.repository
+    assert DFLASH.checkpoint.draft_bytes == 1_206_131_200 and QWEN.checkpoint.draft_bytes == 1_596_720_640
+    # Device bytes carry the DFlash2 draft in place of the MTP module the checkpoint stores.
+    assert 0 < DFLASH.checkpoint.draft_bytes < DFLASH.checkpoint.device_bytes < DFLASH.checkpoint.stored_bytes
+    assert recipe.weights_bytes(DFLASH.checkpoint, 1, None) == (
+        DFLASH.checkpoint.device_bytes + DFLASH.checkpoint.expansion_bytes - 1_206_131_200)
+    assert recipe.speculation == Speculation(draft_tokens=7, token_capacity=128) and recipe.max_draft_tokens == 7
+    assert recipe.tensor_parallel == (1,) and not recipe.mixed_prefill and recipe.verification_rows == 0
+    assert recipe.sampling_defaults == QWEN.recipe.sampling_defaults
+    layout = HybridStateLayout.build(speculative_tokens=7, world_size=1, mtp=False, draft_windows=(5, 2048, 8, 128))
+    costs = recipe.costs(1, recipe.speculation)
+    assert costs.state_row_bytes == layout.row_bytes == 142_821_120
+    # Twelve target sparse-attention layers store pages; the ring-based draft adds none.
+    assert costs.page_bytes == 12 * 69_632 == QWEN.recipe.costs(1, None).page_bytes
+    assert costs.graph_bytes == QWEN.recipe.costs(1, None).graph_bytes + 4096 * 12800 * 2
+    assert recipe.costs(1, None) == QWEN.recipe.costs(1, None)
+    # Neither recipe shares a repository, so bare repositories and aliases each name one recipe.
+    assert resolve(DFLASH_TARGET).checkpoint is DFLASH.checkpoint
+    assert resolve(f"{DFLASH_TARGET}@{DFLASH_REVISION}").checkpoint is DFLASH.checkpoint
+    assert resolve(QWEN.checkpoint.repository).checkpoint is QWEN.checkpoint
+    assert resolve("qwen3.8-flash").recipe is QWEN.recipe
+    assert resolve("qwen3.8-flash-yarn4").recipe is QWEN.recipe
+
+
+def test_dflash_stored_bytes_match_the_local_target_snapshot():
+    index = Path.home() / "models" / DFLASH_TARGET / "model.safetensors.index.json"
+    if not index.is_file():
+        pytest.skip("the DFlash2 target snapshot is not under ~/models")
+    import json
+
+    assert DFLASH.checkpoint.stored_bytes == json.loads(index.read_text())["metadata"]["total_size"]
+
+
+def test_dflash_adapter_fetches_the_pinned_draft_into_the_bootstrap(monkeypatch, tmp_path):
+    import sys
+    from types import ModuleType
+
+    import huggingface_hub
+
+    from ignition.recipes.qwen38_dflash.config import DRAFT_REPOSITORY, DRAFT_REVISION
+
+    fetched, seen = [], {}
+    monkeypatch.setattr(huggingface_hub, "snapshot_download",
+                        lambda repo, **options: fetched.append((repo, options)) or str(tmp_path / "draft"))
+    bootstrap = ModuleType("ignition.recipes.qwen38_dflash.bootstrap")
+
+    class PreparationConfig:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+
+    def prepare_model(snapshot, config, *, progress, compile_decoder, package_storage=None):
+        seen.update(snapshot=snapshot, config=config, compile_decoder=compile_decoder)
+        return "prepared"
+
+    bootstrap.PreparationConfig, bootstrap.prepare_model = PreparationConfig, prepare_model
+    monkeypatch.setitem(sys.modules, bootstrap.__name__, bootstrap)
+
+    plan = fitted(DFLASH, 1, reserve_bytes=2 << 30)
+    assert plan.world_size == 1 and plan.speculation == DFLASH.recipe.speculation
+    assert DFLASH.recipe.prepare(tmp_path, plan, compile_forwards=True, kernel_cache=tmp_path / "kernels",
+                                 progress=None) == "prepared"
+    assert fetched == [(DRAFT_REPOSITORY, dict(revision=DRAFT_REVISION, cache_dir=plan.hub_cache,
+                                               allow_patterns=("config.json", "model.safetensors")))]
+    assert DRAFT_REVISION == "a22a1744e85c17364dcc54a6a420af7135d4c7f6"
+    kwargs = seen["config"].kwargs
+    assert seen["compile_decoder"] is True and kwargs["compile_decoder"] is True
+    assert kwargs["draft_checkpoint"] == tmp_path / "draft" and "mtp" not in kwargs
+    assert (kwargs["speculative_widths"], kwargs["speculative_fixed_width"]) == ((1, 2, 3, 4, 5, 6, 7, 8), None)
+    assert kwargs["speculative_token_capacity"] == 128 and kwargs["devices"] == (0,)
+    assert kwargs["max_active"] == 4 and kwargs["mixed_prefill"] is False and kwargs["context"] == 262_144
+    assert kwargs["snapshot_budget_bytes"] == plan.snapshots * 142_821_120
+    assert kwargs["headroom_bytes"] == planning.HEADROOM_BYTES + (2 << 30) and kwargs["kernel_cache"] == tmp_path / "kernels"
+
+    # Without speculation nothing is fetched and no draft reaches the bootstrap.
+    fetched.clear()
+    plan = fitted(DFLASH, 1, speculation=None)
+    DFLASH.recipe.prepare(tmp_path, plan, compile_forwards=False, kernel_cache=None, progress=None)
+    assert fetched == [] and "draft_checkpoint" not in seen["config"].kwargs
+    assert seen["config"].kwargs["snapshot_budget_bytes"] == plan.snapshots * 116_505_344
+
+
+def test_dflash_adapter_rejects_more_than_one_gpu_before_loading(monkeypatch, tmp_path):
+    import huggingface_hub
+    from dataclasses import replace
+
+    monkeypatch.setattr(huggingface_hub, "snapshot_download",
+                        lambda repo, **options: pytest.fail("the draft must not be fetched"))
+    plan = fitted(DFLASH, 1)
+    wide = replace(plan, gpus=plan.gpus * 2)
+    assert wide.world_size == 2
+    with pytest.raises(UsageError, match="single GPU"):
+        DFLASH.recipe.prepare(tmp_path, wide, compile_forwards=True, kernel_cache=None, progress=None)
+    with pytest.raises(UsageError, match="single GPU"):
+        DFLASH.recipe.prepare(tmp_path, plan, compile_forwards=True, kernel_cache=None, progress=None,
+                              ranks=SimpleNamespace(hosts=("a", "b")))

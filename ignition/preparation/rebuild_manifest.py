@@ -178,6 +178,10 @@ def declared_views(declaration):
                                 _storage(declared_group, declaration), frozenset())
 
     for root, value in sorted(declaration.roots.items()):
+        # A root declared as one component group was walked whole above; a layer pass over its
+        # own `layers` field would yield every layer view a second time under the same name.
+        if root in components:
+            continue
         for declared in declaration.layer_fields:
             try:
                 layers = resolve(value, declared)

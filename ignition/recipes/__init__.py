@@ -22,6 +22,7 @@ def recipes() -> tuple[Recipe, ...]:
     from .gemma4.recipe import RECIPE as gemma4
     from .glm53.recipe import RECIPE as glm53
     from .qwen38.recipe import RECIPE as qwen38
+    from .qwen38_dflash.recipe import RECIPE as qwen38_dflash
     from .qwen38_dense.recipe import RECIPE as qwen38_dense
     from .mimo_v2.recipe import RECIPE as mimo_v2
     from .kimi3.recipe import RECIPE as kimi3
@@ -29,7 +30,8 @@ def recipes() -> tuple[Recipe, ...]:
     from .nemotron_h.recipe import RECIPE as nemotron_h
     from .minimax_m3.recipe import RECIPE as minimax_m3
 
-    return qwen38, qwen38_dense, glm53, deepseek41, deepseek4, mimo_v2, kimi3, step5, nemotron_h, minimax_m3, gemma4
+    return (qwen38, qwen38_dflash, qwen38_dense, glm53, deepseek41, deepseek4, mimo_v2, kimi3, step5, nemotron_h,
+            minimax_m3, gemma4)
 
 
 def snapshot_directory(hub_cache: Path, checkpoint: Checkpoint) -> Path:

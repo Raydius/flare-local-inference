@@ -399,6 +399,29 @@ The graph publishes GPU-produced lookup IDs before layer
 0 and waits for row delivery at the layer-1 consumer. Disk and RAM delivery
 use the same prepared model graphs; the flag selects table storage only.
 
+### Qwen3.8 Flash DFlash2
+
+`qwen3.8-flash-dflash2` prepares the Qwen3.8-Flash-Next target
+`local-inference-lab/Qwen3.8-Flash-Next-NVFP4-MXFP8-CSF-QAD` at its pinned
+revision `dc5b8ab2` from the Hugging Face hub cache (the checkpoint the
+acceptance spike measured) with the `incoai/Qwen3.8-Flash-Next-DFlash2` block
+draft in place of the checkpoint's MTP module. A `--local-dir` copy of the
+target must be present in the hub cache under that repository and revision. The
+draft is downloaded at its pinned revision `a22a1744` into the Hugging Face hub
+cache (or `[paths].hub_cache`); a draft copy under `--local-dir` is not read.
+Export on one GPU:
+
+```sh
+.venv/bin/ignition export qwen3.8-flash-dflash2 --gpus 0
+.venv/bin/ignition convert CACHE_ENTRY --form packed --output /data/flare-runtime/qwen38-tp1-dflash2.safetensors
+```
+
+Each round proposes seven draft tokens per request (`draft_tokens=7`) with a
+128-token speculative capacity. `flare run PACKAGE --history-drafts` is
+supported. The recipe prepares TP1 only; `--gpus` with more than one device is
+rejected. Prefill and decode rounds are not mixed: the draft context is written
+from prefill and verification graphs separately.
+
 ## GLM 5.3 Flash
 
 The `glm-5.3-flash` recipe uses `nvidia/GLM-5.3-Flash-FP4-Local` and supports

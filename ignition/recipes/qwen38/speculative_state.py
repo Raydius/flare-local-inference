@@ -178,11 +178,19 @@ class PreparedVerificationState:
         if self.sample is not self.hidden:
             self.sample.copy_(self.hidden)
 
-    def prepare_commit(self, emitted_count, consumed_before, residual, hidden):
+    def prepare_commit(self, emitted_count, consumed_before, residual, hidden, *, feedback=None):
+        """Bind the accepted-endpoint commit.
+
+        ``feedback`` is the ``(residual, rope)`` pair the target feedback stores
+        land in; it defaults to the pool's MTP regions, and a round without
+        them passes private scratch so the hidden and accepted-count writes
+        stay unchanged.
+        """
         pool, slots = self.pool, self.inputs.row_slot_ids
         self._commit = []
-        saved_residual = pool.region("target_residual")
-        saved_rope = pool.region("target_residual_position")
+        if feedback is None:
+            feedback = (pool.region("target_residual"), pool.region("target_residual_position"))
+        saved_residual, saved_rope = feedback
         self._commit.append(compile_kernel(_commit_hidden,
             (hidden, residual, pool.last_hidden, saved_residual, self.qsa.rope_positions, saved_rope, slots,
              emitted_count, self.previous_accepted, self.inputs.request_state_rows, self.width,

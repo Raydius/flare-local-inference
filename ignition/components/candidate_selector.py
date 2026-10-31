@@ -20,6 +20,8 @@ class PreparedCandidateSelector:
         unary, ids = logits.topk(self.top_k, dim=-1, sorted=False)
         coded = self.weights["predecessor"][predecessor] * self.projected[:, position]
         successors = self.weights["successor"][ids]
-        correction = torch.bmm(successors, coded.unsqueeze(-1)).squeeze(-1)
+        # A per-row dot product over the rank; written as a multiply-and-sum so Inductor lowers it to one
+        # fused kernel instead of autotuning a GEMM template for a [rows, top_k, rank] x [rows, rank, 1] product.
+        correction = (successors.float() * coded.float()[:, None, :]).sum(-1)
         logits.fill_(-torch.inf)
         logits.scatter_(1, ids, unary + correction.float())

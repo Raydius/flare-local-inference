@@ -194,6 +194,18 @@ class DecoderScratch:
             None if self.local_logits is None else self.local_logits[:sequences])
 
 
+def validate_feature_taps(feature_taps, auxiliary, tokens: int, device) -> None:
+    """Check the tapped-layer feature buffer: BF16 ``[tokens, len(taps) * 2560]`` on the model device."""
+    taps = tuple(feature_taps)
+    if any(type(tap) is not int or not 0 <= tap < 48 for tap in taps) or len(set(taps)) != len(taps):
+        raise ValueError("feature taps must be distinct layer indices in 0 through 47")
+    if (auxiliary is None) != (not taps):
+        raise ValueError("feature taps and their auxiliary buffer are declared together")
+    if auxiliary is not None and (auxiliary.shape != (tokens, len(taps) * 2560)
+            or auxiliary.dtype != torch.bfloat16 or auxiliary.device != device):
+        raise ValueError(f"tapped features require BF16 [token_capacity,{len(taps) * 2560}] on the model device")
+
+
 class PreparedDecoder:
     """Capture the canonical 48-layer residual composition with prepared operators.
 
@@ -213,7 +225,8 @@ class PreparedDecoder:
                  max_cache_pages: int | None = None,
                  residual_output: torch.Tensor | None = None, verification: bool = False,
                  gdn_records=None, gdn_in_place: bool = False, runtime=None, vocabulary_runtime=None, coordinator=None,
-                 sampling_workspace=None, scoring=None):
+                 sampling_workspace=None, scoring=None,
+                 feature_taps: tuple[int, ...] = (), auxiliary: torch.Tensor | None = None):
         from ignition.components.embedding import PreparedEmbedding
         from ignition.components.linear import UnquantizedProjection
 
@@ -239,6 +252,8 @@ class PreparedDecoder:
                 or layer_outputs.dtype != torch.bfloat16 or layer_outputs.device != scratch.hidden.device):
             raise ValueError("layer trace requires BF16 [48,token_capacity,10240] on the model device")
         self.layer_outputs = layer_outputs
+        validate_feature_taps(feature_taps, auxiliary, state.tokens, scratch.hidden.device)
+        self.feature_taps, self.auxiliary = tuple(feature_taps), auxiliary
         self.embedding_injection = embedding_injection
         self.stage_outputs = {} if stage_outputs is None else stage_outputs
         self.workspaces, self.ple_table, self.qsa_states = workspaces, ple_table, qsa_states
@@ -377,6 +392,11 @@ class PreparedDecoder:
                 self.stage_outputs["mlp_residual"].copy_(s.residual)
             if self.layer_outputs is not None:
                 self.layer_outputs[index].copy_(s.residual)
+            if index in self.feature_taps:
+                # The draft context reads the stream mean of the same raw residual the trace records.
+                tap = self.feature_taps.index(index)
+                self.auxiliary[:, tap * 2560:(tap + 1) * 2560].copy_(
+                    s.residual.view(-1, 4, 2560).float().mean(1).to(torch.bfloat16))
         if self.residual_output is not None:
             self.residual_output.copy_(s.residual)
         self.final_mixer.mix(s.residual, pre_normalized=True)
