@@ -154,3 +154,30 @@ def test_verification_features_cover_the_emitted_columns_only(pool):
     assert live.tolist() == [True, True, False, False, False, False, False, False]
     assert rows.tolist() == [2, 2, -1, -1, -1, -1, -1, -1]
     assert ring_slots(live, rows, positions, 2048).tolist() == [2 * 2048 + 10, 2 * 2048 + 11, -1, -1, -1, -1, -1, -1]
+
+
+def test_mixed_prompt_context_writes_the_window_after_the_round(pool):
+    """The mixed round's prompt half carries the absorption contract and writes the chunk's last window positions."""
+    from ignition.recipes.qwen38_dflash.speculative_model import PreparedMixedPromptContext
+
+    o = owner(pool)
+    o.inputs.row_slot_ids.copy_(torch.tensor([1, -1], dtype=torch.int32))
+    writes, built = [], []
+    o.context = lambda auxiliary, name, buffers: built.append((auxiliary, name, buffers)) or (
+        lambda features, positions, rows, live: writes.append((features, positions, rows, live)))
+    chunk = o.window + 3
+    auxiliary = torch.zeros((chunk, o.feature_width), dtype=torch.bfloat16)
+    qsa = SimpleNamespace(request_ids=torch.zeros(chunk, dtype=torch.int64), query_positions=torch.arange(chunk))
+    qsa.request_ids[-2:] = -1
+    qsa.query_positions[-2:] = -1
+    decoder = SimpleNamespace(state=SimpleNamespace(qsa=qsa), auxiliary=auxiliary)
+    residual = torch.zeros((chunk, 10240), dtype=torch.bfloat16)
+    context = PreparedMixedPromptContext(o, decoder, "mixed.prompt", residual_output=residual, buffers="cursor")
+    assert decoder.residual_output is residual and built == [(auxiliary, "mixed.prompt.context", "cursor")]
+    context.begin()
+    assert writes == []
+    context.finish()
+    (features, positions, rows, live), = writes
+    assert features is auxiliary and positions is qsa.query_positions
+    assert live.sum() == o.window and not live[:1].any() and live[1:chunk - 2].all() and not live[-2:].any()
+    assert rows[live].eq(2).all() and rows[~live].eq(-1).all()

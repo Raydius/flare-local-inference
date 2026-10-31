@@ -39,7 +39,16 @@ class MixedEmbeddingInjection:
 class PreparedMixedRound:
     """Keep role-specific sampling and commits around a shared target program."""
 
-    def __init__(self, owner, batch, width, prefill, name, *, scratch, features, enabled):
+    def __init__(self, owner, batch, width, prefill, name, *, scratch, features, enabled,
+                 absorption=PreparedPrefillAbsorption, speculative_round=PreparedSpeculativeRound):
+        """``absorption`` and ``speculative_round`` are the drafter's prompt and decode halves.
+
+        They are called the way the MTP classes are: ``absorption(prompt_owner, prompt_decoder,
+        name, residual_output=...)`` with ``begin()``/``finish()``, and ``speculative_round(decode_owner,
+        batch, width, name, decoder_factory=..., residual_output=...)`` with ``prepare()``/``__call__``.
+        A drafter whose owner declares ``feature_taps`` also receives ``buffers``: the one graph cursor
+        this round allocates its packed and prompt feature buffers from, shared by both halves.
+        """
         self.owner, self.enabled = owner, enabled
         self.prompt_inputs = role_inputs(owner.inputs, prefill)
         self.decode_inputs = role_inputs(owner.inputs, batch * width)
@@ -51,11 +60,20 @@ class PreparedMixedRound:
         self.decode_completion = owner.completion.private(private)
         self.prompt_decoder = SimpleNamespace(state=self.prompt_state)
         self.absorb = None
+        # A drafter reading tapped target features gets them per role: the packed forward writes
+        # one buffer, and the mixed state gathers it into the prompt's and the round's own.
+        self.features = self.prompt_features = None
+        shared = {}
+        if enabled and getattr(owner, "feature_taps", ()):
+            shared["buffers"] = buffers = owner.cursor()
+            self.features = owner.auxiliary(self.packing.tokens, buffers)
+            self.prompt_features = owner.auxiliary(prefill, buffers)
+            self.prompt_decoder.auxiliary = self.prompt_features
         if enabled:
             prompt_owner = copy(owner)
             prompt_owner.inputs = self.prompt_inputs
-            self.absorb = PreparedPrefillAbsorption(prompt_owner, self.prompt_decoder, f"{name}.prompt",
-                                                    residual_output=scratch.prompt_residual[:prefill])
+            self.absorb = absorption(prompt_owner, self.prompt_decoder, f"{name}.prompt",
+                                     residual_output=scratch.prompt_residual[:prefill], **shared)
             owner.owners.append(self.absorb)
         else:
             self.prompt_decoder.residual_output = scratch.prompt_residual[:prefill]
@@ -64,8 +82,14 @@ class PreparedMixedRound:
                             completion, frame, sequence, **kwargs):
             decode_residual = kwargs.pop("residual_output")
             kwargs.pop("verification", None)
+            decode_features = kwargs.pop("auxiliary", None)
+            if (decode_features is None) != (self.features is None):
+                raise ValueError("a round tapping target features requires an owner declaring feature_taps")
+            if decode_features is not None:
+                kwargs["auxiliary"] = self.features
             state = PreparedMixedState(self.packing, self.prompt_state, decode_state, scratch,
-                prompt_residual=self.prompt_decoder.residual_output, decode_residual=decode_residual)
+                prompt_residual=self.prompt_decoder.residual_output, decode_residual=decode_residual,
+                features=self.features, prompt_features=self.prompt_features, decode_features=decode_features)
             sample_rows = batch * width + 1
             full_scratch = owner.scratch.rows(self.packing.tokens, sample_rows)
             injection = MixedEmbeddingInjection(self.packing, features, self.prompt_state,
@@ -88,8 +112,8 @@ class PreparedMixedRound:
             def speculative_decoder(*args, **kwargs):
                 view = decoder_factory(*args, **kwargs)
                 return DecodeTarget(view.scratch, view.forward, self.prompt_sampler)
-            self.round = PreparedSpeculativeRound(decode_owner, batch, width, name,
-                decoder_factory=speculative_decoder, residual_output=scratch.decode_residual[:batch * width])
+            self.round = speculative_round(decode_owner, batch, width, name,
+                decoder_factory=speculative_decoder, residual_output=scratch.decode_residual[:batch * width], **shared)
             self.round.prepare()
             owner.owners.append(self.round)
         else:

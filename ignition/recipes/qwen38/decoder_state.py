@@ -272,7 +272,9 @@ class PreparedDecoderState:
              self.mode == "prefill", triton.next_power_of_2(self.tokens * 3), 4096, self.requests.capacity), (self.rows, 1, 1))
 
     def prepare_residual(self, residual):
-        if self.pool.layout.speculative_tokens and self.maintain_draft_state:
+        # The checkpoint feeds the MTP draft; a layout without its region has no draft reading it.
+        regions = {region.name for region in self.pool.layout.regions}
+        if self.maintain_draft_state and "target_residual" in regions:
             saved = self.pool.region("target_residual")
             rope = self.pool.region("target_residual_position")
             self._residual = compile_kernel(_residual_checkpoint,

@@ -482,14 +482,15 @@ def test_dflash_alias_declares_its_own_target_checkpoint():
     assert recipe.weights_bytes(DFLASH.checkpoint, 1, None) == (
         DFLASH.checkpoint.device_bytes + DFLASH.checkpoint.expansion_bytes - 1_206_131_200)
     assert recipe.speculation == Speculation(draft_tokens=7, token_capacity=128) and recipe.max_draft_tokens == 7
-    assert recipe.tensor_parallel == (1,) and not recipe.mixed_prefill and recipe.verification_rows == 0
+    assert recipe.tensor_parallel == (1,) and recipe.mixed_prefill and recipe.verification_rows == 0
     assert recipe.sampling_defaults == QWEN.recipe.sampling_defaults
     layout = HybridStateLayout.build(speculative_tokens=7, world_size=1, mtp=False, draft_windows=(5, 2048, 8, 128))
     costs = recipe.costs(1, recipe.speculation)
     assert costs.state_row_bytes == layout.row_bytes == 142_821_120
     # Twelve target sparse-attention layers store pages; the ring-based draft adds none.
     assert costs.page_bytes == 12 * 69_632 == QWEN.recipe.costs(1, None).page_bytes
-    assert costs.graph_bytes == QWEN.recipe.costs(1, None).graph_bytes + 4096 * 12800 * 2
+    # One graph's tapped feature buffers: a mixed graph's packed forward plus its prompt- and decode-size gathers.
+    assert costs.graph_bytes == QWEN.recipe.costs(1, None).graph_bytes + (2 * 4096 + 2 * 128) * 12800 * 2
     assert recipe.costs(1, None) == QWEN.recipe.costs(1, None)
     # Neither recipe shares a repository, so bare repositories and aliases each name one recipe.
     assert resolve(DFLASH_TARGET).checkpoint is DFLASH.checkpoint

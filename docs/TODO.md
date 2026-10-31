@@ -5,9 +5,7 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
 ## Open
 
 - [ ] `qwen38_dflash` change 3: qualify the served DFlash2 package against the MTP package on
-      code_edit at width 8. Mixed prefill is blocked until the mixed round keys on region
-      presence: `ignition/recipes/qwen38/decoder_state.py:271` `prepare_residual` reads
-      `target_residual`, which the DFlash layout omits. TP sharding of the draft (no
+      code_edit at width 8, both exported with `--mixed-prefill`. TP sharding of the draft (no
       PreparedShardedEmbedding/all-reduce path yet).
 
 - [ ] `ignition/recipes/qwen38_dflash/bootstrap.py` repeats ~256 of the ~390 lines of qwen38's
@@ -16,11 +14,6 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
       that function has no composition hook; `qwen38_dense` shares 14. Extracting a shared
       catalog/capture helper changes qwen38's bootstrap, so it is an owner decision; take it
       when qwen38's bootstrap next changes.
-
-- [ ] qwen38's _identity (`ignition/recipes/qwen38/bootstrap.py:210`) omits mtp and `row_bytes`
-      while Helios seeds prefix-cache digests from it (`helios/src/cache/hash.rs:33`), so an MTP
-      package and a DFlash package could match each other's rows if they shared it; the DFlash
-      recipe declares its own. Changing qwen38's identity re-keys every existing package.
 
 - [ ] Declare the history-draft copy inputs on the remaining recipes that use the shared
       parallel-draft round: DeepSeek V4 (`ignition/recipes/deepseek4/bootstrap.py:387`),
