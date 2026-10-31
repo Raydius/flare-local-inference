@@ -777,4 +777,4 @@ on that work, the selected route, storage, and verification.
 
 Discovery, a preflight fabric check, preparation through agents, and automatic
 reconciliation are tracked in [Orbit proposals](orbit-proposals.md) and
-[the backlog](TODO.txt). Saved groups require manual restart.
+[the backlog](TODO.md). Saved groups require manual restart.

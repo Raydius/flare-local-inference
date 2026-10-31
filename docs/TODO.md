@@ -1,0 +1,219 @@
+# Follow-up items
+
+Miscellaneous follow-up work. Keep entries brief and link to the design or performance note that holds the detail; remove entries as work completes (see [AGENTS.md](../AGENTS.md#task-tracking)).
+
+## Open
+
+- [ ] `qwen38_dflash` change 3: qualify the served DFlash2 package against the MTP package on
+      code_edit at width 8. Mixed prefill is blocked until the mixed round keys on region
+      presence: `ignition/recipes/qwen38/decoder_state.py:271` `prepare_residual` reads
+      `target_residual`, which the DFlash layout omits. TP sharding of the draft (no
+      PreparedShardedEmbedding/all-reduce path yet).
+
+- [ ] `ignition/recipes/qwen38_dflash/bootstrap.py` repeats ~256 of the ~390 lines of qwen38's
+      `_prepare_model` (`ignition/recipes/qwen38/bootstrap.py:250`: transient wrapper, owner
+      allocation, catalog loop, tuning, capture, rebind, materialize, memory report) because
+      that function has no composition hook; `qwen38_dense` shares 14. Extracting a shared
+      catalog/capture helper changes qwen38's bootstrap, so it is an owner decision; take it
+      when qwen38's bootstrap next changes.
+
+- [ ] qwen38's _identity (`ignition/recipes/qwen38/bootstrap.py:210`) omits mtp and `row_bytes`
+      while Helios seeds prefix-cache digests from it (`helios/src/cache/hash.rs:33`), so an MTP
+      package and a DFlash package could match each other's rows if they shared it; the DFlash
+      recipe declares its own. Changing qwen38's identity re-keys every existing package.
+
+- [ ] Declare the history-draft copy inputs on the remaining recipes that use the shared
+      parallel-draft round: DeepSeek V4 (`ignition/recipes/deepseek4/bootstrap.py:387`),
+      DeepSeek V4.1 (`ignition/recipes/deepseek41/bootstrap.py:260`), Kimi K3
+      (`ignition/recipes/kimi3/bootstrap.py:360`), MiniMax M3.1
+      (`ignition/recipes/minimax_m3/bootstrap.py:384`), Gemma 4
+      (`ignition/recipes/gemma4/bootstrap.py:425`), Step-5
+      (`ignition/recipes/step5/bootstrap.py:262`). Each needs a served qualification before its
+      package admits `--history-drafts`.
+
+- [ ] Packed-prefix confidence is recorded from the learned token at positions a copy later
+      replaces (`ignition/components/split_draft.py:103` via
+      `ignition/components/parallel_draft.py:401`), biasing prefix allocation for copies.
+
+- [ ] Scheduler acceptance learning ignores the copy mask (`helios/src/scheduler.rs:2421`), so
+      copies inflate the learned MTP acceptance curve used for packed-round allocation.
+      Pre-existing on Qwen.
+
+- [ ] Expose the selected deployment's rebuild metadata in `flare inspect``--json`. Payload
+      packages report `rebuild: null` even when `DeploymentBody.rebuild` is present.
+
+- [ ] Validate full-width INT64 expert IDs in b12x W4A16 route packing, reductions, and MoE
+      calibration. These paths narrow IDs before range checks; add captured replay coverage for
+      IDs outside the INT32 range.
+
+- [ ] Qualify qwen3.8-flash-yarn4 long-context serving: prepare and export the rope-scaled
+      package, measure the extended score-workspace chunking and graph bytes, and validate
+      needle/passkey retrieval, image requests, and speculation past the native 262,144-token
+      context against native-quality baselines. GPU execution is blocked in this environment by
+      the 8 MiB locked-memory limit for b12x's `io_uring` bounce buffers and by fully occupied
+      GPUs.
+
+- [ ] Exercise per-message checkpoint restore and prefill graph selection through Qwen, GLM,
+      DeepSeek, MiMo, Step, and Nemotron services. See
+      [core-design.md#exact-endpoint-capture](core-design.md#exact-endpoint-capture) and
+      [scheduling-runtime-design.md](scheduling-runtime-design.md).
+
+- [ ] Validate multi-window image prefill, prefix skipping, and CPU record reuse through
+      DeepSeek, MiMo, Kimi, and Nemotron services. Extend Step TP4 coverage to host cache tiers
+      and image-request preemption, cancellation, and shallower restore. See
+      [prefix-cache-offload.md](prefix-cache-offload.md).
+
+- [ ] Make `test_cache_memory.py`'s reservation workload force checkpoint backing reclamation
+      under growable admission. Large output limits alone do not reserve their full page extent;
+      the resident-prompts case exercises pressure.
+
+- [ ] Investigate Step 5 seeded request repeatability: repeated completions with seeds 119 or
+      1234 and unchanged sampling defaults produce different text using
+      `step5-tp4-mtp3-c16-fp8kv-signed.safetensors`, including prompt-cache hits.
+
+- [ ] Orbit: mDNS discovery, the fabric check with a ring-order proposal, preparation through
+      agents (PREPARE, `flare orbit prepare`), and reconciliation (`flare orbit apply`). See
+      [orbit-proposals.md](orbit-proposals.md).
+
+- [ ] Restore preparation/serving RoCE proxy parity once FlashInfer main includes the
+      sequence-limit guard and protocol verification additions. See
+      [roce-ring.md#protocol-model-and-runtime-checks](roce-ring.md#protocol-model-and-runtime-checks).
+
+- [ ] Validate the unbuffered Windows package guard and parallel disk workers with complete
+      DeepSeek Engram serving; Qwen PLE is exercised. See
+      [windows.md#serve-a-prepared-package](windows.md#serve-a-prepared-package) and
+      [cli-design.md](cli-design.md).
+
+- [ ] Validate Windows prefix-cache offload across the other recipes and TP ranks; Qwen Flash
+      TP1 disk-only and RAM/disk round trips pass. See
+      [windows.md#serve-a-prepared-package](windows.md#serve-a-prepared-package).
+
+- [ ] Validate numeric weight metadata in complete model exports across packed formats and TP
+      ranks, including a fresh Nemotron Bolt Spark export and Windows text/image/speculative
+      replay. SM103 execution and CSF repacking need GPU validation beyond metadata tests. See
+      [windows.md#serve-a-prepared-package](windows.md#serve-a-prepared-package).
+
+- [ ] Review scratch-memory lifetimes and sharing across every supported recipe and shared
+      component, including Qwen, GLM, DeepSeek, MiMo, Kimi, Step, and Nemotron. Review
+      contiguous-buffer placement within typed pools and weight allocation padding;
+      nonoverlapping lifetimes alone do not eliminate gaps. See
+      [performance-work.md#cross-model-scratch-planning](performance-work.md#cross-model-scratch-planning)
+      for scope and checks.
+
+- [ ] Size DeepSeek V4 and MiMo one-shot all-reduce channels from their actual callers; prefills
+      of at least 1024 rows use separate DMA channels. Preserve MiMo's full-prefill
+      context-gather capacity when separating those bounds.
+
+- [ ] Scope TP4 Simple peer-push all-reduce in FlashInfer/b12x: four-rank payload ownership,
+      publication ordering, scratch/epoch reuse, and preparation-time autotuning against
+      existing collectives. Cover graph replay, concurrent channels, rollover, and
+      complete-collective latency on the target topology.
+
+- [ ] Review fusion of pooled DeepSeek V4.1 indexer lengths: captured graphs split clamp from
+      amax and retain explicit copy kernels. Measure complete GPU steps before changing shared
+      storage lowering.
+
+- [ ] Measure direct expert-sum output writes in DeepSeek V4 and Qwen3.8 MoE; pooled
+      add-then-copy expressions can retain an extra device copy. Check Step 5 separately because
+      its expert sum uses FP32 intermediates.
+
+- [ ] Validate pooled vision and speculative scratch in complete exported packages across Qwen,
+      GLM, DeepSeek V4, MiMo, Step, and Nemotron. Measure fixed memory and KV capacity with full
+      catalogs and tensor parallelism; exercise alternating text/image graphs,
+      proposal/verification, and rollback. See
+      [performance-work.md#cross-model-scratch-planning](performance-work.md#cross-model-scratch-planning).
+
+- [ ] Validate cooperative Inductor reductions in full vision-enabled exports of
+      kimi-k3-mxfp4-csf, step5-preview-nvfp4, mimo-v2.6-pro-mopd, glm-5.3-flash, and
+      nemotron-bolt-24gb. Exercise every vision capacity, TP kernel agreement, frozen
+      preparation-cache reload, and native image replay. RADIO validation passes single-rank and
+      TP2 tests; full Qwen3.8 export passes. The five listed full-model vision paths remain
+      untested. See
+      [model-preparation.md#environment-setup](model-preparation.md#environment-setup).
+
+- [ ] Investigate Qwen vision's canonical-reference accuracy failure in
+      `test_actual_vision_encoder_native_replay`: relative L2 0.078 exceeds 0.03 with standalone
+      scratch. Pooled and standalone native replay are exact.
+
+- [ ] Check DeepSeek V4/V4.1 continuation-row requirements during speculation. `parallel_draft.py`
+      consumes `request_state_rows[:, 0]`, while their graph contracts reserve one row per
+      verification token. Validate native proposal, verification, and rollback before reducing
+      the declared execution rows.
+
+- [ ] Add Nemotron Bolt video preprocessing, timestamps, and frame-feature pruning.
+
+- [ ] Measure DeepSeek V4's sharded Markov projection against replicated weights; DeepSeek V4.1
+      uses replication to remove per-draft vocabulary gathers.
+
+- [ ] Validate native runtime-package export on Windows, including unbuffered bulk I/O,
+      positioned tails, and cache reuse.
+
+- [ ] Resolve fixed external-address package loading collisions: `cuInit`'s randomized 8.0625 GiB
+      host VA reservation can cover a recorded high 1 GiB window.
+      `test_package_replays_without_python` with `fixed_package_fixture.py` and `exec_handover`
+      reproduces with both Python and native exporters.
+
+- [ ] Qualify retained graph costs and funded remeasurement in live Helios: idle/resume,
+      concurrent decode latency, cost-change recovery, and queued generation transitions. Use
+      per-fence scheduler traces and request latency measurements; measure GPU replay, queueing,
+      and host planning separately. See
+      [scheduling-runtime-design.md#funded-timing-refresh](scheduling-runtime-design.md#funded-timing-refresh).
+
+- [ ] Extend the two-frame submission window to nonterminal prefill with device-owned
+      continuation positions and fenced cache reservations.
+
+- [ ] Qualify prompt scoring on remaining recipes and cache lifecycles; see
+      `docs/logprobs-design.md` for TP4 costs and numerical limits.
+
+- [ ] Respect `ignore_eos` when classifying EOS at the output limit; see
+      `helios/src/server/runtime.rs`.
+
+- [ ] Validate embedding readiness timestamps in full Qwen3.8 PLE serving and cross-node
+      RoCEnante TP packages for Qwen3.8 and DeepSeek V4.1.
+
+- [ ] Measure cross-host rank handoff polling and completion yielding: CPU time, request p99,
+      and complete-round latency under active and idle workloads. See
+      `helios/src/execution/parallel.rs` and [performance-work.md](performance-work.md).
+
+- [ ] Profile cached CSF FC1 metadata in FlashInfer for register pressure, spills, occupancy,
+      and complete DeepSeek V4.1 graph latency.
+
+- [ ] Investigate DeepSeek V4.1 grouped MoE CSF plan selection with representative routes:
+      compare inline reconstruction and separate expansion in complete graphs before adding a
+      preparation override. See [performance-work.md](performance-work.md).
+
+- [ ] Run DeepSeek V4 packed-context native replay with its checkpoint and measure exported
+      V4/V4.1 packages with packed context projections. Compare GLM's shared-expert launch order
+      when the configured checkpoint shards are available.
+
+- [ ] TP resharding is not qualified for full-model use. Export compressed Qwen TP1 and native
+      TP2 packages, complete combine and clean-cache acquisition, compare materialized weights
+      byte-for-byte against native TP2, and validate native replay. Resolve the observed combine
+      derivation-cycle failure. Measure complete combine and acquisition costs against a
+      successful baseline; the required 10x speed improvement has not been demonstrated. Fixture
+      tests cover derivation replay and signed multi-host distribution, but do not establish
+      full-model TP2 correctness or performance. See
+      [package-format-design.md](package-format-design.md).
+
+- [ ] Invalidate b12x preparation discovery's cached compiler context when Inductor selects a
+      different libdevice in the same process. Repeated GPU test preparation can restore program
+      keys for the preceding library.
+
+- [ ] Investigate Nemotron repeated-image prefix reuse in
+      `tests/server/test_nemotron.py::test_image_cache_identity`: native serving of
+      NVIDIA-Nemotron-3.5-Bolt-74B-A9B-24GB reports 281 cached tokens for a repeated 287-token
+      prompt; image answers and token identity assertions pass.
+
+- [ ] Gate the Triton kernel-resolution freeze guard on planning state rather than module name:
+      `b12x/compile_plan.py:548-556` and `:587-593` only check `b12x.*` JITs, so an unprepared
+      Ignition kernel can lower during capture without `raise_if_kernel_resolution_frozen` firing.
+
+- [ ] Retire the manual `_NATIVE_JITS` registrations in `ignition/components/moe_sm103.py:353,383`
+      and `ignition/components/sm103_projection.py:254` now that planning eviction covers every
+      JIT module (`_PLANNED_JITS`); they opt those kernels into retention reclaim, which other
+      Ignition kernels do not get.
+
+- [ ] Retention reclaim (`b12x/compile_plan.py:141-156`, `evict_unretained_triton`) skips
+      non-registered Ignition Triton kernels, so losing warp candidates stay module-loaded after
+      tuning. Measure the retained footprint and decide whether Ignition kernels should join the
+      reclaim.

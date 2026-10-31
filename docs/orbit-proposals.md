@@ -3,7 +3,7 @@
 These features are not implemented. They are design notes for discovery,
 fabric validation, preparation through agents, and reconciliation. Available
 commands and their behavior are documented in the [Orbit reference](orbit.md).
-Track implementation and qualification in [TODO.txt](TODO.txt).
+Track implementation and qualification in [TODO.md](TODO.md).
 
 ## Discovery
 

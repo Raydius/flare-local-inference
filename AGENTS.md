@@ -309,7 +309,7 @@ are permitted when they do not design or change the restricted mechanisms above.
 
 ## Task tracking
 
-Use [docs/TODO.txt](docs/TODO.txt) for miscellaneous follow-up items. Keep entries
+Use [docs/TODO.md](docs/TODO.md) for miscellaneous follow-up items. Keep entries
 brief and link to detailed design or performance notes when needed. Update or
 remove entries as work is completed. Keep this file focused on durable project
 guidance rather than task lists or progress notes.
