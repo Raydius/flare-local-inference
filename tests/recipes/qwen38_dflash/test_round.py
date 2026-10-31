@@ -83,6 +83,8 @@ def proposal_round(o, width, validate, drafts):
 def test_owner_round_substitutes_copies_under_the_qwen_admission(pool):
     o = owner(pool)
     assert o.block_size == BLOCK and o.logit_offset == 1 and o.page_tokens == 64 and o.markov_runtime is None
+    # The maintenance graphs' state transfer keys its draft cache tail on this.
+    assert o.draft_tables is None and o.tables is None
     assert o.weights.config.draft.noise_token == PINNED["dflash_config"]["mask_token_id"]
     assert o.feedback[0].shape == (CAPACITY + 1, 10240) and o.feedback[1].shape == (CAPACITY + 1, 3)
     assert o.candidates.shape == (CAPACITY, 8) and o.previous_accepted.eq(1).all()
