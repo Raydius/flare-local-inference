@@ -844,4 +844,5 @@ on that work, the selected route, storage, and verification.
 
 Discovery, a preflight fabric check, preparation through agents, and automatic
 reconciliation are designed, not implemented; see
-[Orbit proposals](orbit-proposals.md). Saved groups require manual restart.
+[Orbit proposals](orbit-proposals.md) and [the backlog](TODO.md). Saved groups
+require manual restart.

@@ -4,7 +4,8 @@ Designed, not implemented. This document specifies four Orbit capabilities:
 agent discovery, a fabric check, preparation through agents, and reconciliation
 of saved groups. The code provides none of the commands, requests, flags, or
 settings named here except where a sentence says so. The
-[Orbit reference](orbit.md) documents the implemented commands.
+[Orbit reference](orbit.md) documents the implemented commands. Track
+implementation and qualification in [TODO.md](TODO.md).
 
 ## Discovery
 

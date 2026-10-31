@@ -22,7 +22,7 @@
 //! word; a slot or pair outside those lists that is skipped fails the test. A tokenizer whose
 //! pre-tokenizer is Metaspace (it prepends a space) would tokenize a region re-encoded without the
 //! added vocabulary differently from the first pass; none of the seven tokenizers tested here uses
-//! one, and the tokenizers listed in docs/TODO.txt are unread.
+//! one, and the tokenizers listed in docs/TODO.md are unread.
 
 #[path = "support/templates.rs"]
 mod template_fixtures;
