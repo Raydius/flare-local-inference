@@ -266,7 +266,7 @@ def test_cuda_measure_real_trace_beats_shuffled_control(tmp_path):
     shutil.copy(chat[0], folder)
 
     def run(shuffle):
-        args = SimpleNamespace(traces=folder, snapshot=snapshot, draft=draft, widths="4,8", arms="dflash2",
+        args = SimpleNamespace(traces=folder, snapshot=snapshot, draft=draft, widths="4,8", arms="dflash2", e4m3_kv=False,
                                shuffle_features=shuffle, seed=0)
         return da.measure(args)["results"]["dflash2"]
 

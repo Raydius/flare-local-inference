@@ -185,7 +185,7 @@ def stub_arm(correct):
 
 
 def measure_args(folder, **overrides):
-    values = dict(traces=folder, arms='dflash2,mtp', widths='4,8', shuffle_features=False, seed=0)
+    values = dict(traces=folder, arms='dflash2,mtp', widths='4,8', shuffle_features=False, e4m3_kv=False, seed=0)
     values.update(overrides)
     return SimpleNamespace(**values)
 
