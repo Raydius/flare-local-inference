@@ -156,6 +156,8 @@ class SpeculativePreparation:
         self.block_size, self.logit_offset, self.page_tokens = draft_config.block_size, 1, PAGE_TOKENS
         # The shared round reads both; DFlash2 proposes without Markov drafts or PLE tables.
         self.markov_runtime = self.tables = None
+        # The state transfer reads this: no draft page tables, so snapshots carry no draft cache tail.
+        self.draft_tables = None
         self.draft_rotary = Rotary(draft_config, device)
         # One cursor per graph: a prefill's tapped features and context scratch, or a round's draft
         # scratch, sampling scratch, and context scratch. Separate from the decoder scratch's pool,
