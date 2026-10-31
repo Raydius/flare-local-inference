@@ -134,10 +134,13 @@ class SpeculativePreparation:
 
     def __init__(self, *, target_weights, draft_weights, draft_config, pool, requests, inputs, scratch,
                  workspace, rotary, cache, table, session, completion, frame, sequence, max_cache_pages,
-                 runtime=None, vocabulary_runtime=None, coordinator=None, verification_width=8):
+                 runtime=None, vocabulary_runtime=None, coordinator=None, verification_width=8,
+                 sampling_workspace=None):
         self.collectives = dict(runtime=runtime, vocabulary_runtime=vocabulary_runtime, coordinator=coordinator)
         self.target_weights, self.pool, self.requests, self.inputs = target_weights, pool, requests, inputs
         self.scratch, self.workspace, self.rotary = scratch, workspace, rotary
+        # The mixed round's prompt sampler shares the catalog's sampling workspace.
+        self.sampling_workspace = sampling_workspace
         self.cache, self.table, self.session = cache, table, session
         self.completion, self.frame, self.sequence, self.max_cache_pages = completion, frame, sequence, max_cache_pages
         device = pool.backing.device
@@ -232,10 +235,39 @@ class PreparedPrefillContext:
         self.context(self.decoder.auxiliary, positions, rows, live)
 
 
-class PreparedDFlashRound:
-    """One graph: the shared proposal-only round, the Qwen verification decoder, acceptance, and commits."""
+class PreparedMixedPromptContext:
+    """The prompt half of a mixed round: write the chunk's gathered features into its request's rings.
 
-    def __init__(self, owner, batch, width, name):
+    Built the way the MTP absorption is: ``decoder`` is the mixed round's prompt namespace,
+    whose ``auxiliary`` the packed forward's state gathers into and whose ``state.qsa`` holds
+    the prompt role's positions. ``begin()`` has nothing to read back; the ring write runs after
+    the round, as ``PreparedPrefillContext`` runs after a prefill.
+    """
+
+    def __init__(self, owner, decoder, name, *, residual_output=None, buffers):
+        self.owner, self.decoder = owner, decoder
+        decoder.residual_output = residual_output
+        self.context = owner.context(decoder.auxiliary, name + ".context", buffers)
+
+    def begin(self):
+        pass
+
+    def finish(self):
+        positions, rows, live = prefill_feature_rows(self.owner, self.decoder.state.qsa, self.owner.window)
+        self.context(self.decoder.auxiliary, positions, rows, live)
+
+
+class PreparedDFlashRound:
+    """One graph: the shared proposal-only round, the Qwen verification decoder, acceptance, and commits.
+
+    ``decoder_factory`` builds the verification target from the arguments ``PreparedDecoder``
+    takes; the mixed round's factory returns its packed decoder instead. ``residual_output`` is
+    where that target's residual lands when the factory redirects it. ``buffers`` is the graph's
+    cursor when a caller already allocated from it; a graph holds exactly one cursor.
+    """
+
+    def __init__(self, owner, batch, width, name, *, decoder_factory=PreparedDecoder, residual_output=None,
+                 buffers=None):
         self.owner, self.batch, self.width, self.name = owner, batch, width, name
         if not 1 <= width <= owner.verification_width:
             raise ValueError("round exceeds prepared verification scratch capacity")
@@ -244,14 +276,17 @@ class PreparedDFlashRound:
         self.token_limits = o.inputs.query_lengths[:b]
         self.state = PreparedVerificationState(o.inputs, o.requests, o.pool, o.candidates, o.previous_accepted,
                                                width=w, rows=b, token_limits=self.token_limits)
-        buffers = o.cursor()
+        buffers = o.cursor() if buffers is None else buffers
         self.auxiliary = o.auxiliary(b * w, buffers)
-        self.decoder = PreparedDecoder(o.target_weights, o.scratch.rows(b * w, b * w), self.state, o.cache,
+        self.decoder = decoder_factory(o.target_weights, o.scratch.rows(b * w, b * w), self.state, o.cache,
             o.rotary, o.table, o.workspace, o.completion, o.frame, o.sequence,
             session=o.session, name=f"{name}.target", max_cache_pages=o.max_cache_pages, verification=True,
+            residual_output=residual_output,
             gdn_records=o.gdn_records if w > 1 else None, gdn_in_place=w == 1 and o.gdn_records is not None,
             feature_taps=o.feature_taps, auxiliary=self.auxiliary, **o.collectives)
-        o.decoders.append(self.decoder)
+        if decoder_factory is PreparedDecoder:
+            o.decoders.append(self.decoder)
+        self.target_residual = self.decoder.scratch.residual if residual_output is None else residual_output
         o.begin(b, buffers)
         self.round = PreparedParallelDraftRound(o, b, w, name, buffers=buffers, proposal_only=True,
             admission=PreparedAdmission(o, b, self.state._validate), draft_page_blocks=1)
@@ -282,9 +317,9 @@ class PreparedDFlashRound:
             o.completion, o.frame, o.sequence, logits=self.decoder.scratch.logits.view(b, w, -1), rng=o.rng,
             copy_offered_mask=r.copy_mask, draft_context_lag=0, token_limits=self.token_limits)
         commit.prepare()
-        # The feedback residual is the decoder's own; its stores land in the owner's private pair.
+        # The feedback residual is the target's; its stores land in the owner's private pair.
         self.state.prepare_commit(commit.emitted_count, commit.consumed_before,
-                                  self.decoder.scratch.residual, self.decoder.scratch.sample_hidden,
+                                  self.target_residual, self.decoder.scratch.sample_hidden,
                                   feedback=o.feedback)
         model_commit = tuple(self.state._commit)
         if o.gdn_records is not None and w > 1:

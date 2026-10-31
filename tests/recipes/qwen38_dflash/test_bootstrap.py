@@ -36,12 +36,36 @@ def test_snapshot_floor_is_the_allocated_dflash_layout():
 
 @pytest.mark.parametrize("arguments,message", [
     (dict(devices=(0, 1)), "single GPU"), (dict(hosts=("a",), devices=(0,)), "single GPU"),
-    (dict(shard_hyperconnections=True, devices=(0, 1)), "single GPU"),
-    (dict(mixed_prefill=True), "no mixed prefill"), (dict(draft_checkpoint="/draft"), "Path"),
+    (dict(shard_hyperconnections=True, devices=(0, 1)), "single GPU"), (dict(draft_checkpoint="/draft"), "Path"),
 ])
-def test_config_rejects_sharding_mixed_rounds_and_untyped_drafts(arguments, message):
+def test_config_rejects_sharding_and_untyped_drafts(arguments, message):
     with pytest.raises((ValueError, TypeError), match=message):
         PreparationConfig(**arguments)
+
+
+@pytest.mark.parametrize("mixed", [False, True])
+def test_plan_and_preparation_use_identical_mixed_catalogs(mixed, monkeypatch):
+    """The DFlash plan's mixed shapes are qwen38's, in draft-enabled and draft-disabled modes."""
+    from ignition import planning
+    from ignition.recipes.declaration import Speculation
+    from ignition.recipes.qwen38.recipe import RECIPE as QWEN
+    from ignition.recipes.qwen38_dflash import bootstrap, recipe
+
+    gpu = planning.Gpu(0, "NVIDIA RTX PRO 6000 Blackwell", "GPU-test", 96 << 30, 95 << 30, (12, 0))
+    monkeypatch.setattr(bootstrap, "prepare_model", lambda snapshot, config, **kwargs: config)
+    monkeypatch.setattr(recipe, "snapshot_download", lambda *args, **kwargs: "/draft", raising=False)
+    for speculation in (None, Speculation(7, token_capacity=128), Speculation(3, token_capacity=128, adaptive=False)):
+        plan = planning.plan(RECIPE, RECIPE.checkpoints[0], (gpu,), selected=(0,),
+            concurrency=4, reserve_bytes=0, speculation=speculation, mixed_prefill=mixed)
+        config = RECIPE.prepare(Path("/checkpoint"), plan, compile_forwards=True, kernel_cache=None, progress=None)
+        expected = RECIPE.mixed_shapes(4, 4096, speculation) if mixed else ()
+        assert config.mixed_prefill == plan.to_dict()["mixed_prefill"] == mixed
+        assert config.mixed_shapes == plan.mixed_shapes == expected
+        assert config.drafting == config.mtp == (speculation is not None)
+        assert expected == QWEN.mixed_shapes(4, 4096, speculation if mixed else None) if mixed else expected == ()
+        assert all(p + (b - 1) * w <= config.token_capacity for _, b, w, p in config.mixed_shapes)
+    assert RECIPE.mixed_prefill and PreparationConfig(draft_checkpoint=DRAFT, mixed_prefill=True).mixed_shapes
+    assert PreparationConfig(max_active=1, draft_checkpoint=DRAFT, mixed_prefill=True).mixed_shapes == ()
 
 
 def test_identity_differs_from_qwen38_and_tracks_the_draft():

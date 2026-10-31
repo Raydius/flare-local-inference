@@ -135,8 +135,16 @@ class StatePartitions:
 class PreparedMixedState:
     """One target forward; prompt consumption and decode acceptance remain separate."""
 
-    def __init__(self, packing, prompt, decode, scratch, *, prompt_residual, decode_residual):
+    def __init__(self, packing, prompt, decode, scratch, *, prompt_residual, decode_residual,
+                 features=None, prompt_features=None, decode_features=None):
+        if (features is None) != (prompt_features is None) or (features is None) != (decode_features is None):
+            raise ValueError("tapped features require the packed buffer and both role buffers")
+        if features is not None and (features.shape[0] != packing.tokens or prompt_features.shape[0] != prompt.tokens
+                                     or decode_features.shape[0] != decode.tokens
+                                     or len({features.shape[1:], prompt_features.shape[1:], decode_features.shape[1:]}) != 1):
+            raise ValueError("feature buffers hold one row per packed, prompt, and decode token")
         self.packing, self.prompt, self.decode = packing, prompt, decode
+        self.features, self.prompt_features, self.decode_features = features, prompt_features, decode_features
         self.inputs, self.requests, self.pool = packing.inputs, prompt.requests, prompt.pool
         self.tokens, self.rows, self.mode = packing.tokens, packing.batch, "prefill"
         device = self.inputs.token_ids.device
@@ -207,5 +215,8 @@ class PreparedMixedState:
         d.gather(self.hidden, self.decode_hidden)
         p.gather(self.residual, self.prompt_residual)
         d.gather(self.residual, self.decode_residual)
+        if self.features is not None:
+            p.gather(self.features, self.prompt_features)
+            d.gather(self.features, self.decode_features)
         self.prompt.finish()
         self.decode.finish()

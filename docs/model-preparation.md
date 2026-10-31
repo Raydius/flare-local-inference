@@ -540,8 +540,9 @@ Export on one GPU:
 Each round proposes seven draft tokens per request (`draft_tokens=7`) with a
 128-token speculative capacity. `flare run PACKAGE --history-drafts` is
 supported. The recipe prepares TP1 only; `--gpus` with more than one device is
-rejected. Prefill and decode rounds are not mixed: the draft context is written
-from prefill and verification graphs separately.
+rejected. With `--mixed-prefill`, mixed graphs run the DFlash2 round around the
+packed prompt/decode target forward and write the prompt chunk's draft context
+from the same graph.
 
 ## GLM 5.3 Flash
 
