@@ -484,6 +484,10 @@ def _lower_storage(module):
     positions = {node: index for index, node in enumerate(originals)}
     last_write = {keys[arg]: positions[node] for node in originals for arg in mutations.get(node, ())}
     calls, mutation_calls = [], {}
+    # Regions an opaque invocation has already mutated: a later copy that reads one of them must
+    # also run as an invocation, since Inductor's write-back of a deferred copy recomputes its
+    # source from the region's traced value, not from the storage the invocation wrote.
+    opaque_written = set()
     for node in originals:
         if node.op != 'call_function':
             continue
@@ -503,15 +507,19 @@ def _lower_storage(module):
                     and value.numel() * value.element_size() == end - begin)
 
         mutable_keys = {key_for(arg) for arg in mutated}
-        # Opaque operands retain their prepared alignment and contiguous layout.
         source = node.args[1].meta['val'] if target is torch.ops.aten.copy_.default else None
-        # A source that reads the destination region would be gathered in place by the writeback.
+        # Inductor can defer a copy only when its contiguous base source does not read the
+        # destination, neither region is overwritten later, and no opaque invocation wrote
+        # storage that the source reads.
         if (target is torch.ops.aten.copy_.default
                 and source.is_contiguous() and source.storage_offset() == 0
                 and mutable_keys.isdisjoint(accesses[node.args[1]])
                 and not any(last_write.get(key, -1) > positions[node] for key in accesses[node.args[1]])
+                and not any(last_write.get(key, -1) > positions[node] for key in mutable_keys)
+                and not (accesses[node.args[1]] & opaque_written)
                 and all(complete_write(arg) for arg in mutated)):
             continue
+        opaque_written.update(mutable_keys)
         reads, writes, read_indices, write_indices = [], [], {}, {}
         leaves, tree = tree_flatten((node.args, node.kwargs))
         operands, integers, integer_positions = [], [], []
