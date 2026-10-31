@@ -289,6 +289,10 @@ def test_mixed_round_feature_buffers_come_from_one_drafter_cursor(monkeypatch):
     assert prompt.kwargs["buffers"] is decode.kwargs["buffers"] and prompt.kwargs["buffers"].pool is sampling_pool
     assert round.prompt_decoder.auxiliary is round.prompt_features and round.prompt_features.shape == (16, 5120)
     (decoder,), = (seen.decoders,)
+    # The packed decoder keeps b*w+1 sample rows the role states gather into, so it is not built in
+    # verification mode (which aliases sample rows to hidden rows) and brings no sampler of its own.
+    assert decoder.kwargs["verification"] is False and decoder.kwargs["sampler"] is False
+    assert decoder.scratch.sample_hidden.shape[0] == 2 * 3 + 1 < decoder.scratch.hidden.shape[0]
     assert decoder.kwargs["feature_taps"] == (5, 15) and decoder.kwargs["auxiliary"] is round.features
     assert round.features.shape == (round.packing.tokens, 5120) and decoder.state.decode_features.shape == (6, 5120)
     assert decoder.state.features is round.features and decoder.state.prompt_features is round.prompt_features
@@ -315,5 +319,6 @@ def test_mixed_round_without_taps_keeps_the_mtp_call_shape(monkeypatch):
     assert prompt.args == (round.prompt_decoder, "mixed.prompt") and set(prompt.kwargs) == {"residual_output"}
     assert decode.args == (2, 3, "mixed") and set(decode.kwargs) == {"decoder_factory", "residual_output"}
     (decoder,), = (seen.decoders,)
+    assert decoder.kwargs["verification"] is False and decoder.kwargs["sampler"] is False
     assert "auxiliary" not in decoder.kwargs and "feature_taps" not in decoder.kwargs
     assert decoder.state.features is None

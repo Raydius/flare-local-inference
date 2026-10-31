@@ -230,7 +230,8 @@ class PreparedDecoder:
                  residual_output: torch.Tensor | None = None, verification: bool = False,
                  gdn_records=None, gdn_in_place: bool = False, runtime=None, vocabulary_runtime=None, coordinator=None,
                  sampling_workspace=None, scoring=None,
-                 feature_taps: tuple[int, ...] = (), auxiliary: torch.Tensor | None = None):
+                 feature_taps: tuple[int, ...] = (), auxiliary: torch.Tensor | None = None,
+                 sampler: bool = True):
         from ignition.components.embedding import PreparedEmbedding
         from ignition.components.linear import UnquantizedProjection
 
@@ -327,8 +328,10 @@ class PreparedDecoder:
                 coordinator=coordinator, name=f"{name}.lm_head")
         self.scoring = None if scoring is None else scoring.prepare(scratch.hidden, weights.tree.lm_head.weight,
             vocabulary=248320, session=session, coordinator=coordinator, name=name + ".prompt")
+        # ``sampler=False`` leaves sampling to the owner while the state still gathers the
+        # sample rows: the mixed round samples its prompt and decode roles separately.
         self.sampler = None
-        if not verification:
+        if not verification and sampler:
             from ignition.components.sampling import PreparedSampling
 
             state, inputs = self.state, self.state.inputs
