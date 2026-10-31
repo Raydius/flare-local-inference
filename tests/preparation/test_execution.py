@@ -236,6 +236,11 @@ def test_mixed_manifest_preserves_both_capacities_and_decode_mode(monkeypatch, p
     assert (decoded.batch_capacity, decoded.token_capacity, decoded.prefill_capacity) == (4, width, prefill)
     assert decoded.speculation_enabled == enabled
     assert "prefill_row" in [b.buffer_name for b in decoded.input_bindings]
+    # A mixed round with speculation carries its embedded round's proposal depth, which the
+    # package export requires and the runtime selects mixed rounds by; a plain one carries none.
+    expected = (width - 1, width, 1) if enabled else (0, 0, 0)
+    assert (decoded.draft_tokens, decoded.verify_tokens, decoded.draft_source) == expected
+    assert signature.draft_tokens == (width - 1 if enabled else None)
 
 
 def test_verification_protobuf_preserves_physical_rows_and_legacy_width_bounds():
