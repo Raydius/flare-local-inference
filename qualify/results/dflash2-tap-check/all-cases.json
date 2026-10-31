@@ -1,0 +1,688 @@
+{
+  "traces": [
+    {
+      "trace": "chat-capacity-10c824cef65b8fb7",
+      "prompt_tokens": 198,
+      "layers": {
+        "5": {
+          "max_relative_error": 0.03773732765897896,
+          "max_abs_difference": 0.03125
+        },
+        "15": {
+          "max_relative_error": 0.07644138136523662,
+          "max_abs_difference": 0.0390625
+        },
+        "25": {
+          "max_relative_error": 0.1358399518099984,
+          "max_abs_difference": 0.0810546875
+        },
+        "35": {
+          "max_relative_error": 0.20851099654432864,
+          "max_abs_difference": 0.470703125
+        },
+        "45": {
+          "max_relative_error": 0.17556145703679282,
+          "max_abs_difference": 2.1328125
+        }
+      },
+      "ring_slots": {
+        "live": 431,
+        "expected_live": 431,
+        "first_live_position": 0,
+        "first_expected_position": 0,
+        "matches": true
+      },
+      "model_id": "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+      "revision": "b9ce18a6887e18c089fdea8509a33e63429a3300",
+      "trace_model_id": "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+      "trace_revision": "b9ce18a6887e18c089fdea8509a33e63429a3300",
+      "prefilled_tokens": 431
+    },
+    {
+      "trace": "chat-deduction-18fe7a349765dab7",
+      "prompt_tokens": 192,
+      "layers": {
+        "5": {
+          "max_relative_error": 0.04669056012781774,
+          "max_abs_difference": 0.0625
+        },
+        "15": {
+          "max_relative_error": 0.0802657789222437,
+          "max_abs_difference": 0.078125
+        },
+        "25": {
+          "max_relative_error": 0.13915577080445107,
+          "max_abs_difference": 0.0703125
+        },
+        "35": {
+          "max_relative_error": 0.20564148539470678,
+          "max_abs_difference": 0.2880859375
+        },
+        "45": {
+          "max_relative_error": 0.17093582675546307,
+          "max_abs_difference": 0.83203125
+        }
+      },
+      "ring_slots": {
+        "live": 355,
+        "expected_live": 355,
+        "first_live_position": 0,
+        "first_expected_position": 0,
+        "matches": true
+      },
+      "model_id": "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+      "revision": "b9ce18a6887e18c089fdea8509a33e63429a3300",
+      "trace_model_id": "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+      "trace_revision": "b9ce18a6887e18c089fdea8509a33e63429a3300",
+      "prefilled_tokens": 355
+    },
+    {
+      "trace": "chat-review-c7ed71d5b2a565dd",
+      "prompt_tokens": 192,
+      "layers": {
+        "5": {
+          "max_relative_error": 0.0383808770514179,
+          "max_abs_difference": 0.0390625
+        },
+        "15": {
+          "max_relative_error": 0.07495757412083735,
+          "max_abs_difference": 0.046875
+        },
+        "25": {
+          "max_relative_error": 0.13240547554809937,
+          "max_abs_difference": 0.05621337890625
+        },
+        "35": {
+          "max_relative_error": 0.1813166028769199,
+          "max_abs_difference": 0.30029296875
+        },
+        "45": {
+          "max_relative_error": 0.15630031873078287,
+          "max_abs_difference": 0.787109375
+        }
+      },
+      "ring_slots": {
+        "live": 411,
+        "expected_live": 411,
+        "first_live_position": 0,
+        "first_expected_position": 0,
+        "matches": true
+      },
+      "model_id": "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+      "revision": "b9ce18a6887e18c089fdea8509a33e63429a3300",
+      "trace_model_id": "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+      "trace_revision": "b9ce18a6887e18c089fdea8509a33e63429a3300",
+      "prefilled_tokens": 411
+    },
+    {
+      "trace": "chat-tradeoff-3a68479a5144b915",
+      "prompt_tokens": 197,
+      "layers": {
+        "5": {
+          "max_relative_error": 0.05758989559013058,
+          "max_abs_difference": 0.09375
+        },
+        "15": {
+          "max_relative_error": 0.08293131401287246,
+          "max_abs_difference": 0.109375
+        },
+        "25": {
+          "max_relative_error": 0.13463363069789064,
+          "max_abs_difference": 0.171875
+        },
+        "35": {
+          "max_relative_error": 0.20000927198979157,
+          "max_abs_difference": 0.2861328125
+        },
+        "45": {
+          "max_relative_error": 0.1772800089060978,
+          "max_abs_difference": 1.296875
+        }
+      },
+      "ring_slots": {
+        "live": 453,
+        "expected_live": 453,
+        "first_live_position": 0,
+        "first_expected_position": 0,
+        "matches": true
+      },
+      "model_id": "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+      "revision": "b9ce18a6887e18c089fdea8509a33e63429a3300",
+      "trace_model_id": "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+      "trace_revision": "b9ce18a6887e18c089fdea8509a33e63429a3300",
+      "prefilled_tokens": 453
+    },
+    {
+      "trace": "code-docstrings-stop-1c1e9fa3a5a9304b",
+      "prompt_tokens": 672,
+      "layers": {
+        "5": {
+          "max_relative_error": 0.03823920451777031,
+          "max_abs_difference": 0.03125
+        },
+        "15": {
+          "max_relative_error": 0.09064872130224928,
+          "max_abs_difference": 0.0390625
+        },
+        "25": {
+          "max_relative_error": 0.17617896273282171,
+          "max_abs_difference": 0.187255859375
+        },
+        "35": {
+          "max_relative_error": 0.3868727185697579,
+          "max_abs_difference": 0.59375
+        },
+        "45": {
+          "max_relative_error": 0.2729801361370166,
+          "max_abs_difference": 3.1640625
+        }
+      },
+      "ring_slots": {
+        "live": 928,
+        "expected_live": 928,
+        "first_live_position": 0,
+        "first_expected_position": 0,
+        "matches": true
+      },
+      "model_id": "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+      "revision": "b9ce18a6887e18c089fdea8509a33e63429a3300",
+      "trace_model_id": "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+      "trace_revision": "b9ce18a6887e18c089fdea8509a33e63429a3300",
+      "prefilled_tokens": 928
+    },
+    {
+      "trace": "code-reject-bool-e5d10002d3e97485",
+      "prompt_tokens": 668,
+      "layers": {
+        "5": {
+          "max_relative_error": 0.0481203711788397,
+          "max_abs_difference": 0.1015625
+        },
+        "15": {
+          "max_relative_error": 0.09610658350516403,
+          "max_abs_difference": 0.109375
+        },
+        "25": {
+          "max_relative_error": 0.17857560719831098,
+          "max_abs_difference": 0.17724609375
+        },
+        "35": {
+          "max_relative_error": 0.3900507908819357,
+          "max_abs_difference": 0.5712890625
+        },
+        "45": {
+          "max_relative_error": 0.26985736545575695,
+          "max_abs_difference": 2.703125
+        }
+      },
+      "ring_slots": {
+        "live": 924,
+        "expected_live": 924,
+        "first_live_position": 0,
+        "first_expected_position": 0,
+        "matches": true
+      },
+      "model_id": "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+      "revision": "b9ce18a6887e18c089fdea8509a33e63429a3300",
+      "trace_model_id": "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+      "trace_revision": "b9ce18a6887e18c089fdea8509a33e63429a3300",
+      "prefilled_tokens": 924
+    },
+    {
+      "trace": "code-tests-e3e80ad7bb23b369",
+      "prompt_tokens": 671,
+      "layers": {
+        "5": {
+          "max_relative_error": 0.0414014413313267,
+          "max_abs_difference": 0.0625
+        },
+        "15": {
+          "max_relative_error": 0.09373242154866536,
+          "max_abs_difference": 0.0625
+        },
+        "25": {
+          "max_relative_error": 0.18148923763416328,
+          "max_abs_difference": 0.1923828125
+        },
+        "35": {
+          "max_relative_error": 0.38614687192946096,
+          "max_abs_difference": 0.5751953125
+        },
+        "45": {
+          "max_relative_error": 0.2705832308326994,
+          "max_abs_difference": 2.78125
+        }
+      },
+      "ring_slots": {
+        "live": 927,
+        "expected_live": 927,
+        "first_live_position": 0,
+        "first_expected_position": 0,
+        "matches": true
+      },
+      "model_id": "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+      "revision": "b9ce18a6887e18c089fdea8509a33e63429a3300",
+      "trace_model_id": "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+      "trace_revision": "b9ce18a6887e18c089fdea8509a33e63429a3300",
+      "prefilled_tokens": 927
+    },
+    {
+      "trace": "code-timeout-range-1116efd3c398ca59",
+      "prompt_tokens": 675,
+      "layers": {
+        "5": {
+          "max_relative_error": 0.036499396199013455,
+          "max_abs_difference": 0.0234375
+        },
+        "15": {
+          "max_relative_error": 0.0898677051202899,
+          "max_abs_difference": 0.0517578125
+        },
+        "25": {
+          "max_relative_error": 0.17586864155247495,
+          "max_abs_difference": 0.177734375
+        },
+        "35": {
+          "max_relative_error": 0.37654902945769436,
+          "max_abs_difference": 0.701171875
+        },
+        "45": {
+          "max_relative_error": 0.2661470829574586,
+          "max_abs_difference": 2.46875
+        }
+      },
+      "ring_slots": {
+        "live": 784,
+        "expected_live": 784,
+        "first_live_position": 0,
+        "first_expected_position": 0,
+        "matches": true
+      },
+      "model_id": "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+      "revision": "b9ce18a6887e18c089fdea8509a33e63429a3300",
+      "trace_model_id": "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+      "trace_revision": "b9ce18a6887e18c089fdea8509a33e63429a3300",
+      "prefilled_tokens": 784
+    },
+    {
+      "trace": "incident-turn-1-24cc3cfff653ac9a",
+      "prompt_tokens": 586,
+      "layers": {
+        "5": {
+          "max_relative_error": 0.04591035702510502,
+          "max_abs_difference": 0.0859375
+        },
+        "15": {
+          "max_relative_error": 0.08130256354213983,
+          "max_abs_difference": 0.09375
+        },
+        "25": {
+          "max_relative_error": 0.227706277278494,
+          "max_abs_difference": 0.125
+        },
+        "35": {
+          "max_relative_error": 0.37738942817560966,
+          "max_abs_difference": 0.4140625
+        },
+        "45": {
+          "max_relative_error": 0.4053040150925201,
+          "max_abs_difference": 1.796875
+        }
+      },
+      "ring_slots": {
+        "live": 618,
+        "expected_live": 618,
+        "first_live_position": 0,
+        "first_expected_position": 0,
+        "matches": true
+      },
+      "model_id": "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+      "revision": "b9ce18a6887e18c089fdea8509a33e63429a3300",
+      "trace_model_id": "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+      "trace_revision": "b9ce18a6887e18c089fdea8509a33e63429a3300",
+      "prefilled_tokens": 618
+    },
+    {
+      "trace": "incident-turn-2-1c586b125271d34b",
+      "prompt_tokens": 697,
+      "layers": {
+        "5": {
+          "max_relative_error": 0.044883558079339976,
+          "max_abs_difference": 0.08203125
+        },
+        "15": {
+          "max_relative_error": 0.0848007218895431,
+          "max_abs_difference": 0.07421875
+        },
+        "25": {
+          "max_relative_error": 0.2291763805527637,
+          "max_abs_difference": 0.1044921875
+        },
+        "35": {
+          "max_relative_error": 0.3855526425102983,
+          "max_abs_difference": 0.28515625
+        },
+        "45": {
+          "max_relative_error": 0.39973686431116034,
+          "max_abs_difference": 2.0234375
+        }
+      },
+      "ring_slots": {
+        "live": 723,
+        "expected_live": 723,
+        "first_live_position": 0,
+        "first_expected_position": 0,
+        "matches": true
+      },
+      "model_id": "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+      "revision": "b9ce18a6887e18c089fdea8509a33e63429a3300",
+      "trace_model_id": "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+      "trace_revision": "b9ce18a6887e18c089fdea8509a33e63429a3300",
+      "prefilled_tokens": 723
+    },
+    {
+      "trace": "incident-turn-3-802add5d0a19eff2",
+      "prompt_tokens": 408,
+      "layers": {
+        "5": {
+          "max_relative_error": 0.04584862312563788,
+          "max_abs_difference": 0.09375
+        },
+        "15": {
+          "max_relative_error": 0.08252251255387001,
+          "max_abs_difference": 0.0859375
+        },
+        "25": {
+          "max_relative_error": 0.1517257066335326,
+          "max_abs_difference": 0.1015625
+        },
+        "35": {
+          "max_relative_error": 0.25950749861669314,
+          "max_abs_difference": 0.32421875
+        },
+        "45": {
+          "max_relative_error": 0.21405442580588993,
+          "max_abs_difference": 2.013671875
+        }
+      },
+      "ring_slots": {
+        "live": 510,
+        "expected_live": 510,
+        "first_live_position": 0,
+        "first_expected_position": 0,
+        "matches": true
+      },
+      "model_id": "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+      "revision": "b9ce18a6887e18c089fdea8509a33e63429a3300",
+      "trace_model_id": "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+      "trace_revision": "b9ce18a6887e18c089fdea8509a33e63429a3300",
+      "prefilled_tokens": 510
+    },
+    {
+      "trace": "json-incident-05261b5ace91abc6",
+      "prompt_tokens": 265,
+      "layers": {
+        "5": {
+          "max_relative_error": 0.0572774552861963,
+          "max_abs_difference": 0.0859375
+        },
+        "15": {
+          "max_relative_error": 0.08192687250787802,
+          "max_abs_difference": 0.09375
+        },
+        "25": {
+          "max_relative_error": 0.16538056451158772,
+          "max_abs_difference": 0.140625
+        },
+        "35": {
+          "max_relative_error": 0.2859708580928132,
+          "max_abs_difference": 0.189453125
+        },
+        "45": {
+          "max_relative_error": 0.2617599098936787,
+          "max_abs_difference": 1.515625
+        }
+      },
+      "ring_slots": {
+        "live": 285,
+        "expected_live": 285,
+        "first_live_position": 0,
+        "first_expected_position": 0,
+        "matches": true
+      },
+      "model_id": "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+      "revision": "b9ce18a6887e18c089fdea8509a33e63429a3300",
+      "trace_model_id": "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+      "trace_revision": "b9ce18a6887e18c089fdea8509a33e63429a3300",
+      "prefilled_tokens": 285
+    },
+    {
+      "trace": "json-literal-tags-39ab5f7841d649f8",
+      "prompt_tokens": 256,
+      "layers": {
+        "5": {
+          "max_relative_error": 0.030442839030911228,
+          "max_abs_difference": 0.0234375
+        },
+        "15": {
+          "max_relative_error": 0.06953077145958113,
+          "max_abs_difference": 0.033203125
+        },
+        "25": {
+          "max_relative_error": 0.16865670845816969,
+          "max_abs_difference": 0.0703125
+        },
+        "35": {
+          "max_relative_error": 0.2832338345317087,
+          "max_abs_difference": 0.218017578125
+        },
+        "45": {
+          "max_relative_error": 0.2753037340387355,
+          "max_abs_difference": 0.9140625
+        }
+      },
+      "ring_slots": {
+        "live": 275,
+        "expected_live": 275,
+        "first_live_position": 0,
+        "first_expected_position": 0,
+        "matches": true
+      },
+      "model_id": "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+      "revision": "b9ce18a6887e18c089fdea8509a33e63429a3300",
+      "trace_model_id": "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+      "trace_revision": "b9ce18a6887e18c089fdea8509a33e63429a3300",
+      "prefilled_tokens": 275
+    },
+    {
+      "trace": "json-plan-794847469b27eb63",
+      "prompt_tokens": 274,
+      "layers": {
+        "5": {
+          "max_relative_error": 0.04478369686373086,
+          "max_abs_difference": 0.0703125
+        },
+        "15": {
+          "max_relative_error": 0.07574303993561216,
+          "max_abs_difference": 0.1015625
+        },
+        "25": {
+          "max_relative_error": 0.1637620988918454,
+          "max_abs_difference": 0.0859375
+        },
+        "35": {
+          "max_relative_error": 0.28666858987713045,
+          "max_abs_difference": 0.41796875
+        },
+        "45": {
+          "max_relative_error": 0.2645066361793515,
+          "max_abs_difference": 1.5888671875
+        }
+      },
+      "ring_slots": {
+        "live": 317,
+        "expected_live": 317,
+        "first_live_position": 0,
+        "first_expected_position": 0,
+        "matches": true
+      },
+      "model_id": "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+      "revision": "b9ce18a6887e18c089fdea8509a33e63429a3300",
+      "trace_model_id": "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+      "trace_revision": "b9ce18a6887e18c089fdea8509a33e63429a3300",
+      "prefilled_tokens": 317
+    },
+    {
+      "trace": "json-unicode-a0e7ddf9a2feecee",
+      "prompt_tokens": 277,
+      "layers": {
+        "5": {
+          "max_relative_error": 0.03249296806484224,
+          "max_abs_difference": 0.03125
+        },
+        "15": {
+          "max_relative_error": 0.07330567990344353,
+          "max_abs_difference": 0.0625
+        },
+        "25": {
+          "max_relative_error": 0.16348434200709586,
+          "max_abs_difference": 0.048980712890625
+        },
+        "35": {
+          "max_relative_error": 0.2730834632644589,
+          "max_abs_difference": 0.322509765625
+        },
+        "45": {
+          "max_relative_error": 0.24945276819925616,
+          "max_abs_difference": 0.9453125
+        }
+      },
+      "ring_slots": {
+        "live": 305,
+        "expected_live": 305,
+        "first_live_position": 0,
+        "first_expected_position": 0,
+        "matches": true
+      },
+      "model_id": "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+      "revision": "b9ce18a6887e18c089fdea8509a33e63429a3300",
+      "trace_model_id": "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+      "trace_revision": "b9ce18a6887e18c089fdea8509a33e63429a3300",
+      "prefilled_tokens": 305
+    },
+    {
+      "trace": "release-turn-1-5b4446dc2102e307",
+      "prompt_tokens": 580,
+      "layers": {
+        "5": {
+          "max_relative_error": 0.04541883456015674,
+          "max_abs_difference": 0.078125
+        },
+        "15": {
+          "max_relative_error": 0.0820727422442108,
+          "max_abs_difference": 0.09375
+        },
+        "25": {
+          "max_relative_error": 0.22702071900945667,
+          "max_abs_difference": 0.1982421875
+        },
+        "35": {
+          "max_relative_error": 0.37924563379951154,
+          "max_abs_difference": 0.3984375
+        },
+        "45": {
+          "max_relative_error": 0.4045915045895538,
+          "max_abs_difference": 1.42822265625
+        }
+      },
+      "ring_slots": {
+        "live": 612,
+        "expected_live": 612,
+        "first_live_position": 0,
+        "first_expected_position": 0,
+        "matches": true
+      },
+      "model_id": "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+      "revision": "b9ce18a6887e18c089fdea8509a33e63429a3300",
+      "trace_model_id": "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+      "trace_revision": "b9ce18a6887e18c089fdea8509a33e63429a3300",
+      "prefilled_tokens": 612
+    },
+    {
+      "trace": "release-turn-2-97a20e00aac6d2bc",
+      "prompt_tokens": 689,
+      "layers": {
+        "5": {
+          "max_relative_error": 0.04996082472669692,
+          "max_abs_difference": 0.109375
+        },
+        "15": {
+          "max_relative_error": 0.08784012967996306,
+          "max_abs_difference": 0.1171875
+        },
+        "25": {
+          "max_relative_error": 0.22656478085212145,
+          "max_abs_difference": 0.1273193359375
+        },
+        "35": {
+          "max_relative_error": 0.3813178530348632,
+          "max_abs_difference": 0.4189453125
+        },
+        "45": {
+          "max_relative_error": 0.3995274654968375,
+          "max_abs_difference": 1.78125
+        }
+      },
+      "ring_slots": {
+        "live": 715,
+        "expected_live": 715,
+        "first_live_position": 0,
+        "first_expected_position": 0,
+        "matches": true
+      },
+      "model_id": "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+      "revision": "b9ce18a6887e18c089fdea8509a33e63429a3300",
+      "trace_model_id": "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+      "trace_revision": "b9ce18a6887e18c089fdea8509a33e63429a3300",
+      "prefilled_tokens": 715
+    },
+    {
+      "trace": "release-turn-3-deb64fecf59a15b6",
+      "prompt_tokens": 418,
+      "layers": {
+        "5": {
+          "max_relative_error": 0.04252772843108405,
+          "max_abs_difference": 0.0283203125
+        },
+        "15": {
+          "max_relative_error": 0.08744892994314692,
+          "max_abs_difference": 0.03515625
+        },
+        "25": {
+          "max_relative_error": 0.14730172583602044,
+          "max_abs_difference": 0.20947265625
+        },
+        "35": {
+          "max_relative_error": 0.26398204719668117,
+          "max_abs_difference": 0.490234375
+        },
+        "45": {
+          "max_relative_error": 0.1996771827973838,
+          "max_abs_difference": 1.45703125
+        }
+      },
+      "ring_slots": {
+        "live": 560,
+        "expected_live": 560,
+        "first_live_position": 0,
+        "first_expected_position": 0,
+        "matches": true
+      },
+      "model_id": "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+      "revision": "b9ce18a6887e18c089fdea8509a33e63429a3300",
+      "trace_model_id": "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+      "trace_revision": "b9ce18a6887e18c089fdea8509a33e63429a3300",
+      "prefilled_tokens": 560
+    }
+  ]
+}
