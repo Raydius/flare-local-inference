@@ -3,7 +3,7 @@
 This document specifies the core format and cache contract. Helios implements
 the format, conversion, and cache in `helios/src/core/`; `helios/src/runtime_core/`
 loads cores for serving. [Runtime cores](runtime-core-design.md) describes
-export and loading; [TODO.txt](TODO.txt) tracks unfinished work, including
+export and loading; [TODO.md](TODO.md) tracks unfinished work, including
 full-model qualification of tensor-parallel resharding. Export, conversion, and
 signing write payload format version 2 (`FORMAT_VERSION` in
 `helios/src/core/schema.rs`).
