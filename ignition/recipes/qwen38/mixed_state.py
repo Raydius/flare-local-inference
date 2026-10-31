@@ -197,8 +197,16 @@ class FunctionalStatePartitions:
 class PreparedMixedState:
     """One target forward; prompt consumption and decode acceptance remain separate."""
 
-    def __init__(self, packing, prompt, decode, scratch, *, prompt_residual, decode_residual):
+    def __init__(self, packing, prompt, decode, scratch, *, prompt_residual, decode_residual,
+                 features=None, prompt_features=None, decode_features=None):
+        if (features is None) != (prompt_features is None) or (features is None) != (decode_features is None):
+            raise ValueError("tapped features require the packed buffer and both role buffers")
+        if features is not None and (features.shape[0] != packing.tokens or prompt_features.shape[0] != prompt.tokens
+                                     or decode_features.shape[0] != decode.tokens
+                                     or len({features.shape[1:], prompt_features.shape[1:], decode_features.shape[1:]}) != 1):
+            raise ValueError("feature buffers hold one row per packed, prompt, and decode token")
         self.packing, self.prompt, self.decode = packing, prompt, decode
+        self.features, self.prompt_features, self.decode_features = features, prompt_features, decode_features
         self.inputs, self.requests, self.pool = packing.inputs, prompt.requests, prompt.pool
         self.tokens, self.rows, self.mode = packing.tokens, packing.batch, "prefill"
         device = self.inputs.token_ids.device
@@ -287,6 +295,9 @@ class PreparedMixedState:
         prompt, decode = runtime.gdn_partitions.parts
         prompt_hidden, decode_hidden = prompt.gather(hidden), decode.gather(hidden)
         prompt_residual, decode_residual = prompt.gather(residual), decode.gather(residual)
+        if self.features is not None:
+            self.prompt_features.copy_(prompt.gather(self.features))
+            self.decode_features.copy_(decode.gather(self.features))
         prompt_sample = self.prompt.finish_runtime(runtime.prompt, prompt_hidden, prompt_residual)
         decode_sample = self.decode.finish_runtime(runtime.decode, decode_hidden, decode_residual)
         return torch.cat((decode_sample, prompt_sample), dim=0)

@@ -76,8 +76,6 @@ class PreparationConfig(_QwenPreparationConfig):
         if (self.hosts is not None or self.roce_ring or self.roce_chain or self.shard_hyperconnections
                 or (self.devices is not None and len(self.devices) != 1)):
             raise ValueError("qwen3.8-flash-dflash2 prepares on a single GPU: the DFlash2 draft is not sharded")
-        if self.mixed_prefill:
-            raise ValueError("qwen3.8-flash-dflash2 prepares no mixed prefill rounds")
         object.__setattr__(self, "mtp", self.drafting)
         super().__post_init__()
         if self.snapshot_budget_bytes < state_layout(self.drafting).row_bytes:
@@ -160,6 +158,7 @@ def _prepare_model(snapshot: Path, config: PreparationConfig, *, transient, prog
     host_storage = {} if package_storage is None else {"host_allocator": package_storage.host_allocate}
     table = PLETable.load(manifest, device, tokens=config.token_capacity, progress=progress, **host_storage)
     sample_rows = max(batch * width for batch, width in config.speculative_shapes) if drafting else config.request_capacity
+    sample_rows += bool(config.mixed_shapes)
     collectives = dict(runtime=None, vocabulary_runtime=None, coordinator=None)
     session = preparation_session(
         compile_workers=config.compile_workers, collective_tuning=config.collective_tuning, autotune_effort=config.autotune_effort, tuning_replica=config.tuning_replica,
@@ -230,21 +229,24 @@ def _prepare_model(snapshot: Path, config: PreparationConfig, *, transient, prog
                     draft_config=draft_config, pool=state, requests=requests, inputs=inputs, scratch=scratch,
                     workspace=workspaces, rotary=rotary, cache=cache, table=table, session=session,
                     completion=completion, frame=frame, sequence=sequence, max_cache_pages=planned_pages,
-                    verification_width=max(config.speculative_widths), **collectives)
+                    verification_width=max(config.speculative_widths), sampling_workspace=sampling_workspace,
+                    **collectives)
                 buffers.update(speculation.buffers())
         scoring = PromptScoring.allocate(config, device, buffers, frame=frame, group=None, ipc=None,
             runtime=None, coordinator=None)
         serving_modes = (True, False) if drafting else (False,)
         graph_count = (4 + len(serving_modes) * (prefill_graph_count(config.prefill_capacities, scoring)
                                               + 4 * len(config.batch_capacities))
-                       + len(config.batch_capacities) + (len(config.speculative_shapes) if drafting else 0))
+                       + len(config.batch_capacities) + (len(config.speculative_shapes) if drafting else 0)
+                       + len(config.mixed_shapes))
         with phase(progress, "Construct graph catalog", total=graph_count) as stage:
-            def add(name, function, kind, batch, tokens, fields, *, enabled=None):
+            def add(name, function, kind, batch, tokens, fields, *, enabled=None, prefill_capacity=0):
                 if kind == "scored_prefill":
                     function = PreparedScoredPrefill(function, requests, inputs)
                     fields = (*fields, "prompt_target_tokens")
                 functions[name] = function
-                signatures[name] = GraphSignature(kind, batch, tokens, tuple(fields), speculation_enabled=enabled)
+                signatures[name] = GraphSignature(kind, batch, tokens, tuple(fields), speculation_enabled=enabled,
+                                                  prefill_capacity=prefill_capacity)
                 stage.update(advance=1)
 
             vision_fields = (*vision_inputs.__dataclass_fields__, "vision_feature_slot")
@@ -307,6 +309,34 @@ def _prepare_model(snapshot: Path, config: PreparationConfig, *, transient, prog
                     add(name, operation, "speculative", batch, width, fields, enabled=True)
                 decoders.extend(speculation.decoders)
                 owners.append(speculation)
+
+            if config.mixed_shapes:
+                from types import SimpleNamespace
+                from ignition.recipes.qwen38.mixed_model import PreparedMixedRound
+                from ignition.recipes.qwen38.mixed_state import MixedScratch
+
+                from .speculative_model import PreparedDFlashRound, PreparedMixedPromptContext
+
+                mixed_scratch = MixedScratch.allocate(config.prefill_chunk_size,
+                    max(b * w for _, b, w, _ in config.mixed_shapes), device, world_size=1)
+                owners.append(mixed_scratch)
+                # Draft-enabled rounds compose the DFlash halves around the packed target; the
+                # disabled ones run the target alone from the owner shape qwen38 uses without MTP.
+                plain_owner = SimpleNamespace(
+                    weights=weights, pool=state, requests=requests, inputs=inputs, scratch=scratch,
+                    workspaces=workspaces, rotary=rotary, cache=cache, table=table, session=session,
+                    completion=completion, frame=frame, sequence=sequence, max_cache_pages=planned_pages,
+                    collectives=collectives, sampling_workspace=sampling_workspace)
+                for enabled, batch, width, prefill in config.mixed_shapes:
+                    name = f"mixed{batch}x{width}p{prefill}" + ("" if enabled else "-no-mtp")
+                    operation = PreparedMixedRound(speculation if enabled else plain_owner, batch, width, prefill, name,
+                        scratch=mixed_scratch, features=features, enabled=enabled,
+                        absorption=PreparedMixedPromptContext, speculative_round=PreparedDFlashRound)
+                    fields = (*inputs.buffers(), "sampling_grammar_mask",
+                              *(speculation.buffers() if enabled else ()))
+                    add(name, operation, "mixed", batch, width, fields, enabled=enabled, prefill_capacity=prefill)
+                    decoders.append(operation.decoder)
+                    owners.append(operation)
 
             state_fields = tuple(f"state_{name}" for name in transfer.__dataclass_fields__ if name != "errors")
             admission_fields = tuple(admission.__dataclass_fields__)
@@ -400,7 +430,7 @@ def _prepare_model(snapshot: Path, config: PreparationConfig, *, transient, prog
             "allocated_bytes": torch.cuda.memory_allocated(device), "reserved_bytes": torch.cuda.memory_reserved(device),
             "completion_output_bytes": completion.nbytes, "operator_scratch_bytes": workspaces.nbytes, "graphs": len(graphs), "tuning": tuning,
             "prefill_chunk_size": config.prefill_chunk_size, "prefill_capacities": config.prefill_capacities,
-            "mixed_shapes": (), "mixed_prefill": False,
+            "mixed_shapes": config.mixed_shapes, "mixed_prefill": config.mixed_prefill,
             "compiled_decoder": compile_decoder, "rank": 0, "world_size": 1, "shard_hyperconnections": False}
         if scoring is not None:
             memory.update(scoring.memory_report())

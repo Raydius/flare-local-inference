@@ -33,8 +33,10 @@ _CHECKPOINT = Checkpoint(
 # which the declaration test checks; declarations import without torch.
 DRAFT_WINDOWS = (5, 2048, 8, 128)
 _STATE_ROW_BYTES = 142_821_120
-# The [4096, 12800] BF16 feature buffer the prefill decoder taps for the draft context.
-_AUXILIARY_BYTES = 4096 * 12800 * 2
+# The BF16 [tokens, 12800] feature buffers one graph taps for the draft context: a mixed graph
+# writes the packed forward's (prefill plus up to 128 decode rows) and gathers it into a
+# prefill-size and a decode-size buffer; a prefill graph holds one of 4096 rows.
+_AUXILIARY_BYTES = (2 * 4096 + 2 * 128) * 12800 * 2
 
 
 def prepare(snapshot, plan, *, compile_forwards, kernel_cache, progress, retain_graphs=False, package_storage=None,
@@ -90,5 +92,5 @@ RECIPE = Recipe(
     plain_ranks=MappingProxyType({
         1: _costs(116_505_344, 69_632, _GRAPH_BYTES[1], speculating=False),
     }),
-    max_images=4, image_bytes=32 << 20, mixed_prefill=False,
+    max_images=4, image_bytes=32 << 20, mixed_prefill=True,
 )
