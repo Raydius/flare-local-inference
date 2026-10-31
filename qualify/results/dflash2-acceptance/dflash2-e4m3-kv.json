@@ -1,0 +1,387 @@
+{
+  "arms": [
+    "dflash2"
+  ],
+  "widths": [
+    4,
+    8
+  ],
+  "shuffle_features": false,
+  "e4m3_kv": true,
+  "seed": 0,
+  "traces": [
+    {
+      "case": "chat-capacity",
+      "category": "chat_reasoning",
+      "digest": "10c824cef65b8fb7",
+      "tokens": 431,
+      "prompt_tokens": 198
+    },
+    {
+      "case": "chat-deduction",
+      "category": "chat_reasoning",
+      "digest": "18fe7a349765dab7",
+      "tokens": 355,
+      "prompt_tokens": 192
+    },
+    {
+      "case": "chat-review",
+      "category": "chat_reasoning",
+      "digest": "c7ed71d5b2a565dd",
+      "tokens": 411,
+      "prompt_tokens": 192
+    },
+    {
+      "case": "chat-tradeoff",
+      "category": "chat_reasoning",
+      "digest": "3a68479a5144b915",
+      "tokens": 453,
+      "prompt_tokens": 197
+    },
+    {
+      "case": "code-docstrings-stop",
+      "category": "code_edit",
+      "digest": "1c1e9fa3a5a9304b",
+      "tokens": 928,
+      "prompt_tokens": 672
+    },
+    {
+      "case": "code-reject-bool",
+      "category": "code_edit",
+      "digest": "e5d10002d3e97485",
+      "tokens": 924,
+      "prompt_tokens": 668
+    },
+    {
+      "case": "code-tests",
+      "category": "code_edit",
+      "digest": "e3e80ad7bb23b369",
+      "tokens": 927,
+      "prompt_tokens": 671
+    },
+    {
+      "case": "code-timeout-range",
+      "category": "code_edit",
+      "digest": "1116efd3c398ca59",
+      "tokens": 784,
+      "prompt_tokens": 675
+    },
+    {
+      "case": "incident-turn-1",
+      "category": "tool_turn",
+      "digest": "24cc3cfff653ac9a",
+      "tokens": 618,
+      "prompt_tokens": 586
+    },
+    {
+      "case": "incident-turn-2",
+      "category": "tool_turn",
+      "digest": "1c586b125271d34b",
+      "tokens": 723,
+      "prompt_tokens": 697
+    },
+    {
+      "case": "incident-turn-3",
+      "category": "tool_turn",
+      "digest": "802add5d0a19eff2",
+      "tokens": 510,
+      "prompt_tokens": 408
+    },
+    {
+      "case": "json-incident",
+      "category": "structured_json",
+      "digest": "05261b5ace91abc6",
+      "tokens": 285,
+      "prompt_tokens": 265
+    },
+    {
+      "case": "json-literal-tags",
+      "category": "structured_json",
+      "digest": "39ab5f7841d649f8",
+      "tokens": 275,
+      "prompt_tokens": 256
+    },
+    {
+      "case": "json-plan",
+      "category": "structured_json",
+      "digest": "794847469b27eb63",
+      "tokens": 317,
+      "prompt_tokens": 274
+    },
+    {
+      "case": "json-unicode",
+      "category": "structured_json",
+      "digest": "a0e7ddf9a2feecee",
+      "tokens": 305,
+      "prompt_tokens": 277
+    },
+    {
+      "case": "release-turn-1",
+      "category": "tool_turn",
+      "digest": "5b4446dc2102e307",
+      "tokens": 612,
+      "prompt_tokens": 580
+    },
+    {
+      "case": "release-turn-2",
+      "category": "tool_turn",
+      "digest": "97a20e00aac6d2bc",
+      "tokens": 715,
+      "prompt_tokens": 689
+    },
+    {
+      "case": "release-turn-3",
+      "category": "tool_turn",
+      "digest": "deb64fecf59a15b6",
+      "tokens": 560,
+      "prompt_tokens": 418
+    }
+  ],
+  "trace_digest": "966ca48a32cf9823",
+  "results": {
+    "dflash2": {
+      "4": {
+        "cases": {
+          "chat-capacity": {
+            "acceptance_length": 2.9871794871794872,
+            "rounds": 78,
+            "accepted": 155
+          },
+          "chat-deduction": {
+            "acceptance_length": 3.3958333333333335,
+            "rounds": 48,
+            "accepted": 115
+          },
+          "chat-review": {
+            "acceptance_length": 2.2708333333333335,
+            "rounds": 96,
+            "accepted": 122
+          },
+          "chat-tradeoff": {
+            "acceptance_length": 2.169491525423729,
+            "rounds": 118,
+            "accepted": 138
+          },
+          "code-docstrings-stop": {
+            "acceptance_length": 3.878787878787879,
+            "rounds": 66,
+            "accepted": 190
+          },
+          "code-reject-bool": {
+            "acceptance_length": 4.0,
+            "rounds": 64,
+            "accepted": 192
+          },
+          "code-tests": {
+            "acceptance_length": 3.591549295774648,
+            "rounds": 71,
+            "accepted": 184
+          },
+          "code-timeout-range": {
+            "acceptance_length": 3.40625,
+            "rounds": 32,
+            "accepted": 77
+          },
+          "incident-turn-1": {
+            "acceptance_length": 4.0,
+            "rounds": 8,
+            "accepted": 24
+          },
+          "incident-turn-2": {
+            "acceptance_length": 3.7142857142857144,
+            "rounds": 7,
+            "accepted": 19
+          },
+          "incident-turn-3": {
+            "acceptance_length": 2.4878048780487805,
+            "rounds": 41,
+            "accepted": 61
+          },
+          "json-incident": {
+            "acceptance_length": 3.3333333333333335,
+            "rounds": 6,
+            "accepted": 14
+          },
+          "json-literal-tags": {
+            "acceptance_length": 3.0,
+            "rounds": 6,
+            "accepted": 12
+          },
+          "json-plan": {
+            "acceptance_length": 2.6875,
+            "rounds": 16,
+            "accepted": 27
+          },
+          "json-unicode": {
+            "acceptance_length": 3.5,
+            "rounds": 8,
+            "accepted": 20
+          },
+          "release-turn-1": {
+            "acceptance_length": 4.0,
+            "rounds": 8,
+            "accepted": 24
+          },
+          "release-turn-2": {
+            "acceptance_length": 3.7142857142857144,
+            "rounds": 7,
+            "accepted": 19
+          },
+          "release-turn-3": {
+            "acceptance_length": 2.877551020408163,
+            "rounds": 49,
+            "accepted": 92
+          }
+        },
+        "overall": {
+          "acceptance_length": 3.037037037037037,
+          "rounds": 729,
+          "accepted": 1485
+        },
+        "categories": {
+          "chat_reasoning": {
+            "acceptance_length": 2.5588235294117645,
+            "rounds": 340,
+            "accepted": 530
+          },
+          "code_edit": {
+            "acceptance_length": 3.759656652360515,
+            "rounds": 233,
+            "accepted": 643
+          },
+          "structured_json": {
+            "acceptance_length": 3.0277777777777777,
+            "rounds": 36,
+            "accepted": 73
+          },
+          "tool_turn": {
+            "acceptance_length": 2.9916666666666667,
+            "rounds": 120,
+            "accepted": 239
+          }
+        }
+      },
+      "8": {
+        "cases": {
+          "chat-capacity": {
+            "acceptance_length": 3.5303030303030303,
+            "rounds": 66,
+            "accepted": 167
+          },
+          "chat-deduction": {
+            "acceptance_length": 4.9393939393939394,
+            "rounds": 33,
+            "accepted": 130
+          },
+          "chat-review": {
+            "acceptance_length": 2.5348837209302326,
+            "rounds": 86,
+            "accepted": 132
+          },
+          "chat-tradeoff": {
+            "acceptance_length": 2.392523364485981,
+            "rounds": 107,
+            "accepted": 149
+          },
+          "code-docstrings-stop": {
+            "acceptance_length": 7.111111111111111,
+            "rounds": 36,
+            "accepted": 220
+          },
+          "code-reject-bool": {
+            "acceptance_length": 8.0,
+            "rounds": 32,
+            "accepted": 224
+          },
+          "code-tests": {
+            "acceptance_length": 5.795454545454546,
+            "rounds": 44,
+            "accepted": 211
+          },
+          "code-timeout-range": {
+            "acceptance_length": 4.954545454545454,
+            "rounds": 22,
+            "accepted": 87
+          },
+          "incident-turn-1": {
+            "acceptance_length": 6.4,
+            "rounds": 5,
+            "accepted": 27
+          },
+          "incident-turn-2": {
+            "acceptance_length": 6.5,
+            "rounds": 4,
+            "accepted": 22
+          },
+          "incident-turn-3": {
+            "acceptance_length": 2.9705882352941178,
+            "rounds": 34,
+            "accepted": 67
+          },
+          "json-incident": {
+            "acceptance_length": 5.0,
+            "rounds": 4,
+            "accepted": 16
+          },
+          "json-literal-tags": {
+            "acceptance_length": 3.6,
+            "rounds": 5,
+            "accepted": 13
+          },
+          "json-plan": {
+            "acceptance_length": 3.5,
+            "rounds": 12,
+            "accepted": 30
+          },
+          "json-unicode": {
+            "acceptance_length": 5.6,
+            "rounds": 5,
+            "accepted": 23
+          },
+          "release-turn-1": {
+            "acceptance_length": 6.4,
+            "rounds": 5,
+            "accepted": 27
+          },
+          "release-turn-2": {
+            "acceptance_length": 6.5,
+            "rounds": 4,
+            "accepted": 22
+          },
+          "release-turn-3": {
+            "acceptance_length": 3.357142857142857,
+            "rounds": 42,
+            "accepted": 99
+          }
+        },
+        "overall": {
+          "acceptance_length": 4.051282051282051,
+          "rounds": 546,
+          "accepted": 1666
+        },
+        "categories": {
+          "chat_reasoning": {
+            "acceptance_length": 2.9794520547945207,
+            "rounds": 292,
+            "accepted": 578
+          },
+          "code_edit": {
+            "acceptance_length": 6.537313432835821,
+            "rounds": 134,
+            "accepted": 742
+          },
+          "structured_json": {
+            "acceptance_length": 4.153846153846154,
+            "rounds": 26,
+            "accepted": 82
+          },
+          "tool_turn": {
+            "acceptance_length": 3.8085106382978724,
+            "rounds": 94,
+            "accepted": 264
+          }
+        }
+      }
+    }
+  }
+}

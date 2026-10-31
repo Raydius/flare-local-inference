@@ -1,13 +1,21 @@
-[ ] Decide on a DFlash2 recipe for Qwen3.8-Flash-Next (incoai/Qwen3.8-Flash-Next-DFlash2)
-    from the greedy teacher-forced acceptance in qualify/results/dflash2-acceptance/
-    (qualify/dflash2_acceptance.py: DFlash2 and MTP arms on the same canonical
-    traces at widths 4 and 8; the four 6.6k-token prefix_branch cases are absent
-    because the canonical prefill exceeded the 16 GB GPU used). Overall DFlash2
-    leads MTP by 2% (width 4) and 5% (width 8); on code_edit, the fork's main
-    workload, by 2% and 15%, so a recipe pays only at width 8. A recipe needs
-    completed-layer taps 5/15/25/35/45 averaged over the four hyperconnection
-    streams, five 2048-token draft K/V windows per state row, and the shared
-    parallel-draft round.
+[ ] qwen38_dflash change 3: qualify the served DFlash2 package against the MTP
+    package on code_edit at width 8. Mixed prefill is blocked until the mixed
+    round keys on region presence: ignition/recipes/qwen38/decoder_state.py:271
+    prepare_residual reads target_residual, which the DFlash layout omits.
+    TP sharding of the draft (no PreparedShardedEmbedding/all-reduce path yet).
+
+[ ] ignition/recipes/qwen38_dflash/bootstrap.py repeats ~256 of the ~390 lines of
+    qwen38's _prepare_model (ignition/recipes/qwen38/bootstrap.py:250: transient
+    wrapper, owner allocation, catalog loop, tuning, capture, rebind, materialize,
+    memory report) because that function has no composition hook; qwen38_dense
+    shares 14. Extracting a shared catalog/capture helper changes qwen38's
+    bootstrap, so it is an owner decision; take it when qwen38's bootstrap next changes.
+
+[ ] qwen38's _identity (ignition/recipes/qwen38/bootstrap.py:210) omits mtp and
+    row_bytes while Helios seeds prefix-cache digests from it
+    (helios/src/cache/hash.rs:33), so an MTP package and a DFlash package could
+    match each other's rows if they shared it; the DFlash recipe declares its own.
+    Changing qwen38's identity re-keys every existing package.
 
 [ ] Declare the history-draft copy inputs on the remaining recipes that use the
     shared parallel-draft round: DeepSeek V4 (ignition/recipes/deepseek4/bootstrap.py:387),

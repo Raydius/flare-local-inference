@@ -108,7 +108,7 @@ class PreparedParallelDraftRound:
                     logits=((batch, 1, vocab), torch.float32))
 
     def __init__(self, owner, batch, width, name, *, generate_proposals=True, buffers=None, proposal_only=False,
-                 target_token_capacity=None):
+                 target_token_capacity=None, admission=None, draft_page_blocks=None):
         self.owner, self.batch, self.width = owner, batch, width
         self.vocabulary_parallel = getattr(owner, "vocabulary_parallel_sampling", False)
         self.name, self.buffers = name, buffers
@@ -119,14 +119,18 @@ class PreparedParallelDraftRound:
         self.target_token_capacity = tokens
         self.generate_proposals = generate_proposals
         self.proposal_only = proposal_only
+        self.admission = admission
         o, b, w = owner, batch, width
         device, blocks = o.pool.backing.device, o.inputs.page_tables.shape[1]
-        self.sampling_scratch = {} if self.vocabulary_parallel else prepare_sampling_scratch(b, w, o.requests.vocab_size, device, buffers=buffers,
-                                                        proposal=generate_proposals, verification=not proposal_only)
+        self.draft_page_blocks = blocks if draft_page_blocks is None else draft_page_blocks
+        self.sampling_scratch = {} if self.vocabulary_parallel else prepare_sampling_scratch(
+            b, w, o.requests.vocab_size, device, buffers=buffers,
+            proposal=generate_proposals, verification=not proposal_only)
         self.rows = torch.arange(b, device=device)
         self.draft_positions = torch.arange(w - 1, device=device) if self.vocabulary_parallel else None
-        self.metadata = Metadata.allocate(tokens, b, blocks, device, samples=b * w, max_query_tokens=w)
-        self.validator = PreparedBatch(
+        self.metadata = None if proposal_only else Metadata.allocate(
+            tokens, b, blocks, device, samples=b * w, max_query_tokens=w)
+        self.validator = None if admission is not None else PreparedBatch(
             o.inputs,
             o.requests,
             Metadata.allocate(b, b, blocks, device),
@@ -137,7 +141,7 @@ class PreparedParallelDraftRound:
             target_token_capacity=tokens,
             page_tokens=o.page_tokens,
         )
-        self.validation = PreparedAllReduce(
+        self.validation = None if admission is not None else PreparedAllReduce(
             self.validator.validation_input,
             self.validator.validation_sum,
             runtime=o.collectives["runtime"],
@@ -168,7 +172,7 @@ class PreparedParallelDraftRound:
             workspace=o.workspace,
         )
         block = o.block_size
-        self.draft_metadata = Metadata.allocate(b * block, b, blocks, device, samples=b * block)
+        self.draft_metadata = Metadata.allocate(b * block, b, self.draft_page_blocks, device, samples=b * block)
         self.draft = (
             None
             if w == 1 or not generate_proposals
@@ -406,10 +410,12 @@ class PreparedParallelDraftRound:
             raise RuntimeError("verification-only preparation cannot generate proposals")
         o, b, w = self.owner, self.batch, self.width
         target, proposals, verify, commit = self.operations
-        self.validator.begin(self.validation(self.validator.validate()))
+        if self.admission is None:
+            self.validator.begin(self.validation(self.validator.validate()))
         slots = o.inputs.row_slot_ids[:b].long()
         safe = slots.clamp(0, o.requests.capacity - 1)
-        self.active.copy_(self.validator.token_state.active.bool())
+        self.active.copy_(self.validator.token_state.active.bool() if self.admission is None
+                          else self.admission())
         if allowed is not None:
             self.active.logical_and_(allowed)
         self.before.copy_(o.requests.consumed_tokens[safe])
@@ -427,7 +433,7 @@ class PreparedParallelDraftRound:
                 self.before,
                 self.active.int() * block,
                 states,
-                o.inputs.page_tables[safe],
+                o.inputs.page_tables[safe, :self.draft_page_blocks],
                 self.draft_inputs,
                 o.inputs.live_rows,
             )
