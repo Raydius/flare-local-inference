@@ -662,3 +662,208 @@ def test_catalog_recompiles_changed_aliases_before_warmup(tmp_path, monkeypatch,
             assert hits == [False, True, False, True, False]
     finally:
         dist.destroy_process_group()
+
+
+class InjectForward:
+    """The mixed round's embedding stage: an opaque write, then ordinary reads that rewrite the same rows."""
+
+    def __init__(self, subview, zero):
+        rows, width = 64, 256
+        self.zero = zero
+        if subview:
+            chunk = torch.zeros(1 << 20, dtype=torch.bfloat16, device="cuda")
+            self.embedding = chunk[4096:4096 + rows * width].view(rows, width)
+        else:
+            self.embedding = torch.zeros((rows, width), dtype=torch.bfloat16, device="cuda")
+        self.scratch = torch.zeros((16, width), dtype=torch.bfloat16, device="cuda")
+        self.indices = torch.arange(16, device="cuda")
+        self.is_prompt = torch.zeros(rows, dtype=torch.bool, device="cuda")
+        self.is_prompt[:16] = True
+        self.source = torch.zeros(rows, dtype=torch.int64, device="cuda")
+        self.source[:16] = torch.arange(16, device="cuda")
+
+    def __call__(self):
+        if self.zero:
+            self.embedding.zero_()
+        count = self.embedding.numel()
+        torch.library.wrap_triton(_fill_shared)[(triton.cdiv(count, 256),)](self.embedding, count, 3)
+        self.scratch.copy_(self.embedding[self.indices])
+        self.embedding.copy_(torch.where(self.is_prompt[:, None], self.scratch[self.source], self.embedding))
+
+
+@pytest.mark.parametrize("subview", [False, True])
+@pytest.mark.parametrize("zero", [False, True])
+@torch.no_grad()
+def test_ordinary_reads_see_opaque_writes_before_rewriting_them(subview, zero):
+    forward = InjectForward(subview, zero)
+    forward()
+    expected = forward.embedding.clone()
+    assert expected.eq(3).all()
+    forward.embedding.fill_(float("nan"))
+    compiled = aot_forward(forward)
+    compiled(forward)
+    torch.cuda.synchronize()
+    torch.testing.assert_close(forward.embedding, expected, rtol=0, atol=0)
+
+
+@triton.jit
+def _fill_counted(output, count_ptr, value: tl.constexpr):
+    index = tl.program_id(0) * 256 + tl.arange(0, 256)
+    tl.store(output + index, value, index < tl.load(count_ptr))
+
+
+class CountedForward:
+    """An ordinary copy writes a count that an opaque kernel reads later in the same forward."""
+
+    def __init__(self):
+        self.lengths = torch.full((2,), 32, dtype=torch.int32, device="cuda")
+        self.count = torch.zeros(1, dtype=torch.int32, device="cuda")
+        self.output = torch.zeros(256, dtype=torch.bfloat16, device="cuda")
+
+    def __call__(self):
+        self.count.copy_(self.lengths.sum(0, keepdim=True))
+        self.output.zero_()
+        torch.library.wrap_triton(_fill_counted)[(1,)](self.output, self.count, 5)
+
+
+@torch.no_grad()
+def test_opaque_kernels_read_counts_ordinary_copies_wrote_earlier():
+    forward = CountedForward()
+    forward()
+    expected = forward.output.clone()
+    assert int(expected.eq(5).sum()) == 64
+    forward.count.zero_()
+    forward.output.fill_(float("nan"))
+    compiled = aot_forward(forward)
+    compiled(forward)
+    torch.cuda.synchronize()
+    assert int(forward.count) == 64
+    torch.testing.assert_close(forward.output, expected, rtol=0, atol=0)
+
+
+@torch.library.custom_op("test_aot::gather_rows", mutates_args=("out",))
+def _gather_rows(weight: torch.Tensor, ids: torch.Tensor, count: torch.Tensor, out: torch.Tensor) -> None:
+    rows = int(count[0])
+    out[:rows] = weight[ids[:rows].long()]
+
+
+@_gather_rows.register_fake
+def _fake_gather_rows(weight, ids, count, out):
+    pass
+
+
+class GatherForward:
+    """The mixed state's embedding stage: ordinary copies write ids and a count a custom op reads."""
+
+    def __init__(self, masked_fill):
+        self.masked_fill = masked_fill
+        self.weight = torch.arange(64, device="cuda", dtype=torch.bfloat16)[:, None].expand(64, 8).contiguous()
+        self.source_ids = torch.arange(1, 13, device="cuda", dtype=torch.int64)
+        self.live = torch.zeros(16, dtype=torch.bool, device="cuda")
+        self.live[:12] = True
+        self.ids = torch.full((16,), 63, dtype=torch.int64, device="cuda")
+        self.lengths = torch.tensor([5, 7], dtype=torch.int32, device="cuda")
+        self.count = torch.zeros(1, dtype=torch.int32, device="cuda")
+        self.out = torch.zeros((16, 8), dtype=torch.bfloat16, device="cuda")
+
+    def __call__(self):
+        self.ids.copy_(torch.where(self.live, torch.cat((self.source_ids, self.ids[12:])), self.ids))
+        if self.masked_fill:
+            self.ids.masked_fill_(~self.live, 63)
+        self.count.copy_(self.lengths.sum(0, keepdim=True))
+        self.out.zero_()
+        _gather_rows(self.weight, self.ids, self.count, self.out)
+
+
+@pytest.mark.parametrize("masked_fill", [False, True])
+@torch.no_grad()
+def test_custom_ops_read_ids_and_counts_ordinary_copies_wrote_earlier(masked_fill):
+    forward = GatherForward(masked_fill)
+    forward()
+    expected = forward.out.clone()
+    assert expected[:12, 0].tolist() == list(range(1, 13)) and not expected[12:].any()
+    forward.ids.fill_(63)
+    forward.count.zero_()
+    forward.out.fill_(float("nan"))
+    compiled = aot_forward(forward)
+    compiled(forward)
+    torch.cuda.synchronize()
+    assert int(forward.count) == 12 and forward.ids[:12].tolist() == list(range(1, 13))
+    torch.testing.assert_close(forward.out, expected, rtol=0, atol=0)
+
+
+class DeferredThenOpaqueForward:
+    """An ordinary copy into ids, an opaque in-place op on ids, then a custom op reading ids and a count.
+
+    The copy's source never changes later, so the lowering may leave it to Inductor's write-back;
+    the opaque masked fill and the custom op must still observe it.
+    """
+
+    def __init__(self):
+        self.weight = torch.arange(64, device="cuda", dtype=torch.bfloat16)[:, None].expand(64, 8).contiguous()
+        self.source_ids = torch.arange(1, 13, device="cuda", dtype=torch.int64)
+        self.pad = torch.full((4,), 63, dtype=torch.int64, device="cuda")
+        self.live = torch.zeros(16, dtype=torch.bool, device="cuda")
+        self.live[:12] = True
+        self.ids = torch.full((16,), 63, dtype=torch.int64, device="cuda")
+        self.lengths = torch.tensor([5, 7], dtype=torch.int32, device="cuda")
+        self.count = torch.zeros(1, dtype=torch.int32, device="cuda")
+        self.out = torch.zeros((16, 8), dtype=torch.bfloat16, device="cuda")
+
+    def __call__(self):
+        self.ids.copy_(torch.cat((self.source_ids, self.pad)))
+        self.ids.masked_fill_(~self.live, 63)
+        self.count.copy_(self.lengths.sum(0, keepdim=True))
+        self.out.zero_()
+        _gather_rows(self.weight, self.ids, self.count, self.out)
+
+
+@torch.no_grad()
+def test_deferred_copies_land_before_opaque_users_of_the_same_storage():
+    forward = DeferredThenOpaqueForward()
+    forward()
+    expected = forward.out.clone()
+    assert expected[:12, 0].tolist() == list(range(1, 13)) and not expected[12:].any()
+    forward.ids.fill_(63)
+    forward.count.zero_()
+    forward.out.fill_(float("nan"))
+    compiled = aot_forward(forward)
+    compiled(forward)
+    torch.cuda.synchronize()
+    assert int(forward.count) == 12 and forward.ids[:12].tolist() == list(range(1, 13))
+    torch.testing.assert_close(forward.out, expected, rtol=0, atol=0)
+
+
+class OpaqueSourceForward:
+    """A count copied from a buffer that opaque partial writes filled earlier in the same forward."""
+
+    def __init__(self):
+        self.weight = torch.arange(64, device="cuda", dtype=torch.bfloat16)[:, None].expand(64, 8).contiguous()
+        self.ids = torch.arange(1, 17, device="cuda", dtype=torch.int64)
+        self.lengths = torch.tensor([5, 7], dtype=torch.int32, device="cuda")
+        self.cu = torch.zeros(3, dtype=torch.int32, device="cuda")
+        self.count = torch.zeros(1, dtype=torch.int32, device="cuda")
+        self.out = torch.zeros((16, 8), dtype=torch.bfloat16, device="cuda")
+
+    def __call__(self):
+        self.cu[0].zero_()
+        self.cu[1:].copy_(self.lengths.cumsum(0))
+        self.count.copy_(self.cu[-1:])
+        self.out.zero_()
+        _gather_rows(self.weight, self.ids, self.count, self.out)
+
+
+@torch.no_grad()
+def test_copies_from_opaquely_written_buffers_reach_opaque_readers():
+    forward = OpaqueSourceForward()
+    forward()
+    expected = forward.out.clone()
+    assert expected[:12, 0].tolist() == list(range(1, 13)) and not expected[12:].any()
+    forward.cu.zero_()
+    forward.count.zero_()
+    forward.out.fill_(float("nan"))
+    compiled = aot_forward(forward)
+    compiled(forward)
+    torch.cuda.synchronize()
+    assert forward.cu.tolist() == [0, 5, 12] and int(forward.count) == 12
+    torch.testing.assert_close(forward.out, expected, rtol=0, atol=0)
