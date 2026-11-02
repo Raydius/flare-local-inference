@@ -113,7 +113,9 @@ def host(monkeypatch, tmp_path):
     (snapshot / "model.safetensors.index.json").write_text(json.dumps({
         "metadata": {"total_size": 1}, "weight_map": {"weight": "model.safetensors"}}))
     recipe = replace(model.recipe, prepare=prepare, usage=lambda prepared: prepared.usage())
-    monkeypatch.setattr(serve, "resolve_model", lambda configuration, name: ResolvedModel(recipe, model.checkpoint))
+    monkeypatch.setattr(
+        serve, "resolve_model",
+        lambda configuration, name, rope_parameters=None, recipe_name=None: ResolvedModel(recipe, model.checkpoint))
 
     def export_model(prepared, images, storage, path, *, options, publisher, progress, console, staging):
         assert prepared is calls["prepared"] and not prepared.closed

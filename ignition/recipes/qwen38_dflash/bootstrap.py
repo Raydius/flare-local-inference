@@ -161,7 +161,9 @@ def _prepare_model(snapshot: Path, config: PreparationConfig, *, transient, prog
     sample_rows += bool(config.mixed_shapes)
     collectives = dict(runtime=None, vocabulary_runtime=None, coordinator=None)
     session = preparation_session(
-        compile_workers=config.compile_workers, collective_tuning=config.collective_tuning, autotune_effort=config.autotune_effort, tuning_replica=config.tuning_replica,
+        compile_workers=config.compile_workers, collective_tuning=config.collective_tuning,
+        collective_ladder=config.collective_ladder, autotune_effort=config.autotune_effort,
+        tuning_replica=config.tuning_replica,
         native_dense_activations=config.native_dense_activations, lock_gpu_clocks=config.lock_gpu_clocks,
         device=device, checkpoint=REVISION, coordinator=None,
         namespace={"config": manifest.metadata_sha256["config.json"], "headers": manifest.headers_sha256, "world_size": 1,
@@ -458,7 +460,7 @@ def _prepare_model(snapshot: Path, config: PreparationConfig, *, transient, prog
                        for name, (filename, digest) in hashes.items()}}
         server_config["assets"]["chat_template"] = annotated_template_asset(
             (manifest.snapshot / "chat_template.jinja").read_bytes(),
-            Path(__file__).parents[1] / "qwen38" / "assets" / "chat_template.jinja")
+            Path(__file__).parents[1] / "qwen38" / "assets" / "chat_template.patch.json")
         if speculation is not None:
             server_config.update(speculative_widths=config.speculative_widths,
                 speculative_token_capacity=speculative_token_capacity(config.max_active, max(config.speculative_widths), config.speculative_token_capacity),
