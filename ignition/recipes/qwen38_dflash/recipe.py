@@ -49,10 +49,12 @@ def prepare(snapshot, plan, *, compile_forwards, kernel_cache, progress, retain_
     speculation = plan.speculation
     drafting = {}
     if speculation is not None:
-        from huggingface_hub import snapshot_download
+        draft = plan.draft_model
+        if draft is None:
+            from huggingface_hub import snapshot_download
 
-        draft = snapshot_download(DRAFT_REPOSITORY, revision=DRAFT_REVISION, cache_dir=plan.hub_cache,
-                                  allow_patterns=("config.json", "model.safetensors"))
+            draft = snapshot_download(DRAFT_REPOSITORY, revision=DRAFT_REVISION, cache_dir=plan.hub_cache,
+                                      allow_patterns=plan.recipe.draft_files)
         drafting = dict(draft_checkpoint=Path(draft), speculative_widths=speculation.widths,
             speculative_token_capacity=plan.speculative_token_capacity, speculative_fixed_width=speculation.fixed_width)
     config = PreparationConfig(collective_tuning=plan.collective_tuning, prompt_logprobs=plan.prompt_logprobs,
@@ -92,5 +94,5 @@ RECIPE = Recipe(
     plain_ranks=MappingProxyType({
         1: _costs(116_505_344, 69_632, _GRAPH_BYTES[1], speculating=False),
     }),
-    max_images=4, image_bytes=32 << 20, mixed_prefill=True,
+    max_images=4, image_bytes=32 << 20, mixed_prefill=True, draft_files=("config.json", "model.safetensors"),
 )
