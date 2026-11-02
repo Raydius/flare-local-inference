@@ -277,6 +277,8 @@ class Recipe:
     verification_rows: int | None = None
     stream_overlap: bool = False
     mixed_prefill: bool = False
+    # Files of the external draft checkpoint the recipe loads; `--draft-model` must name a folder holding them.
+    draft_files: tuple[str, ...] = ()
     online_mxfp8: bool = False
     online_mxfp8_scope: str = "all"
     online_mxfp8_scopes: tuple[str, ...] = ("all",)

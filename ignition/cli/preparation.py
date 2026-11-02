@@ -6,6 +6,7 @@
 
 import os
 from dataclasses import dataclass, replace
+from pathlib import Path
 
 from ignition import planning
 from ignition.errors import FetchError, UsageError
@@ -34,11 +35,11 @@ class Host:
 
 
 def resolve_model(configuration: Configuration, name: str | None,
-                  rope_parameters: dict | None = None) -> ResolvedModel:
+                  rope_parameters: dict | None = None, recipe_name: str | None = None) -> ResolvedModel:
     name = configuration.model if name is None else name
     if name is None:
         raise UsageError("no MODEL given and defaults.model is not set in the configuration file")
-    model = resolve(name, configuration.directory("hub_cache"))
+    model = resolve(name, configuration.directory("hub_cache"), recipe_name)
     model.verify(configuration.directory("hub_cache"))
     if rope_parameters is not None:
         model = replace(model, checkpoint=rope_scaled(model, rope_parameters))
@@ -96,12 +97,15 @@ def derive(configuration: Configuration, model: ResolvedModel, host: Host, *, gp
            image_concurrency: int | None = None, mla_compute_mode: str | None = None,
            lock_gpu_clocks: bool = False, native_dense_activations: bool = False,
            joint_tuning: bool = False, shard_hyperconnections: bool = False,
-           force_moe_decode_a16: bool | None = None) -> planning.Plan:
+           force_moe_decode_a16: bool | None = None,
+           draft_model: Path | None = None) -> planning.Plan:
     """Select GPUs and estimate memory for one checkpoint from the configuration and command-line intent."""
     from ignition.preparation.collective_ladder import resolve as resolve_ladder
 
     mode = collective_tuning_mode(configuration, model, collective_tuning)
     ladder = resolve_ladder(mode, collective_ladder)
+    if draft_model is not None:
+        _check_draft_model(model, draft_model, speculation)
     workers = compiler_workers(configuration, compile_workers)
     result = planning.plan(
         model.recipe, model.checkpoint, host.gpus, selected=None if gpus is None else planning.parse_gpus(gpus),
@@ -115,8 +119,21 @@ def derive(configuration: Configuration, model: ResolvedModel, host: Host, *, gp
                      collective_tuning=mode, collective_ladder=ladder,
                      force_moe_decode_a16=configuration.get("preparation.force_moe_decode_a16", force_moe_decode_a16).value,
                      joint_tuning=joint_tuning, shard_hyperconnections=shard_hyperconnections,
-                     lock_gpu_clocks=lock_gpu_clocks, native_dense_activations=native_dense_activations)
+                     lock_gpu_clocks=lock_gpu_clocks, native_dense_activations=native_dense_activations,
+                     draft_model=draft_model)
     return tuning_devices(result, host, tuning_gpus)
+
+
+def _check_draft_model(model: ResolvedModel, folder: Path, speculation: Speculation | None) -> None:
+    """Reject a draft folder the recipe cannot load in place of its pinned external draft."""
+    files = model.recipe.draft_files
+    if not files:
+        raise UsageError(f"--draft-model: {model.checkpoint.alias} loads no external draft")
+    if speculation is None:
+        raise UsageError("--draft-model requires speculation; it cannot accompany --no-mtp")
+    missing = [name for name in files if not (folder / name).is_file()]
+    if missing:
+        raise UsageError(f"--draft-model: {folder} lacks {', '.join(missing)}")
 
 
 def image_capacity_setting(configuration, model, flag=None):

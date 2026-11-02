@@ -45,6 +45,12 @@ def _parser() -> argparse.ArgumentParser:
                            help="public publisher profile authenticating the cached weight source")
     exporting.add_argument("--repo-id", metavar="NAMESPACE/REPOSITORY",
                            help="Hugging Face target used to organize local exports (default: recipe target)")
+    exporting.add_argument("--recipe", dest="recipe_name", metavar="NAME",
+                           help="prepare a checkpoint-directory MODEL with the recipe named NAME instead of the one"
+                                " its config.json architecture selects")
+    exporting.add_argument("--draft-model", type=Path, metavar="DIR",
+                           help="external draft model folder holding the recipe's draft files, loaded instead of"
+                                " downloading the recipe's pinned draft")
     _preparation_arguments(exporting)
     benchmarking = command("bench", bench.run,
         "measure complete prepared GPU graph latency without export or HTTP; not serving throughput")

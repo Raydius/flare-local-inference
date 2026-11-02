@@ -393,6 +393,8 @@ serving. `export` accepts neither option, and `--direct` rejects history draftin
 | `--reuse-weights` | Reuse the cached default version's weight hashes and mappings without reading live or cached weight payloads; requires matching checkpoint and prepared layouts | Off |
 | `--publisher-key PATH` | Public publisher profile authenticating the cached weight source | Embedded profiles and the local development profile |
 | `--repo-id NAMESPACE/REPOSITORY` | Hugging Face target recorded for the exported entry | Recipe `export_repository` |
+| `--recipe NAME` | Prepare a checkpoint-directory `MODEL` with the recipe named `NAME` (such as `qwen38_dflash`) instead of the first recipe its `config.json` architecture selects. An unknown name, a recipe declaring no checkpoint for that architecture, or a `MODEL` that is not a directory is a usage error. `export` only. | Architecture's first recipe |
+| `--draft-model DIR` | External draft folder loaded instead of downloading the recipe's pinned draft. Accepted only by recipes that declare draft files (`qwen38_dflash`: `config.json`, `model.safetensors`); the folder must hold them, and `--no-mtp` rejects it. `export` only. | Recipe's pinned draft from the hub cache |
 | `--official-source URL` | Published repository URL under the configured publisher namespace | `[publishing] official_source` |
 
 Normal export reuses matching cached weight payloads automatically after hashing
@@ -1544,7 +1546,8 @@ local sources use absolute checkpoint directories and the revision `local`.
 3. Anything else is an alias.
 
 Any other directory or repository is served by the recipe whose architecture
-its `config.json` names. For a repository, Flare reads `config.json` and the
+its `config.json` names; `ignition export DIR --recipe NAME` selects that
+recipe for a directory instead, without falling back to another. For a repository, Flare reads `config.json` and the
 safetensors index from the hub without downloading tensors; without
 `@revision` it uses the repository's current commit and reports it. The
 estimate sizes weights from that index and the recipe's placement. The
@@ -1562,7 +1565,8 @@ substituted. If no complete snapshot exists, the alias downloads its pinned
 revision. Explicit local directories retain their filesystem casing. A local
 alias resolves its directory directly and fails if it is absent.
 `kimi-k3-mxfp4-csf` names `/data/models/Kimi-K3-MXFP4-CSF`.
-External draft checkpoints use the same hub cache as target checkpoints.
+External draft checkpoints use the same hub cache as target checkpoints,
+unless `ignition export --draft-model DIR` names a local draft folder.
 Kimi's Red Hat DSpark checkpoint, `RedHatAI/Kimi-K3-speculator.dspark` at revision
 `38a88101e0d46bb22134b9da340f381b954d40d4`, is downloaded there during preparation
 unless the target checkpoint supplies it in `dspark/`.
