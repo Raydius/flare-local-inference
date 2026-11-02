@@ -18,7 +18,7 @@ The recipe SHALL declare `draft_tokens=7`, `token_capacity=128`, rank-1 costs wh
 ## ADDED Requirements
 
 ### Requirement: A mixed round drafts with DFlash2 around one packed target forward
-When the plan selects mixed prefill, a mixed graph SHALL run the DFlash2 speculative round for its decode rows and prefill one prompt chunk in the same packed Qwen target forward. The packed forward SHALL tap the draft's target layers, and the round SHALL split the tapped features by role. It SHALL write the prompt chunk's last 2048 positions into the prompt request's rings, and the emitted verification columns into each decode request's rings. These are the same writes a separate prefill graph and speculative graph would make. The qwen38 MTP mixed round SHALL prepare the same graphs and kernels as before.
+When the plan selects mixed prefill, a mixed graph SHALL run the DFlash2 speculative round for its decode rows and prefill one prompt chunk in the same packed Qwen target forward. The packed forward SHALL tap the draft's target layers, and the round SHALL split the tapped features by role. It SHALL write the prompt chunk's last 2048 positions into the prompt request's rings, and the emitted verification columns into each decode request's rings. These are the same writes a separate prefill graph and speculative graph would make. The qwen38 MTP mixed round SHALL keep its call shape, mixed shapes, and state regions; its packed decoder keeps the `b*w+1` sample rows the role states gather into, and each speculation-enabled mixed signature carries the proposal depth (`width - 1`) the package binding requires.
 
 #### Scenario: Mixed round equals separate graphs
 - **WHEN** one prompt chunk and a speculative batch run through a DFlash mixed graph, and the same inputs run through a prefill graph followed by a speculative graph
@@ -32,6 +32,6 @@ When the plan selects mixed prefill, a mixed graph SHALL run the DFlash2 specula
 - **WHEN** a DFlash prompt role is prepared with draft state maintained
 - **THEN** no residual checkpoint is compiled, because the DFlash layout holds no `target_residual` region
 
-#### Scenario: MTP mixed catalog unchanged
+#### Scenario: MTP mixed catalog keeps its shape
 - **WHEN** the qwen38 recipe prepares its mixed catalog with MTP
-- **THEN** the graph signatures, state regions, and compiled residual checkpoints equal those prepared before this change
+- **THEN** `PreparedMixedRound` builds `PreparedPrefillAbsorption` and `PreparedSpeculativeRound` with the call shape used before this change, allocates no feature buffer, and the mixed shapes, state regions, and compiled residual checkpoints equal those prepared before; the packed decoder is built with `verification=False, sampler=False` and the mixed signatures carry `draft_tokens = width - 1`, so the package exports and loads

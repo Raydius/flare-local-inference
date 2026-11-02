@@ -15,6 +15,11 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
       catalog/capture helper changes qwen38's bootstrap, so it is an owner decision; take it
       when qwen38's bootstrap next changes.
 
+- [ ] qwen38's _identity (`ignition/recipes/qwen38/bootstrap.py:210`) omits mtp and `row_bytes`
+      while Helios seeds prefix-cache digests from it (`helios/src/cache/hash.rs:33`), so an MTP
+      package and a DFlash package could match each other's rows if they shared it; the DFlash
+      recipe declares its own. Changing qwen38's identity re-keys every existing package.
+
 - [ ] Declare the history-draft copy inputs on the remaining recipes that use the shared
       parallel-draft round: DeepSeek V4 (`ignition/recipes/deepseek4/bootstrap.py:387`),
       DeepSeek V4.1 (`ignition/recipes/deepseek41/bootstrap.py:260`), Kimi K3
