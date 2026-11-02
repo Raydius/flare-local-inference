@@ -28,7 +28,7 @@ from ignition.preparation.qwen38 import (
 
 SAMPLING = dict(temperature=1.0, top_k=20, top_p=0.95, min_p=0.0,
                 repetition_penalty=1.0, presence_penalty=0.0, frequency_penalty=0.0)
-CATEGORIES = dict(tool_turn=6, code_edit=4, chat_reasoning=4,
+CATEGORIES = dict(tool_turn=6, code_edit=8, chat_reasoning=4,
                   structured_json=4, long_context=2, prefix_branch=4)
 ASSETS = {**FRONTEND_SHA256, "config.json": CONFIG_SHA256,
           "generation_config.json": GENERATION_SHA256,
@@ -202,6 +202,18 @@ def definitions():
         add(f"prefix-{name}", "prefix_branch", common + [_message("user", tail)],
             {"kind": "text", "requirements": [tail]}, copy_opportunity="shared_records",
             seed=49100)
+
+    # Appended after the spike workload so the first 24 cases keep their seeds and bytes.
+    for name, instruction in [
+        ("rename-candidate", "Rename the parameter value to candidate in every validator, including its uses. Return the complete module."),
+        ("logging", "Add one logging.debug call to every validator that records the validated name and value; import logging. Return a unified diff."),
+        ("type-hints", "Add type hints to every validator's parameter and return value. Return the complete module."),
+        ("range-helper", "Extract the shared range check into one helper function and call it from every validator. Return the complete module."),
+    ]:
+        add(f"code-{name}", "code_edit", [_message("system", "Make the requested Python edit. Preserve unrelated behavior."),
+            _message("user", f"File validation.py:\n```python\n{source}```\n{instruction}")],
+            {"kind": "code", "requirements": [instruction]}, budget=1024,
+            copy_opportunity="supplied_source")
     return cases
 
 
@@ -266,17 +278,17 @@ def build_workload(tokenizer):
 
 
 def arms():
-    return [{"id": "no-mtp", "mtp": False}] + [
-        {"id": f"mtp-fixed-{width}", "mtp": True,
-         "speculative_fixed_width": width, "history_drafts": False} for width in range(1, 9)
-    ] + [{"id": f"mtp-adaptive-copy-{str(copy).lower()}", "mtp": True,
-          "speculative_fixed_width": None,
-          "history_drafts": copy} for copy in (False, True)]
+    """The served packages under the adaptive width controller, each named by its package's model id."""
+    return [{"id": "mtp-adaptive", "drafter": "mtp", "model_id": MODEL_ID,
+             "history_drafts": True, "speculative_fixed_width": None},
+            {"id": "dflash2-adaptive", "drafter": "dflash2",
+             "model_id": "local-inference-lab/Qwen3.8-Flash-Next-NVFP4-MXFP8-CSF-QAD",
+             "history_drafts": True, "speculative_fixed_width": None}]
 
 
 def request_groups(workload, concurrency):
-    if type(concurrency) is not int or concurrency not in (1, 2, 4):
-        raise ValueError("concurrency must be 1, 2 or 4")
+    if type(concurrency) is not int or concurrency not in (1, 2, 4, 8):
+        raise ValueError("concurrency must be 1, 2, 4 or 8")
     stages = {}
     for case in workload["cases"]:
         stage = case["schedule_stage"] if case["category"] in ("tool_turn", "prefix_branch") else case["category"]
@@ -298,7 +310,7 @@ def execution_plan(workload, repetitions=2):
             "trials": [{"repetition": repetition, "concurrency_ceiling": concurrency,
                         "arm_order": [a["id"] for a in (policies if repetition % 2 == 0 else list(reversed(policies)))],
                         "groups": request_groups(workload, concurrency)}
-                       for repetition in range(repetitions) for concurrency in (1, 2, 4)]}
+                       for repetition in range(repetitions) for concurrency in (1, 2, 4, 8)]}
 
 
 def validate_workload(workload):
@@ -310,7 +322,7 @@ def validate_workload(workload):
     expected = definitions()
     cases = workload.get("cases", [])
     if [c.get("id") for c in cases] != [c["id"] for c in expected] or Counter(c.get("category") for c in cases) != CATEGORIES:
-        raise ValueError("all 24 ordered workload cases are required")
+        raise ValueError("all 28 ordered workload cases are required")
     for case, definition in zip(cases, expected):
         name = case["id"]
         if any(json_bytes(case.get(k)) != json_bytes(v) for k, v in definition.items()):
@@ -374,8 +386,9 @@ def generate(snapshot, output, native_frontend, baseline_fixture):
         if digest(snapshot / name) != expected_hash:
             raise ValueError(f"checkpoint asset fingerprint mismatch: {name}")
     baseline = json.loads(baseline_fixture.read_text())
-    if baseline["assets"] != FRONTEND_SHA256 or baseline["model_id"] != MODEL_ID or baseline["revision"] != REVISION:
-        raise ValueError("native frontend fixture identity differs")
+    # The fixture names whichever checkpoint the frontend suite targets; its asset fingerprints decide compatibility.
+    if baseline["assets"] != FRONTEND_SHA256:
+        raise ValueError("native frontend fixture assets differ")
     output.mkdir(parents=True, exist_ok=False)
     workload = build_workload(AutoTokenizer.from_pretrained(snapshot, local_files_only=True))
     native_fixture = deepcopy(baseline)
