@@ -4,6 +4,7 @@
 """CPU checks for fixed stochastic inputs and paired scheduling semantics."""
 
 from copy import deepcopy
+import hashlib
 import json
 
 import pytest
@@ -31,7 +32,7 @@ def workload():
 
 
 def test_contexts_cover_recorded_turns_code_constraints_and_real_eos(workload):
-    assert len(workload["cases"]) == 24
+    assert len(workload["cases"]) == 28
     assert workload["eos_policy"] == {"ignore_eos": False, "token_ids": [248046, 248044]}
     for case in workload["cases"]:
         request = case["request"]
@@ -56,11 +57,39 @@ def test_native_normalization_preserves_wire_json_strings_and_tool_choice(worklo
     assert case["request"]["tools"]
 
 
-@pytest.mark.parametrize("concurrency", [1, 2, 4])
+def test_structured_cases_render_the_schema_instruction_helios_prepends(workload):
+    # The served prompt for json-incident (screen mtp-adaptive c1-r0) carried this system message before the user turn.
+    case = next(c for c in workload["cases"] if c["id"] == "json-incident")
+    before = deepcopy(case["request"])
+    messages, _ = sw.template_input(case["request"])
+    assert case["request"] == before and "system" not in [m["role"] for m in case["request"]["messages"]]
+    assert [m["role"] for m in messages] == ["system", "user"]
+    assert messages[0]["content"] == (
+        "Return the final answer as a JSON value matching this schema. Do not wrap it in Markdown fences or add text "
+        "outside the JSON value. Tool calls may precede the final answer.\nJSON schema:\n"
+        '{"type":"object","properties":{"service":{"type":"string"},"severity":{"type":"integer"},'
+        '"retry_limit":{"type":"integer"}},"required":["service","severity","retry_limit"],"additionalProperties":false}')
+    with_system = deepcopy(case["request"])
+    with_system["messages"].insert(0, {"role": "system", "content": "Be terse."})
+    messages, _ = sw.template_input(with_system)
+    assert [m["role"] for m in messages] == ["system", "user"]
+    assert messages[0]["content"].startswith("Be terse.\n\nReturn the final answer")
+    text_case = next(c for c in workload["cases"] if c["id"] == "chat-capacity")
+    assert "response_format" not in text_case["request"]
+    assert [m["role"] for m in sw.template_input(text_case["request"])[0]] == [m["role"] for m in text_case["request"]["messages"]]
+
+
+@pytest.mark.parametrize("concurrency", [1, 2, 4, 8])
 def test_every_context_runs_once_and_tool_turns_and_prefix_branches_are_ordered(workload, concurrency):
     groups = sw.request_groups(workload, concurrency)
-    assert [name for group in groups for name in group["case_ids"]] == [c["id"] for c in workload["cases"]]
+    scheduled = [name for group in groups for name in group["case_ids"]]
+    assert sorted(scheduled) == sorted(c["id"] for c in workload["cases"])
+    assert len(scheduled) == len(set(scheduled)) == 28
     assert all(g["concurrency"] == len(g["case_ids"]) <= concurrency for g in groups)
+    code_groups = [g for g in groups if g["stage"] == "code_edit"]
+    assert [name for g in code_groups for name in g["case_ids"]] == [c["id"] for c in workload["cases"] if c["category"] == "code_edit"]
+    if concurrency == 8:
+        assert len(code_groups) == 1 and len(code_groups[0]["case_ids"]) == 8
     for conversation in ("incident", "release"):
         indices = [next(i for i, g in enumerate(groups) if f"{conversation}-turn-{turn}" in g["case_ids"])
                    for turn in (1, 2, 3)]
@@ -71,14 +100,16 @@ def test_every_context_runs_once_and_tool_turns_and_prefix_branches_are_ordered(
 def test_paired_arms_preserve_request_bytes_and_alternate_order(workload):
     before = sw.json_bytes(workload)
     plan = sw.execution_plan(workload)
-    assert len(plan["arms"]) == 11
-    for concurrency in (1, 2, 4):
+    assert [a["id"] for a in plan["arms"]] == ["mtp-adaptive", "dflash2-adaptive"]
+    for arm in plan["arms"]:
+        assert arm["history_drafts"] is True
+        assert arm["speculative_fixed_width"] is None
+        assert arm["model_id"]
+    for concurrency in (1, 2, 4, 8):
         first, second = [t for t in plan["trials"] if t["concurrency_ceiling"] == concurrency]
         assert first["arm_order"] == list(reversed(second["arm_order"]))
         assert first["groups"] == second["groups"]
     assert before == sw.json_bytes(workload)
-    assert plan["arms"][0] == {"id": "no-mtp", "mtp": False}
-    assert [a["speculative_fixed_width"] for a in plan["arms"][1:9]] == list(range(1, 9))
 
 
 def test_identical_tail_has_identical_seed_payload_and_tokens_while_branches_diverge(workload):
@@ -92,8 +123,8 @@ def test_identical_tail_has_identical_seed_payload_and_tokens_while_branches_div
 
 
 @pytest.mark.parametrize("change,error", [
-    (lambda w: w["cases"].pop(), "24 ordered"),
-    (lambda w: w["cases"].reverse(), "24 ordered"),
+    (lambda w: w["cases"].pop(), "28 ordered"),
+    (lambda w: w["cases"].reverse(), "28 ordered"),
     (lambda w: w["cases"][0]["request"].update(temperature=0), "authored input"),
     (lambda w: w["cases"][0]["request"].update(top_p=1), "authored input"),
     (lambda w: w["cases"][0]["request"].update(seed=True), "authored input"),
@@ -102,7 +133,7 @@ def test_identical_tail_has_identical_seed_payload_and_tokens_while_branches_div
     (lambda w: w["cases"][0].update(rendered_prompt="altered"), "fingerprint"),
     (lambda w: w["cases"][2]["recorded_tool_results"].clear(), "tool results"),
     (lambda w: w["cases"][0]["turn_boundaries"].clear(), "turn boundaries"),
-    (lambda w: w["cases"][-1]["prefix_relation"].update(common_tokens=0), "prefix relation"),
+    (lambda w: next(c for c in w["cases"] if c["id"] == "prefix-branch-retry")["prefix_relation"].update(common_tokens=0), "prefix relation"),
 ])
 def test_corrupt_or_reinterpreted_inputs_fail_validation(workload, change, error):
     value = deepcopy(workload)
@@ -125,7 +156,7 @@ def artifact_files(workload, tmp_path):
 
 
 def test_request_payloads_match_workload(artifact_files):
-    assert len(sw.validate_artifacts(artifact_files)["cases"]) == 24
+    assert len(sw.validate_artifacts(artifact_files)["cases"]) == 28
     request = artifact_files / "cases" / "incident-turn-1" / "request.json"
     request.write_bytes(request.read_bytes() + b"\n")
     with pytest.raises(ValueError, match="published request/render bytes"):
@@ -140,7 +171,19 @@ def test_rendered_text_must_encode_to_the_same_tokens():
         sw.build_workload(BrokenTokenizer())
 
 
-@pytest.mark.parametrize("value", [0, 3, True])
+@pytest.mark.parametrize("value", [0, 3, 16, True])
 def test_invalid_concurrency_cannot_silently_change_schedule(workload, value):
     with pytest.raises(ValueError, match="concurrency"):
         sw.request_groups(workload, value)
+
+
+def test_first_24_definitions_are_byte_identical_to_the_spike_workload():
+    cases = sw.definitions()
+    assert len(cases) == 28
+    spike = b"".join(sw.json_bytes([c["id"], c["category"], c["request"]]) for c in cases[:24])
+    assert hashlib.sha256(spike).hexdigest() == "53c7cd8323103bbd22de56e84d869cc18ba8fc5fc02d888c7ead3fe0bbd8f31e"
+    assert [c["request"]["seed"] for c in cases[:20]] == list(range(48100, 48120))
+    assert [c["request"]["seed"] for c in cases[20:24]] == [49100] * 4
+    assert [c["id"] for c in cases[24:]] == ["code-rename-candidate", "code-logging", "code-type-hints", "code-range-helper"]
+    assert all(c["category"] == "code_edit" for c in cases[24:])
+    assert [c["request"]["seed"] for c in cases[24:]] == list(range(48124, 48128))
