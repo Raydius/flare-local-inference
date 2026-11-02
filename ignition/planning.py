@@ -193,6 +193,7 @@ class Plan:
     lock_gpu_clocks: bool = False
     native_dense_activations: bool = False
     hub_cache: Path | None = None
+    draft_model: Path | None = None
     tuning_gpus: tuple[Gpu, ...] = ()
     tuning_replica: TuningReplica | None = None
     image_concurrency: int = 0

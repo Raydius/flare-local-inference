@@ -150,15 +150,21 @@ def _unsupported(reason: str) -> UsageError:
     return UsageError(f"{reason}; supported models: {', '.join(aliases())}")
 
 
-def _supporting(config_path: Path, source: str) -> tuple[Recipe, Checkpoint]:
+def _supporting(config_path: Path, source: str, name: str | None = None) -> tuple[Recipe, Checkpoint]:
+    """The first recipe checkpoint for the architecture config.json names, from the recipe `name` when given."""
+    candidates = recipes() if name is None else tuple(recipe for recipe in recipes() if recipe.name == name)
+    if not candidates:
+        raise UsageError(f"--recipe: unknown recipe {name!r}; recipes: {', '.join(r.name for r in recipes())}")
     try:
         architectures = json.loads(config_path.read_text())["architectures"]
     except (OSError, ValueError, KeyError, TypeError) as error:
         raise _unsupported(f"{source} has no readable config.json architecture") from error
-    for recipe in recipes():
+    for recipe in candidates:
         for checkpoint in recipe.checkpoints:
             if isinstance(architectures, list) and checkpoint.architecture in architectures:
                 return recipe, checkpoint
+    if name is not None:
+        raise UsageError(f"--recipe: {name} declares no checkpoint for architecture {architectures!r} in {source}")
     raise _unsupported(f"no recipe supports architecture {architectures!r} in {source}")
 
 
@@ -198,13 +204,16 @@ def _hub_metadata(repository: str, revision: str | None, hub_cache: Path | None)
         raise FetchError(f"cannot read {repository} from Hugging Face: {error}") from error
 
 
-def resolve(model: str, hub_cache: Path | None = None) -> ResolvedModel:
+def resolve(model: str, hub_cache: Path | None = None, recipe_name: str | None = None) -> ResolvedModel:
     """Resolve an alias, a Hugging Face repository id with an optional `@revision`, or a checkpoint directory.
 
     A directory or repository that no recipe declares is served by the recipe
-    whose architecture its config.json names.
+    whose architecture its config.json names; `recipe_name` names that recipe for a
+    checkpoint directory instead.
     """
     directory = Path(model).expanduser()
+    if recipe_name is not None and not directory.is_dir():
+        raise UsageError(f"--recipe applies to a checkpoint directory MODEL, not {model!r}")
     if directory.is_dir():
         directory = directory.resolve()
         try:
@@ -215,9 +224,10 @@ def resolve(model: str, hub_cache: Path | None = None) -> ResolvedModel:
         for recipe in recipes():
             for checkpoint in recipe.checkpoints:
                 # A directory that a recipe declares keeps its declared placement.
-                if Path(checkpoint.repository).is_absolute() and Path(checkpoint.repository).resolve() == directory:
+                if (recipe_name in (None, recipe.name) and Path(checkpoint.repository).is_absolute()
+                        and Path(checkpoint.repository).resolve() == directory):
                     return ResolvedModel(recipe, checkpoint, directory)
-        recipe, qualified = _supporting(metadata / "config.json", str(directory))
+        recipe, qualified = _supporting(metadata / "config.json", str(directory), recipe_name)
         # The directory's path identifies its measurements on this host.
         revision = hashlib.sha256(str(directory).encode()).hexdigest()[:40]
         index = directory / "model.safetensors.index.json"
