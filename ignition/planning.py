@@ -196,6 +196,7 @@ class Plan:
     native_dense_activations: bool = False
     force_moe_decode_a16: bool = False
     hub_cache: Path | None = None
+    draft_model: Path | None = None
     tuning_gpus: tuple[Gpu, ...] = ()
     tuning_replica: TuningReplica | None = None
     # Image request slots. Zero prepares no vision encoder, image graphs, or image storage.
