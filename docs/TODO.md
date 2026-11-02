@@ -4,9 +4,9 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
 
 ## Open
 
-- [ ] `qwen38_dflash` change 3: qualify the served DFlash2 package against the MTP package on
-      code_edit at width 8, both exported with `--mixed-prefill`. TP sharding of the draft (no
-      PreparedShardedEmbedding/all-reduce path yet).
+- [ ] `qwen38_dflash` change 3: TP sharding of the draft (no PreparedShardedEmbedding/all-reduce
+      path yet). Served comparison against the MTP package recorded in
+      `qualify/results/dflash2-served/summary.json`.
 
 - [ ] `ignition/recipes/qwen38_dflash/bootstrap.py` repeats ~256 of the ~390 lines of qwen38's
       `_prepare_model` (`ignition/recipes/qwen38/bootstrap.py:250`: transient wrapper, owner

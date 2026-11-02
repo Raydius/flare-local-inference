@@ -23,13 +23,11 @@ import traceback
 
 from qualify.performance import connection, distribution
 from qualify.provenance import write_json
-from qualify.speculative_workload import (
-    MODEL_ID, REVISION, arms, json_bytes, request_groups, validate_artifacts,
-)
+from qualify.speculative_workload import arms, json_bytes, request_groups, validate_artifacts
 
 VOCABULARY = 248320
 EOS = {248046, 248044}
-_ROUND = re.compile(r'^flare_speculative_(rounds|gpu_nanoseconds|emitted_tokens|offered_drafts|accepted_drafts)_total\{batch="([124])",width="([1-8])"\}$')
+_ROUND = re.compile(r'^flare_speculative_(rounds|gpu_nanoseconds|emitted_tokens|offered_drafts|accepted_drafts)_total\{batch="([1248])",width="([1-8])"\}$')
 
 
 def read_sse(response, raw, *, elapsed_ns, limit=32 << 20):
@@ -122,7 +120,7 @@ def output_semantics(case, content, calls, finish, generated, *, ended_with_eos=
             "equivalent_completed_work_established": False}
 
 
-def analyze_events(events, case):
+def analyze_events(events, case, *, model_id):
     ids, core, groups, prompts, finishes, usages, timings, cached, errors = [], [], [], [], [], [], [], [], []
     content, reasoning, calls, models, done = [], [], {}, [], 0
     terminal_seen = False
@@ -229,7 +227,7 @@ def analyze_events(events, case):
     checks = {"no_stream_error": not errors, "done_once": done == 1, "done_last": bool(events) and events[-1]["data"] == "[DONE]",
         "exact_prompt_ids": len(prompts) == 1 and prompts[0] == case["prompt_tokens"],
         "prompt_ids_first_event": bool(events) and isinstance(events[0]["data"], dict) and events[0]["data"].get("prompt_token_ids") == case["prompt_tokens"],
-        "model_identity": bool(models) and all(model == MODEL_ID for model in models),
+        "model_identity": bool(models) and all(model == model_id for model in models),
         "raw_count_within_budget": 0 < len(ids) <= case["request"]["max_tokens"],
         "one_valid_terminal": len(finishes) == 1 and finish in ("stop", "length", "tool_calls"),
         "length_uses_budget": finish != "length" or len(ids) == case["request"]["max_tokens"],
@@ -265,7 +263,7 @@ def analyze_events(events, case):
                                              ended_with_eos=bool(ids) and ids[-1] in EOS)}
 
 
-def stream_request(base_url, case, payload, folder, *, timeout, barrier):
+def stream_request(base_url, case, payload, folder, *, timeout, barrier, model_id):
     if payload != json_bytes(case["request"]) or hashlib.sha256(payload).hexdigest() != case["request_sha256"]:
         raise ValueError("HTTP payload differs from frozen request bytes")
     folder.mkdir()
@@ -322,7 +320,7 @@ def stream_request(base_url, case, payload, folder, *, timeout, barrier):
         result["deadline_expired"] = expired.is_set()
         if expired.is_set() and "client_error" not in result:
             result["client_error"] = "TimeoutError: absolute request deadline exceeded"
-    result["analysis"] = analyze_events(result["events"], case)
+    result["analysis"] = analyze_events(result["events"], case, model_id=model_id)
     if "client_error" in result:
         result["analysis"]["checks"]["client_completed"] = False
         result["analysis"]["passed"] = False
@@ -352,18 +350,18 @@ def read_metrics(base_url, path, timeout):
         conn.close()
 
 
-def is_idle(values):
+def is_idle(values, free_slots):
     return all(values.get(key) == expected for key, expected in {
         "flare_active_requests": 0, "flare_pending_requests": 0,
-        "flare_retiring_request_slots": 0, "flare_free_request_slots": 4}.items())
+        "flare_retiring_request_slots": 0, "flare_free_request_slots": free_slots}.items())
 
 
-def idle_metrics(base_url, folder, label, timeout):
+def idle_metrics(base_url, folder, label, timeout, free_slots):
     deadline = time.monotonic() + min(30, timeout)
     attempt = 0
     while True:
         values = read_metrics(base_url, folder / f"metrics-{label}-{attempt:03}.txt", min(timeout, 10))
-        if is_idle(values):
+        if is_idle(values, free_slots):
             return values
         if time.monotonic() >= deadline:
             raise TimeoutError("native scheduler did not become idle within bounded wait")
@@ -371,22 +369,25 @@ def idle_metrics(base_url, folder, label, timeout):
         time.sleep(0.05)
 
 
-def validate_arm(memory, arm):
-    actual = bool(memory.get("speculative_widths"))
-    if actual != arm["mtp"]:
-        raise ValueError("actual prepared speculative catalog differs from arm")
-    if arm["mtp"]:
-        for key in ("speculative_fixed_width",):
-            if key not in memory or memory[key] != arm[key] or type(memory[key]) is not type(arm[key]):
-                raise ValueError(f"actual prepared {key} differs from arm")
-        widths = memory["speculative_widths"]
-        if widths != list(range(1, 9)):
-            raise ValueError("paired workload requires the complete bounded width catalog")
-        expected = {(b, w) for b in (1, 2, 4) for w in widths if b * w <= 8}
-        if {tuple(shape) for shape in memory.get("speculative_shapes", [])} != expected:
-            raise ValueError("actual speculative B/W catalog differs")
-    if memory.get("tuning", {}).get("namespace", {}).get("checkpoint") != REVISION:
-        raise ValueError("memory report checkpoint identity differs")
+def validate_arm(catalog, arm):
+    """Check the inspected package (`flare inspect --json --graphs`) against the selected arm."""
+    if catalog["model"]["model_id"] != arm["model_id"]:
+        raise ValueError("package model_id differs from arm")
+    if catalog["deployments"][0]["max_active"] != 8:
+        raise ValueError("package max_active differs from the paired workload ceiling of 8")
+    graphs = catalog["ranks"][0]["execution_graphs"]
+    speculative = {g["name"] for g in graphs if g["kind"] == "speculative"}
+    for batch in (1, 2, 4, 8):
+        for width in range(1, 9):
+            if batch * width <= 128 and f"speculative{batch}x{width}" not in speculative:
+                raise ValueError(f"speculative graph speculative{batch}x{width} missing")
+    if not any(g["kind"] == "mixed" and g["draft_tokens"] is not None for g in graphs):
+        raise ValueError("mixed graph with draft_tokens missing")
+
+
+def speculative_shape_band(catalog):
+    return max(g["batch_capacity"] * (g["draft_tokens"] + 1)
+               for g in catalog["ranks"][0]["execution_graphs"] if g["kind"] == "speculative")
 
 
 def metric_delta(before, after):
@@ -410,7 +411,12 @@ def round_metrics(delta):
             "scope": "Completed graph capacity B/W, not live-lane count. Duration covers the full speculative graph and excludes transfers; separate draft/verify/commit durations are unavailable."}
 
 
-def summarize_group(group, observations, before, after, memory):
+def pool_pages(values):
+    """KV pages accounted for: free, owned by checkpoints, or parked behind owned snapshots."""
+    return sum(values.get(key, -1) for key in ("flare_free_kv_pages", "flare_cached_kv_pages", "flare_snapshot_backing_pages"))
+
+
+def summarize_group(group, observations, before, after, catalog, targets):
     delta = metric_delta(before, after)
     count = len(observations)
     checks = {"requests_observed": count == len(group["case_ids"]),
@@ -419,9 +425,9 @@ def summarize_group(group, observations, before, after, memory):
               "completed_count": delta.get("flare_requests_completed_total") == count,
               "no_runtime_failure": delta.get("flare_requests_failed_total") == 0,
               "no_cancellation": delta.get("flare_requests_cancelled_total") == 0,
-              "idle_after": is_idle(after),
-              "pages_conserved": after.get("flare_free_kv_pages", -1) + after.get("flare_cached_kv_pages", -1) == memory["pages"],
-              "snapshots_conserved": after.get("flare_free_snapshots", -1) + after.get("flare_cached_checkpoints", -1) == memory["snapshot_capacity"]}
+              "idle_after": is_idle(after, catalog["deployments"][0]["max_active"]),
+              "pages_conserved": pool_pages(after) == targets["pages"],
+              "snapshots_conserved": after.get("flare_free_snapshots", -1) + after.get("flare_cached_checkpoints", -1) == targets["snapshots"]}
     analyses = [o["analysis"] for o in observations]
     reuse = [a["reused_prompt_tokens"] for a in analyses]
     checks["reuse_counter_matches_requests"] = all(type(v) is int for v in reuse) and delta.get("flare_cache_reused_tokens_total") == sum(reuse)
@@ -429,15 +435,20 @@ def summarize_group(group, observations, before, after, memory):
     span = max(s + e for s, e in spans) - min(s for s, _ in spans) if all(s is not None and e is not None for s, e in spans) else None
     emitted = sum(len(a["generated_token_ids"]) for a in analyses)
     speculative = round_metrics(delta)
-    if memory.get("speculative_widths"):
-        shapes = speculative["shapes"]
-        checks["speculative_shape_band"] = all(row["batch"] * row["width"] <= 8 for row in shapes)
-        checks["completed_rounds_match_launches"] = sum(row.get("rounds", 0) for row in shapes) == delta.get('flare_graph_launches_total{kind="speculative"}')
-        checks["speculative_emissions_match_raw_ids"] = sum(row.get("emitted_tokens", 0) for row in shapes) + count == emitted
+    shapes = speculative["shapes"]
+    band = speculative_shape_band(catalog)
+    checks["speculative_shape_band"] = all(row["batch"] * row["width"] <= band for row in shapes)
+    checks["completed_rounds_match_launches"] = sum(row.get("rounds", 0) for row in shapes) == delta.get('flare_graph_launches_total{kind="speculative"}')
+    # Mixed rounds launch no per-shape speculative counters, so their emissions only appear in the raw IDs.
+    shape_emitted = sum(row.get("emitted_tokens", 0) for row in shapes)
+    mixed = delta.get('flare_graph_launches_total{kind="mixed"}', 0)
+    checks["speculative_emissions_match_raw_ids"] = (shape_emitted + count == emitted
+                                                    or (mixed > 0 and shape_emitted + count <= emitted))
     semantics_pass = all(a["output_semantics"]["automatic_passed"] for a in analyses)
     return {**group, "passed": all(checks.values()) and semantics_pass,
             "transport_passed": all(checks.values()), "checks": checks, "metrics_delta": delta,
             "speculation": speculative, "reused_prompt_tokens": reuse,
+            "mixed_round_emitted_tokens": emitted - count - shape_emitted, "mixed_graph_launches": mixed,
             "actual_output_tokens": emitted, "end_to_end_group_span_ns": span,
             "observed_output_tokens_per_second": emitted * 1e9 / span if span and checks["http_integrity"] else None,
             "delivery_ttft_ns": distribution([a["delivery_ttft_ns"] for a in analyses if a["delivery_ttft_ns"] is not None]),
@@ -485,17 +496,22 @@ def measurement_summary(workload, observations, groups):
 def run(args):
     workload = validate_artifacts(args.workload)
     arm = next(a for a in arms() if a["id"] == args.arm)
-    memory = json.loads(args.memory_report.read_text())
-    validate_arm(memory, arm)
+    catalog = json.loads(args.catalog.read_text())
+    validate_arm(catalog, arm)
+    max_active = catalog["deployments"][0]["max_active"]
     args.output.mkdir(parents=True, exist_ok=False)
     measurements = {"arm": arm, "concurrency_ceiling": args.concurrency,
                     "repetition": args.repetition, "base_url": args.base_url,
+                    "catalog_model_id": catalog["model"]["model_id"],
                     "groups": [], "observations": [], "errors": [], "passed": False}
     cases = {c["id"]: c for c in workload["cases"]}
     groups = request_groups(workload, args.concurrency)
     try:
-        initial = idle_metrics(args.base_url, args.output, "initial", args.timeout)
+        initial = idle_metrics(args.base_url, args.output, "initial", args.timeout, max_active)
         measurements["initial_metrics"] = initial
+        targets = {"pages": pool_pages(initial),
+                   "snapshots": initial["flare_free_snapshots"] + initial["flare_cached_checkpoints"]}
+        measurements["conservation_targets"] = targets
         expected_history = int(arm.get("history_drafts", False))
         if initial.get("flare_history_drafts_enabled") != expected_history:
             raise ValueError("runtime history_drafts differs from the selected benchmark arm")
@@ -505,24 +521,24 @@ def run(args):
         for index, group in enumerate(groups):
             folder = args.output / f"group-{index:03}-{group['stage']}"
             folder.mkdir()
-            before = idle_metrics(args.base_url, folder, "before", args.timeout)
+            before = idle_metrics(args.base_url, folder, "before", args.timeout, max_active)
             barrier = threading.Barrier(group["concurrency"])
 
             def submit(identifier):
                 case = cases[identifier]
                 payload = (args.workload / "cases" / identifier / "request.json").read_bytes()
-                return stream_request(args.base_url, case, payload, folder / identifier, timeout=args.timeout, barrier=barrier)
+                return stream_request(args.base_url, case, payload, folder / identifier, timeout=args.timeout, barrier=barrier, model_id=arm["model_id"])
 
             with ThreadPoolExecutor(max_workers=group["concurrency"]) as pool:
                 results = list(pool.map(submit, group["case_ids"]))
             measurements["observations"].extend(results)
-            after = idle_metrics(args.base_url, folder, "after", args.timeout)
-            summary = summarize_group(group, results, before, after, memory)
+            after = idle_metrics(args.base_url, folder, "after", args.timeout, max_active)
+            summary = summarize_group(group, results, before, after, catalog, targets)
             summary["category"] = cases[group["case_ids"][0]]["category"]
             measurements["groups"].append(summary)
             write_json(folder / "group.json", {**summary, "metrics_before": before, "metrics_after": after})
             write_json(args.output / "measurements.json", measurements)
-        measurements["final_metrics"] = idle_metrics(args.base_url, args.output, "final", args.timeout)
+        measurements["final_metrics"] = idle_metrics(args.base_url, args.output, "final", args.timeout, max_active)
         complete = len(measurements["observations"]) == len(cases) and len(measurements["groups"]) == len(groups)
         measurements["transport_passed"] = complete and all(g["transport_passed"] for g in measurements["groups"])
         measurements["passed"] = complete and all(g["passed"] for g in measurements["groups"])
@@ -543,9 +559,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--workload", type=Path, required=True)
     parser.add_argument("--arm", choices=[a["id"] for a in arms()], required=True)
-    parser.add_argument("--concurrency", type=int, choices=(1, 2, 4), required=True)
+    parser.add_argument("--concurrency", type=int, choices=(1, 2, 4, 8), required=True)
     parser.add_argument("--base-url", required=True)
-    parser.add_argument("--memory-report", type=Path, required=True)
+    parser.add_argument("--catalog", type=Path, required=True,
+                        help="JSON of `flare inspect PACKAGE --json --graphs --unverified` for the served package")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--repetition", type=int, default=0)
     parser.add_argument("--timeout", type=float, default=600)
