@@ -1,0 +1,3174 @@
+{
+  "package": {
+    "signatures_verified": false,
+    "metadata": "unverified",
+    "format": "payload",
+    "format_version": 2,
+    "path": "/home/rjdollete/models/.cache/flare/packages/models/local-inference-lab_2FQwen3.8-Flash-Next-NVFP4-MXFP8-CSF-QAD/gb202-tp1-202610312330/model.safetensors",
+    "frontend_settings": null,
+    "publisher": {
+      "namespace": "local-development",
+      "official_source": "local-development",
+      "development": true
+    }
+  },
+  "model": {
+    "model_id": "local-inference-lab/Qwen3.8-Flash-Next-NVFP4-MXFP8-CSF-QAD",
+    "identity": "local-inference-lab/Qwen3.8-Flash-Next-NVFP4-MXFP8-CSF-QAD",
+    "hardware": "gb202",
+    "max_sequence_tokens": 262144,
+    "prefill_chunk_size": 4096,
+    "max_active": 8,
+    "vocabulary": 248320
+  },
+  "deployments": [
+    {
+      "id": "gb202-tp1",
+      "frontend": null,
+      "vision": null,
+      "tensor_parallel": 1,
+      "architecture": [
+        12,
+        0
+      ],
+      "pages": 80,
+      "state_rows": 72,
+      "max_sequence_tokens": 262144,
+      "prefill_chunk_size": 4096,
+      "max_active": 8,
+      "vocabulary": 248320,
+      "ranks": [
+        0
+      ]
+    }
+  ],
+  "assets": [],
+  "payloads": 2,
+  "ranks": [
+    {
+      "rank": 0,
+      "deployment": "gb202-tp1",
+      "execution_graphs": [
+        {
+          "name": "vision16384",
+          "kind": "vision",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 16384,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "vision4096",
+          "kind": "vision",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 4096,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "vision1024",
+          "kind": "vision",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 1024,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "vision256",
+          "kind": "vision",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 256,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "prefill4096",
+          "kind": "prefill",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 4096,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "prefill3584",
+          "kind": "prefill",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 3584,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "prefill3072",
+          "kind": "prefill",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 3072,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "prefill2560",
+          "kind": "prefill",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 2560,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "prefill2048",
+          "kind": "prefill",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 2048,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "prefill1536",
+          "kind": "prefill",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 1536,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "prefill1024",
+          "kind": "prefill",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 1024,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "prefill512",
+          "kind": "prefill",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 512,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "prefill256",
+          "kind": "prefill",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 256,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "prefill128",
+          "kind": "prefill",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 128,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "prefill4096-no-mtp",
+          "kind": "prefill",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 4096,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "prefill3584-no-mtp",
+          "kind": "prefill",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 3584,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "prefill3072-no-mtp",
+          "kind": "prefill",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 3072,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "prefill2560-no-mtp",
+          "kind": "prefill",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 2560,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "prefill2048-no-mtp",
+          "kind": "prefill",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 2048,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "prefill1536-no-mtp",
+          "kind": "prefill",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 1536,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "prefill1024-no-mtp",
+          "kind": "prefill",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 1024,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "prefill512-no-mtp",
+          "kind": "prefill",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 512,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "prefill256-no-mtp",
+          "kind": "prefill",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 256,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "prefill128-no-mtp",
+          "kind": "prefill",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 128,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "decode8",
+          "kind": "decode",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "decode4",
+          "kind": "decode",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "decode2",
+          "kind": "decode",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "decode1",
+          "kind": "decode",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "speculative8x8",
+          "kind": "speculative",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 8,
+          "packed_token_capacity": 64,
+          "prefill_capacity": 0,
+          "draft_tokens": 7,
+          "verify_tokens": 8,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "speculative8x7",
+          "kind": "speculative",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 7,
+          "packed_token_capacity": 56,
+          "prefill_capacity": 0,
+          "draft_tokens": 6,
+          "verify_tokens": 7,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "speculative8x6",
+          "kind": "speculative",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 6,
+          "packed_token_capacity": 48,
+          "prefill_capacity": 0,
+          "draft_tokens": 5,
+          "verify_tokens": 6,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "speculative8x5",
+          "kind": "speculative",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 5,
+          "packed_token_capacity": 40,
+          "prefill_capacity": 0,
+          "draft_tokens": 4,
+          "verify_tokens": 5,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "speculative4x8",
+          "kind": "speculative",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 8,
+          "packed_token_capacity": 32,
+          "prefill_capacity": 0,
+          "draft_tokens": 7,
+          "verify_tokens": 8,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "speculative8x4",
+          "kind": "speculative",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 4,
+          "packed_token_capacity": 32,
+          "prefill_capacity": 0,
+          "draft_tokens": 3,
+          "verify_tokens": 4,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "speculative4x7",
+          "kind": "speculative",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 7,
+          "packed_token_capacity": 28,
+          "prefill_capacity": 0,
+          "draft_tokens": 6,
+          "verify_tokens": 7,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "speculative4x6",
+          "kind": "speculative",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 6,
+          "packed_token_capacity": 24,
+          "prefill_capacity": 0,
+          "draft_tokens": 5,
+          "verify_tokens": 6,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "speculative8x3",
+          "kind": "speculative",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 3,
+          "packed_token_capacity": 24,
+          "prefill_capacity": 0,
+          "draft_tokens": 2,
+          "verify_tokens": 3,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "speculative4x5",
+          "kind": "speculative",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 5,
+          "packed_token_capacity": 20,
+          "prefill_capacity": 0,
+          "draft_tokens": 4,
+          "verify_tokens": 5,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "speculative2x8",
+          "kind": "speculative",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 8,
+          "packed_token_capacity": 16,
+          "prefill_capacity": 0,
+          "draft_tokens": 7,
+          "verify_tokens": 8,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "speculative4x4",
+          "kind": "speculative",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 4,
+          "packed_token_capacity": 16,
+          "prefill_capacity": 0,
+          "draft_tokens": 3,
+          "verify_tokens": 4,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "speculative8x2",
+          "kind": "speculative",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 2,
+          "packed_token_capacity": 16,
+          "prefill_capacity": 0,
+          "draft_tokens": 1,
+          "verify_tokens": 2,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "speculative2x7",
+          "kind": "speculative",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 7,
+          "packed_token_capacity": 14,
+          "prefill_capacity": 0,
+          "draft_tokens": 6,
+          "verify_tokens": 7,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "speculative2x6",
+          "kind": "speculative",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 6,
+          "packed_token_capacity": 12,
+          "prefill_capacity": 0,
+          "draft_tokens": 5,
+          "verify_tokens": 6,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "speculative4x3",
+          "kind": "speculative",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 3,
+          "packed_token_capacity": 12,
+          "prefill_capacity": 0,
+          "draft_tokens": 2,
+          "verify_tokens": 3,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "speculative2x5",
+          "kind": "speculative",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 5,
+          "packed_token_capacity": 10,
+          "prefill_capacity": 0,
+          "draft_tokens": 4,
+          "verify_tokens": 5,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "speculative1x8",
+          "kind": "speculative",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 8,
+          "packed_token_capacity": 8,
+          "prefill_capacity": 0,
+          "draft_tokens": 7,
+          "verify_tokens": 8,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "speculative2x4",
+          "kind": "speculative",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 4,
+          "packed_token_capacity": 8,
+          "prefill_capacity": 0,
+          "draft_tokens": 3,
+          "verify_tokens": 4,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "speculative4x2",
+          "kind": "speculative",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 2,
+          "packed_token_capacity": 8,
+          "prefill_capacity": 0,
+          "draft_tokens": 1,
+          "verify_tokens": 2,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "speculative8x1",
+          "kind": "speculative",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 1,
+          "packed_token_capacity": 8,
+          "prefill_capacity": 0,
+          "draft_tokens": 0,
+          "verify_tokens": 1,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "speculative1x7",
+          "kind": "speculative",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 7,
+          "packed_token_capacity": 7,
+          "prefill_capacity": 0,
+          "draft_tokens": 6,
+          "verify_tokens": 7,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "speculative1x6",
+          "kind": "speculative",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 6,
+          "packed_token_capacity": 6,
+          "prefill_capacity": 0,
+          "draft_tokens": 5,
+          "verify_tokens": 6,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "speculative2x3",
+          "kind": "speculative",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 3,
+          "packed_token_capacity": 6,
+          "prefill_capacity": 0,
+          "draft_tokens": 2,
+          "verify_tokens": 3,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "speculative1x5",
+          "kind": "speculative",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 5,
+          "packed_token_capacity": 5,
+          "prefill_capacity": 0,
+          "draft_tokens": 4,
+          "verify_tokens": 5,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "speculative1x4",
+          "kind": "speculative",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 4,
+          "packed_token_capacity": 4,
+          "prefill_capacity": 0,
+          "draft_tokens": 3,
+          "verify_tokens": 4,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "speculative2x2",
+          "kind": "speculative",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 2,
+          "packed_token_capacity": 4,
+          "prefill_capacity": 0,
+          "draft_tokens": 1,
+          "verify_tokens": 2,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "speculative4x1",
+          "kind": "speculative",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 1,
+          "packed_token_capacity": 4,
+          "prefill_capacity": 0,
+          "draft_tokens": 0,
+          "verify_tokens": 1,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "speculative1x3",
+          "kind": "speculative",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 3,
+          "packed_token_capacity": 3,
+          "prefill_capacity": 0,
+          "draft_tokens": 2,
+          "verify_tokens": 3,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "speculative1x2",
+          "kind": "speculative",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 2,
+          "packed_token_capacity": 2,
+          "prefill_capacity": 0,
+          "draft_tokens": 1,
+          "verify_tokens": 2,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "speculative2x1",
+          "kind": "speculative",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 1,
+          "packed_token_capacity": 2,
+          "prefill_capacity": 0,
+          "draft_tokens": 0,
+          "verify_tokens": 1,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "speculative1x1",
+          "kind": "speculative",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 1,
+          "packed_token_capacity": 1,
+          "prefill_capacity": 0,
+          "draft_tokens": 0,
+          "verify_tokens": 1,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed8x8p512",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 8,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 512,
+          "draft_tokens": 7,
+          "verify_tokens": 8,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed8x7p512",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 7,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 512,
+          "draft_tokens": 6,
+          "verify_tokens": 7,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed8x6p512",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 6,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 512,
+          "draft_tokens": 5,
+          "verify_tokens": 6,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed8x5p512",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 5,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 512,
+          "draft_tokens": 4,
+          "verify_tokens": 5,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed8x4p512",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 4,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 512,
+          "draft_tokens": 3,
+          "verify_tokens": 4,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed8x3p512",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 3,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 512,
+          "draft_tokens": 2,
+          "verify_tokens": 3,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed8x2p512",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 2,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 512,
+          "draft_tokens": 1,
+          "verify_tokens": 2,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed8x1p4096",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 4096,
+          "draft_tokens": 0,
+          "verify_tokens": 1,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed8x1p3584",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 3584,
+          "draft_tokens": 0,
+          "verify_tokens": 1,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed8x1p3072",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 3072,
+          "draft_tokens": 0,
+          "verify_tokens": 1,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed8x1p2560",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 2560,
+          "draft_tokens": 0,
+          "verify_tokens": 1,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed8x1p2048",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 2048,
+          "draft_tokens": 0,
+          "verify_tokens": 1,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed8x1p1536",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 1536,
+          "draft_tokens": 0,
+          "verify_tokens": 1,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed8x1p1024",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 1024,
+          "draft_tokens": 0,
+          "verify_tokens": 1,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed8x1p512",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 512,
+          "draft_tokens": 0,
+          "verify_tokens": 1,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed8x1p256",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 256,
+          "draft_tokens": 0,
+          "verify_tokens": 1,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed8x1p128",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 128,
+          "draft_tokens": 0,
+          "verify_tokens": 1,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed4x8p512",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 8,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 512,
+          "draft_tokens": 7,
+          "verify_tokens": 8,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed4x7p512",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 7,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 512,
+          "draft_tokens": 6,
+          "verify_tokens": 7,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed4x6p512",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 6,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 512,
+          "draft_tokens": 5,
+          "verify_tokens": 6,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed4x5p512",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 5,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 512,
+          "draft_tokens": 4,
+          "verify_tokens": 5,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed4x4p512",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 4,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 512,
+          "draft_tokens": 3,
+          "verify_tokens": 4,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed4x3p512",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 3,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 512,
+          "draft_tokens": 2,
+          "verify_tokens": 3,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed4x2p512",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 2,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 512,
+          "draft_tokens": 1,
+          "verify_tokens": 2,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed4x1p4096",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 4096,
+          "draft_tokens": 0,
+          "verify_tokens": 1,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed4x1p3584",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 3584,
+          "draft_tokens": 0,
+          "verify_tokens": 1,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed4x1p3072",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 3072,
+          "draft_tokens": 0,
+          "verify_tokens": 1,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed4x1p2560",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 2560,
+          "draft_tokens": 0,
+          "verify_tokens": 1,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed4x1p2048",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 2048,
+          "draft_tokens": 0,
+          "verify_tokens": 1,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed4x1p1536",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 1536,
+          "draft_tokens": 0,
+          "verify_tokens": 1,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed4x1p1024",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 1024,
+          "draft_tokens": 0,
+          "verify_tokens": 1,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed4x1p512",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 512,
+          "draft_tokens": 0,
+          "verify_tokens": 1,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed4x1p256",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 256,
+          "draft_tokens": 0,
+          "verify_tokens": 1,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed4x1p128",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 128,
+          "draft_tokens": 0,
+          "verify_tokens": 1,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed2x8p512",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 8,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 512,
+          "draft_tokens": 7,
+          "verify_tokens": 8,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed2x7p512",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 7,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 512,
+          "draft_tokens": 6,
+          "verify_tokens": 7,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed2x6p512",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 6,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 512,
+          "draft_tokens": 5,
+          "verify_tokens": 6,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed2x5p512",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 5,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 512,
+          "draft_tokens": 4,
+          "verify_tokens": 5,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed2x4p512",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 4,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 512,
+          "draft_tokens": 3,
+          "verify_tokens": 4,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed2x3p512",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 3,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 512,
+          "draft_tokens": 2,
+          "verify_tokens": 3,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed2x2p512",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 2,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 512,
+          "draft_tokens": 1,
+          "verify_tokens": 2,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed2x1p4096",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 4096,
+          "draft_tokens": 0,
+          "verify_tokens": 1,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed2x1p3584",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 3584,
+          "draft_tokens": 0,
+          "verify_tokens": 1,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed2x1p3072",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 3072,
+          "draft_tokens": 0,
+          "verify_tokens": 1,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed2x1p2560",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 2560,
+          "draft_tokens": 0,
+          "verify_tokens": 1,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed2x1p2048",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 2048,
+          "draft_tokens": 0,
+          "verify_tokens": 1,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed2x1p1536",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 1536,
+          "draft_tokens": 0,
+          "verify_tokens": 1,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed2x1p1024",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 1024,
+          "draft_tokens": 0,
+          "verify_tokens": 1,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed2x1p512",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 512,
+          "draft_tokens": 0,
+          "verify_tokens": 1,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed2x1p256",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 256,
+          "draft_tokens": 0,
+          "verify_tokens": 1,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed2x1p128",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 128,
+          "draft_tokens": 0,
+          "verify_tokens": 1,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed8x1p4096-no-mtp",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 4096,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed8x1p3584-no-mtp",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 3584,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed8x1p3072-no-mtp",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 3072,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed8x1p2560-no-mtp",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 2560,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed8x1p2048-no-mtp",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 2048,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed8x1p1536-no-mtp",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 1536,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed8x1p1024-no-mtp",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 1024,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed8x1p512-no-mtp",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 512,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed8x1p256-no-mtp",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 256,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed8x1p128-no-mtp",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 128,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed4x1p4096-no-mtp",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 4096,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed4x1p3584-no-mtp",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 3584,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed4x1p3072-no-mtp",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 3072,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed4x1p2560-no-mtp",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 2560,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed4x1p2048-no-mtp",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 2048,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed4x1p1536-no-mtp",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 1536,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed4x1p1024-no-mtp",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 1024,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed4x1p512-no-mtp",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 512,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed4x1p256-no-mtp",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 256,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed4x1p128-no-mtp",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 128,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed2x1p4096-no-mtp",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 4096,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed2x1p3584-no-mtp",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 3584,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed2x1p3072-no-mtp",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 3072,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed2x1p2560-no-mtp",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 2560,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed2x1p2048-no-mtp",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 2048,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed2x1p1536-no-mtp",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 1536,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed2x1p1024-no-mtp",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 1024,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed2x1p512-no-mtp",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 512,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed2x1p256-no-mtp",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 256,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "mixed2x1p128-no-mtp",
+          "kind": "mixed",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 128,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "resume8",
+          "kind": "resume",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "init8",
+          "kind": "init",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "restore8",
+          "kind": "restore",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "snapshot8",
+          "kind": "snapshot",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "resume4",
+          "kind": "resume",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "init4",
+          "kind": "init",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "restore4",
+          "kind": "restore",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "snapshot4",
+          "kind": "snapshot",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "resume2",
+          "kind": "resume",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "init2",
+          "kind": "init",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "restore2",
+          "kind": "restore",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "snapshot2",
+          "kind": "snapshot",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "resume1",
+          "kind": "resume",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "init1",
+          "kind": "init",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "restore1",
+          "kind": "restore",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "snapshot1",
+          "kind": "snapshot",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "resume8-no-mtp",
+          "kind": "resume",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "init8-no-mtp",
+          "kind": "init",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "restore8-no-mtp",
+          "kind": "restore",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "snapshot8-no-mtp",
+          "kind": "snapshot",
+          "sampling_mode": "general",
+          "batch_capacity": 8,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "resume4-no-mtp",
+          "kind": "resume",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "init4-no-mtp",
+          "kind": "init",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "restore4-no-mtp",
+          "kind": "restore",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "snapshot4-no-mtp",
+          "kind": "snapshot",
+          "sampling_mode": "general",
+          "batch_capacity": 4,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "resume2-no-mtp",
+          "kind": "resume",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "init2-no-mtp",
+          "kind": "init",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "restore2-no-mtp",
+          "kind": "restore",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "snapshot2-no-mtp",
+          "kind": "snapshot",
+          "sampling_mode": "general",
+          "batch_capacity": 2,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "resume1-no-mtp",
+          "kind": "resume",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "init1-no-mtp",
+          "kind": "init",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "restore1-no-mtp",
+          "kind": "restore",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        },
+        {
+          "name": "snapshot1-no-mtp",
+          "kind": "snapshot",
+          "sampling_mode": "general",
+          "batch_capacity": 1,
+          "token_capacity": 1,
+          "packed_token_capacity": 0,
+          "prefill_capacity": 0,
+          "draft_tokens": null,
+          "verify_tokens": null,
+          "estimated_duration_ns": 0
+        }
+      ],
+      "graphs": [
+        {
+          "name": "vision16384",
+          "node_count": 584,
+          "edge_count": 583,
+          "resource": 13418
+        },
+        {
+          "name": "vision4096",
+          "node_count": 638,
+          "edge_count": 637,
+          "resource": 13419
+        },
+        {
+          "name": "vision1024",
+          "node_count": 638,
+          "edge_count": 637,
+          "resource": 13420
+        },
+        {
+          "name": "vision256",
+          "node_count": 667,
+          "edge_count": 666,
+          "resource": 13421
+        },
+        {
+          "name": "prefill4096",
+          "node_count": 3042,
+          "edge_count": 3329,
+          "resource": 13422
+        },
+        {
+          "name": "prefill3584",
+          "node_count": 2910,
+          "edge_count": 3125,
+          "resource": 13423
+        },
+        {
+          "name": "prefill3072",
+          "node_count": 2754,
+          "edge_count": 2969,
+          "resource": 13424
+        },
+        {
+          "name": "prefill2560",
+          "node_count": 2791,
+          "edge_count": 3006,
+          "resource": 13425
+        },
+        {
+          "name": "prefill2048",
+          "node_count": 2779,
+          "edge_count": 2994,
+          "resource": 13426
+        },
+        {
+          "name": "prefill1536",
+          "node_count": 2503,
+          "edge_count": 2538,
+          "resource": 13427
+        },
+        {
+          "name": "prefill1024",
+          "node_count": 2443,
+          "edge_count": 2478,
+          "resource": 13428
+        },
+        {
+          "name": "prefill512",
+          "node_count": 2324,
+          "edge_count": 2359,
+          "resource": 13429
+        },
+        {
+          "name": "prefill256",
+          "node_count": 2325,
+          "edge_count": 2455,
+          "resource": 13430
+        },
+        {
+          "name": "prefill128",
+          "node_count": 2325,
+          "edge_count": 2455,
+          "resource": 13431
+        },
+        {
+          "name": "prefill4096-no-mtp",
+          "node_count": 2984,
+          "edge_count": 3271,
+          "resource": 13432
+        },
+        {
+          "name": "prefill3584-no-mtp",
+          "node_count": 2852,
+          "edge_count": 3067,
+          "resource": 13433
+        },
+        {
+          "name": "prefill3072-no-mtp",
+          "node_count": 2696,
+          "edge_count": 2911,
+          "resource": 13434
+        },
+        {
+          "name": "prefill2560-no-mtp",
+          "node_count": 2733,
+          "edge_count": 2948,
+          "resource": 13435
+        },
+        {
+          "name": "prefill2048-no-mtp",
+          "node_count": 2721,
+          "edge_count": 2936,
+          "resource": 13436
+        },
+        {
+          "name": "prefill1536-no-mtp",
+          "node_count": 2445,
+          "edge_count": 2480,
+          "resource": 13437
+        },
+        {
+          "name": "prefill1024-no-mtp",
+          "node_count": 2385,
+          "edge_count": 2420,
+          "resource": 13438
+        },
+        {
+          "name": "prefill512-no-mtp",
+          "node_count": 2265,
+          "edge_count": 2300,
+          "resource": 13439
+        },
+        {
+          "name": "prefill256-no-mtp",
+          "node_count": 2266,
+          "edge_count": 2396,
+          "resource": 13440
+        },
+        {
+          "name": "prefill128-no-mtp",
+          "node_count": 2266,
+          "edge_count": 2396,
+          "resource": 13441
+        },
+        {
+          "name": "decode8",
+          "node_count": 1764,
+          "edge_count": 1859,
+          "resource": 13442
+        },
+        {
+          "name": "decode4",
+          "node_count": 1775,
+          "edge_count": 1870,
+          "resource": 13443
+        },
+        {
+          "name": "decode2",
+          "node_count": 1721,
+          "edge_count": 1816,
+          "resource": 13444
+        },
+        {
+          "name": "decode1",
+          "node_count": 1658,
+          "edge_count": 1753,
+          "resource": 13445
+        },
+        {
+          "name": "speculative8x8",
+          "node_count": 2573,
+          "edge_count": 2625,
+          "resource": 13446
+        },
+        {
+          "name": "speculative8x7",
+          "node_count": 2533,
+          "edge_count": 2585,
+          "resource": 13447
+        },
+        {
+          "name": "speculative8x6",
+          "node_count": 2488,
+          "edge_count": 2540,
+          "resource": 13448
+        },
+        {
+          "name": "speculative8x5",
+          "node_count": 2446,
+          "edge_count": 2498,
+          "resource": 13449
+        },
+        {
+          "name": "speculative4x8",
+          "node_count": 2569,
+          "edge_count": 2621,
+          "resource": 13450
+        },
+        {
+          "name": "speculative8x4",
+          "node_count": 2403,
+          "edge_count": 2455,
+          "resource": 13451
+        },
+        {
+          "name": "speculative4x7",
+          "node_count": 2528,
+          "edge_count": 2580,
+          "resource": 13452
+        },
+        {
+          "name": "speculative4x6",
+          "node_count": 2435,
+          "edge_count": 2487,
+          "resource": 13453
+        },
+        {
+          "name": "speculative8x3",
+          "node_count": 2311,
+          "edge_count": 2363,
+          "resource": 13454
+        },
+        {
+          "name": "speculative4x5",
+          "node_count": 2393,
+          "edge_count": 2445,
+          "resource": 13455
+        },
+        {
+          "name": "speculative2x8",
+          "node_count": 2470,
+          "edge_count": 2570,
+          "resource": 13456
+        },
+        {
+          "name": "speculative4x4",
+          "node_count": 2302,
+          "edge_count": 2402,
+          "resource": 13457
+        },
+        {
+          "name": "speculative8x2",
+          "node_count": 2215,
+          "edge_count": 2315,
+          "resource": 13458
+        },
+        {
+          "name": "speculative2x7",
+          "node_count": 2429,
+          "edge_count": 2529,
+          "resource": 13459
+        },
+        {
+          "name": "speculative2x6",
+          "node_count": 2385,
+          "edge_count": 2485,
+          "resource": 13460
+        },
+        {
+          "name": "speculative4x3",
+          "node_count": 2258,
+          "edge_count": 2358,
+          "resource": 13461
+        },
+        {
+          "name": "speculative2x5",
+          "node_count": 2342,
+          "edge_count": 2442,
+          "resource": 13462
+        },
+        {
+          "name": "speculative1x8",
+          "node_count": 2420,
+          "edge_count": 2520,
+          "resource": 13463
+        },
+        {
+          "name": "speculative2x4",
+          "node_count": 2261,
+          "edge_count": 2361,
+          "resource": 13464
+        },
+        {
+          "name": "speculative4x2",
+          "node_count": 2172,
+          "edge_count": 2272,
+          "resource": 13465
+        },
+        {
+          "name": "speculative8x1",
+          "node_count": 1879,
+          "edge_count": 1974,
+          "resource": 13466
+        },
+        {
+          "name": "speculative1x7",
+          "node_count": 2368,
+          "edge_count": 2468,
+          "resource": 13467
+        },
+        {
+          "name": "speculative1x6",
+          "node_count": 2372,
+          "edge_count": 2472,
+          "resource": 13468
+        },
+        {
+          "name": "speculative2x3",
+          "node_count": 2253,
+          "edge_count": 2353,
+          "resource": 13469
+        },
+        {
+          "name": "speculative1x5",
+          "node_count": 2316,
+          "edge_count": 2416,
+          "resource": 13470
+        },
+        {
+          "name": "speculative1x4",
+          "node_count": 2271,
+          "edge_count": 2371,
+          "resource": 13471
+        },
+        {
+          "name": "speculative2x2",
+          "node_count": 2194,
+          "edge_count": 2294,
+          "resource": 13472
+        },
+        {
+          "name": "speculative4x1",
+          "node_count": 1902,
+          "edge_count": 1997,
+          "resource": 13473
+        },
+        {
+          "name": "speculative1x3",
+          "node_count": 2177,
+          "edge_count": 2277,
+          "resource": 13474
+        },
+        {
+          "name": "speculative1x2",
+          "node_count": 2132,
+          "edge_count": 2232,
+          "resource": 13475
+        },
+        {
+          "name": "speculative2x1",
+          "node_count": 1863,
+          "edge_count": 1958,
+          "resource": 13476
+        },
+        {
+          "name": "speculative1x1",
+          "node_count": 1805,
+          "edge_count": 1900,
+          "resource": 13477
+        },
+        {
+          "name": "mixed8x8p512",
+          "node_count": 3666,
+          "edge_count": 3741,
+          "resource": 13478
+        },
+        {
+          "name": "mixed8x7p512",
+          "node_count": 3626,
+          "edge_count": 3701,
+          "resource": 13479
+        },
+        {
+          "name": "mixed8x6p512",
+          "node_count": 3581,
+          "edge_count": 3656,
+          "resource": 13480
+        },
+        {
+          "name": "mixed8x5p512",
+          "node_count": 3539,
+          "edge_count": 3614,
+          "resource": 13481
+        },
+        {
+          "name": "mixed8x4p512",
+          "node_count": 3496,
+          "edge_count": 3571,
+          "resource": 13482
+        },
+        {
+          "name": "mixed8x3p512",
+          "node_count": 3452,
+          "edge_count": 3527,
+          "resource": 13483
+        },
+        {
+          "name": "mixed8x2p512",
+          "node_count": 3404,
+          "edge_count": 3479,
+          "resource": 13484
+        },
+        {
+          "name": "mixed8x1p4096",
+          "node_count": 3763,
+          "edge_count": 4050,
+          "resource": 13485
+        },
+        {
+          "name": "mixed8x1p3584",
+          "node_count": 3631,
+          "edge_count": 3846,
+          "resource": 13486
+        },
+        {
+          "name": "mixed8x1p3072",
+          "node_count": 3475,
+          "edge_count": 3690,
+          "resource": 13487
+        },
+        {
+          "name": "mixed8x1p2560",
+          "node_count": 3512,
+          "edge_count": 3727,
+          "resource": 13488
+        },
+        {
+          "name": "mixed8x1p2048",
+          "node_count": 3500,
+          "edge_count": 3715,
+          "resource": 13489
+        },
+        {
+          "name": "mixed8x1p1536",
+          "node_count": 3224,
+          "edge_count": 3259,
+          "resource": 13490
+        },
+        {
+          "name": "mixed8x1p1024",
+          "node_count": 3164,
+          "edge_count": 3199,
+          "resource": 13491
+        },
+        {
+          "name": "mixed8x1p512",
+          "node_count": 3105,
+          "edge_count": 3140,
+          "resource": 13492
+        },
+        {
+          "name": "mixed8x1p256",
+          "node_count": 3046,
+          "edge_count": 3081,
+          "resource": 13493
+        },
+        {
+          "name": "mixed8x1p128",
+          "node_count": 3046,
+          "edge_count": 3176,
+          "resource": 13494
+        },
+        {
+          "name": "mixed4x8p512",
+          "node_count": 3663,
+          "edge_count": 3738,
+          "resource": 13495
+        },
+        {
+          "name": "mixed4x7p512",
+          "node_count": 3622,
+          "edge_count": 3697,
+          "resource": 13496
+        },
+        {
+          "name": "mixed4x6p512",
+          "node_count": 3577,
+          "edge_count": 3652,
+          "resource": 13497
+        },
+        {
+          "name": "mixed4x5p512",
+          "node_count": 3535,
+          "edge_count": 3610,
+          "resource": 13498
+        },
+        {
+          "name": "mixed4x4p512",
+          "node_count": 3492,
+          "edge_count": 3567,
+          "resource": 13499
+        },
+        {
+          "name": "mixed4x3p512",
+          "node_count": 3448,
+          "edge_count": 3523,
+          "resource": 13500
+        },
+        {
+          "name": "mixed4x2p512",
+          "node_count": 3399,
+          "edge_count": 3474,
+          "resource": 13501
+        },
+        {
+          "name": "mixed4x1p4096",
+          "node_count": 3764,
+          "edge_count": 4051,
+          "resource": 13502
+        },
+        {
+          "name": "mixed4x1p3584",
+          "node_count": 3632,
+          "edge_count": 3847,
+          "resource": 13503
+        },
+        {
+          "name": "mixed4x1p3072",
+          "node_count": 3573,
+          "edge_count": 3788,
+          "resource": 13504
+        },
+        {
+          "name": "mixed4x1p2560",
+          "node_count": 3513,
+          "edge_count": 3728,
+          "resource": 13505
+        },
+        {
+          "name": "mixed4x1p2048",
+          "node_count": 3501,
+          "edge_count": 3716,
+          "resource": 13506
+        },
+        {
+          "name": "mixed4x1p1536",
+          "node_count": 3225,
+          "edge_count": 3260,
+          "resource": 13507
+        },
+        {
+          "name": "mixed4x1p1024",
+          "node_count": 3165,
+          "edge_count": 3200,
+          "resource": 13508
+        },
+        {
+          "name": "mixed4x1p512",
+          "node_count": 3106,
+          "edge_count": 3141,
+          "resource": 13509
+        },
+        {
+          "name": "mixed4x1p256",
+          "node_count": 3047,
+          "edge_count": 3082,
+          "resource": 13510
+        },
+        {
+          "name": "mixed4x1p128",
+          "node_count": 3047,
+          "edge_count": 3177,
+          "resource": 13511
+        },
+        {
+          "name": "mixed2x8p512",
+          "node_count": 3661,
+          "edge_count": 3736,
+          "resource": 13512
+        },
+        {
+          "name": "mixed2x7p512",
+          "node_count": 3620,
+          "edge_count": 3695,
+          "resource": 13513
+        },
+        {
+          "name": "mixed2x6p512",
+          "node_count": 3576,
+          "edge_count": 3651,
+          "resource": 13514
+        },
+        {
+          "name": "mixed2x5p512",
+          "node_count": 3533,
+          "edge_count": 3608,
+          "resource": 13515
+        },
+        {
+          "name": "mixed2x4p512",
+          "node_count": 3489,
+          "edge_count": 3564,
+          "resource": 13516
+        },
+        {
+          "name": "mixed2x3p512",
+          "node_count": 3445,
+          "edge_count": 3520,
+          "resource": 13517
+        },
+        {
+          "name": "mixed2x2p512",
+          "node_count": 3399,
+          "edge_count": 3474,
+          "resource": 13518
+        },
+        {
+          "name": "mixed2x1p4096",
+          "node_count": 3774,
+          "edge_count": 4061,
+          "resource": 13519
+        },
+        {
+          "name": "mixed2x1p3584",
+          "node_count": 3642,
+          "edge_count": 3857,
+          "resource": 13520
+        },
+        {
+          "name": "mixed2x1p3072",
+          "node_count": 3486,
+          "edge_count": 3701,
+          "resource": 13521
+        },
+        {
+          "name": "mixed2x1p2560",
+          "node_count": 3523,
+          "edge_count": 3738,
+          "resource": 13522
+        },
+        {
+          "name": "mixed2x1p2048",
+          "node_count": 3511,
+          "edge_count": 3726,
+          "resource": 13523
+        },
+        {
+          "name": "mixed2x1p1536",
+          "node_count": 3235,
+          "edge_count": 3270,
+          "resource": 13524
+        },
+        {
+          "name": "mixed2x1p1024",
+          "node_count": 3175,
+          "edge_count": 3210,
+          "resource": 13525
+        },
+        {
+          "name": "mixed2x1p512",
+          "node_count": 3116,
+          "edge_count": 3151,
+          "resource": 13526
+        },
+        {
+          "name": "mixed2x1p256",
+          "node_count": 3057,
+          "edge_count": 3092,
+          "resource": 13527
+        },
+        {
+          "name": "mixed2x1p128",
+          "node_count": 3057,
+          "edge_count": 3187,
+          "resource": 13528
+        },
+        {
+          "name": "mixed8x1p4096-no-mtp",
+          "node_count": 3606,
+          "edge_count": 3893,
+          "resource": 13529
+        },
+        {
+          "name": "mixed8x1p3584-no-mtp",
+          "node_count": 3474,
+          "edge_count": 3689,
+          "resource": 13530
+        },
+        {
+          "name": "mixed8x1p3072-no-mtp",
+          "node_count": 3318,
+          "edge_count": 3533,
+          "resource": 13531
+        },
+        {
+          "name": "mixed8x1p2560-no-mtp",
+          "node_count": 3355,
+          "edge_count": 3570,
+          "resource": 13532
+        },
+        {
+          "name": "mixed8x1p2048-no-mtp",
+          "node_count": 3343,
+          "edge_count": 3558,
+          "resource": 13533
+        },
+        {
+          "name": "mixed8x1p1536-no-mtp",
+          "node_count": 3067,
+          "edge_count": 3102,
+          "resource": 13534
+        },
+        {
+          "name": "mixed8x1p1024-no-mtp",
+          "node_count": 3007,
+          "edge_count": 3042,
+          "resource": 13535
+        },
+        {
+          "name": "mixed8x1p512-no-mtp",
+          "node_count": 2947,
+          "edge_count": 2982,
+          "resource": 13536
+        },
+        {
+          "name": "mixed8x1p256-no-mtp",
+          "node_count": 2888,
+          "edge_count": 2923,
+          "resource": 13537
+        },
+        {
+          "name": "mixed8x1p128-no-mtp",
+          "node_count": 2888,
+          "edge_count": 3018,
+          "resource": 13538
+        },
+        {
+          "name": "mixed4x1p4096-no-mtp",
+          "node_count": 3594,
+          "edge_count": 3881,
+          "resource": 13539
+        },
+        {
+          "name": "mixed4x1p3584-no-mtp",
+          "node_count": 3462,
+          "edge_count": 3677,
+          "resource": 13540
+        },
+        {
+          "name": "mixed4x1p3072-no-mtp",
+          "node_count": 3403,
+          "edge_count": 3618,
+          "resource": 13541
+        },
+        {
+          "name": "mixed4x1p2560-no-mtp",
+          "node_count": 3343,
+          "edge_count": 3558,
+          "resource": 13542
+        },
+        {
+          "name": "mixed4x1p2048-no-mtp",
+          "node_count": 3331,
+          "edge_count": 3546,
+          "resource": 13543
+        },
+        {
+          "name": "mixed4x1p1536-no-mtp",
+          "node_count": 3055,
+          "edge_count": 3090,
+          "resource": 13544
+        },
+        {
+          "name": "mixed4x1p1024-no-mtp",
+          "node_count": 2995,
+          "edge_count": 3030,
+          "resource": 13545
+        },
+        {
+          "name": "mixed4x1p512-no-mtp",
+          "node_count": 2935,
+          "edge_count": 2970,
+          "resource": 13546
+        },
+        {
+          "name": "mixed4x1p256-no-mtp",
+          "node_count": 2876,
+          "edge_count": 2911,
+          "resource": 13547
+        },
+        {
+          "name": "mixed4x1p128-no-mtp",
+          "node_count": 2876,
+          "edge_count": 3006,
+          "resource": 13548
+        },
+        {
+          "name": "mixed2x1p4096-no-mtp",
+          "node_count": 3588,
+          "edge_count": 3875,
+          "resource": 13549
+        },
+        {
+          "name": "mixed2x1p3584-no-mtp",
+          "node_count": 3456,
+          "edge_count": 3671,
+          "resource": 13550
+        },
+        {
+          "name": "mixed2x1p3072-no-mtp",
+          "node_count": 3300,
+          "edge_count": 3515,
+          "resource": 13551
+        },
+        {
+          "name": "mixed2x1p2560-no-mtp",
+          "node_count": 3337,
+          "edge_count": 3552,
+          "resource": 13552
+        },
+        {
+          "name": "mixed2x1p2048-no-mtp",
+          "node_count": 3325,
+          "edge_count": 3540,
+          "resource": 13553
+        },
+        {
+          "name": "mixed2x1p1536-no-mtp",
+          "node_count": 3049,
+          "edge_count": 3084,
+          "resource": 13554
+        },
+        {
+          "name": "mixed2x1p1024-no-mtp",
+          "node_count": 2989,
+          "edge_count": 3024,
+          "resource": 13555
+        },
+        {
+          "name": "mixed2x1p512-no-mtp",
+          "node_count": 2929,
+          "edge_count": 2964,
+          "resource": 13556
+        },
+        {
+          "name": "mixed2x1p256-no-mtp",
+          "node_count": 2870,
+          "edge_count": 2905,
+          "resource": 13557
+        },
+        {
+          "name": "mixed2x1p128-no-mtp",
+          "node_count": 2870,
+          "edge_count": 3000,
+          "resource": 13558
+        },
+        {
+          "name": "resume8",
+          "node_count": 52,
+          "edge_count": 51,
+          "resource": 13559
+        },
+        {
+          "name": "init8",
+          "node_count": 88,
+          "edge_count": 87,
+          "resource": 13560
+        },
+        {
+          "name": "restore8",
+          "node_count": 88,
+          "edge_count": 87,
+          "resource": 13561
+        },
+        {
+          "name": "snapshot8",
+          "node_count": 13,
+          "edge_count": 12,
+          "resource": 13562
+        },
+        {
+          "name": "resume4",
+          "node_count": 40,
+          "edge_count": 39,
+          "resource": 13563
+        },
+        {
+          "name": "init4",
+          "node_count": 88,
+          "edge_count": 87,
+          "resource": 13564
+        },
+        {
+          "name": "restore4",
+          "node_count": 88,
+          "edge_count": 87,
+          "resource": 13565
+        },
+        {
+          "name": "snapshot4",
+          "node_count": 13,
+          "edge_count": 12,
+          "resource": 13566
+        },
+        {
+          "name": "resume2",
+          "node_count": 34,
+          "edge_count": 33,
+          "resource": 13567
+        },
+        {
+          "name": "init2",
+          "node_count": 88,
+          "edge_count": 87,
+          "resource": 13568
+        },
+        {
+          "name": "restore2",
+          "node_count": 88,
+          "edge_count": 87,
+          "resource": 13569
+        },
+        {
+          "name": "snapshot2",
+          "node_count": 13,
+          "edge_count": 12,
+          "resource": 13570
+        },
+        {
+          "name": "resume1",
+          "node_count": 31,
+          "edge_count": 30,
+          "resource": 13571
+        },
+        {
+          "name": "init1",
+          "node_count": 88,
+          "edge_count": 87,
+          "resource": 13572
+        },
+        {
+          "name": "restore1",
+          "node_count": 88,
+          "edge_count": 87,
+          "resource": 13573
+        },
+        {
+          "name": "snapshot1",
+          "node_count": 13,
+          "edge_count": 12,
+          "resource": 13574
+        },
+        {
+          "name": "resume8-no-mtp",
+          "node_count": 52,
+          "edge_count": 51,
+          "resource": 13575
+        },
+        {
+          "name": "init8-no-mtp",
+          "node_count": 16,
+          "edge_count": 15,
+          "resource": 13576
+        },
+        {
+          "name": "restore8-no-mtp",
+          "node_count": 16,
+          "edge_count": 15,
+          "resource": 13577
+        },
+        {
+          "name": "snapshot8-no-mtp",
+          "node_count": 13,
+          "edge_count": 12,
+          "resource": 13578
+        },
+        {
+          "name": "resume4-no-mtp",
+          "node_count": 40,
+          "edge_count": 39,
+          "resource": 13579
+        },
+        {
+          "name": "init4-no-mtp",
+          "node_count": 16,
+          "edge_count": 15,
+          "resource": 13580
+        },
+        {
+          "name": "restore4-no-mtp",
+          "node_count": 16,
+          "edge_count": 15,
+          "resource": 13581
+        },
+        {
+          "name": "snapshot4-no-mtp",
+          "node_count": 13,
+          "edge_count": 12,
+          "resource": 13582
+        },
+        {
+          "name": "resume2-no-mtp",
+          "node_count": 34,
+          "edge_count": 33,
+          "resource": 13583
+        },
+        {
+          "name": "init2-no-mtp",
+          "node_count": 16,
+          "edge_count": 15,
+          "resource": 13584
+        },
+        {
+          "name": "restore2-no-mtp",
+          "node_count": 16,
+          "edge_count": 15,
+          "resource": 13585
+        },
+        {
+          "name": "snapshot2-no-mtp",
+          "node_count": 13,
+          "edge_count": 12,
+          "resource": 13586
+        },
+        {
+          "name": "resume1-no-mtp",
+          "node_count": 31,
+          "edge_count": 30,
+          "resource": 13587
+        },
+        {
+          "name": "init1-no-mtp",
+          "node_count": 16,
+          "edge_count": 15,
+          "resource": 13588
+        },
+        {
+          "name": "restore1-no-mtp",
+          "node_count": 16,
+          "edge_count": 15,
+          "resource": 13589
+        },
+        {
+          "name": "snapshot1-no-mtp",
+          "node_count": 13,
+          "edge_count": 12,
+          "resource": 13590
+        }
+      ]
+    }
+  ],
+  "rank_count": 1,
+  "selected_tensor_parallel": null,
+  "selected_rank": null
+}

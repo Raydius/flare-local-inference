@@ -6,12 +6,17 @@
 from copy import deepcopy
 import io
 import json
+from pathlib import Path
 import threading
 
 import pytest
 
 from qualify import speculative_benchmark as sb
 from qualify import speculative_workload as sw
+
+CATALOG = json.loads(Path(__file__).with_name("dflash2_served_catalog.json").read_text())
+DFLASH2 = next(a for a in sw.arms() if a["id"] == "dflash2-adaptive")
+MTP = next(a for a in sw.arms() if a["id"] == "mtp-adaptive")
 
 
 def case(name="chat-capacity"):
@@ -44,7 +49,7 @@ def events(*, ids=(10, 248044), finish="stop", text="An answer.", grouped=False,
 
 
 def test_early_eos_is_valid_and_retained_without_a_budget_equality_requirement():
-    result = sb.analyze_events(events(), case())
+    result = sb.analyze_events(events(), case(), model_id=sw.MODEL_ID)
     assert result["passed"]
     assert result["generated_token_ids"] == [10, 248044]
     assert result["ended_with_eos"]
@@ -57,7 +62,7 @@ def test_early_eos_is_valid_and_retained_without_a_budget_equality_requirement()
 
 
 def test_coalesced_vector_has_no_invented_delivery_itl_but_keeps_core_times():
-    result = sb.analyze_events(events(grouped=True), case())
+    result = sb.analyze_events(events(grouped=True), case(), model_id=sw.MODEL_ID)
     assert result["passed"]
     assert not result["delivery_itl_exact"]
     assert result["delivery_itl_ns"] == []
@@ -68,7 +73,7 @@ def test_coalesced_vector_has_no_invented_delivery_itl_but_keeps_core_times():
 def test_budget_finish_is_transport_success_but_not_equivalent_completed_work():
     fixture = case()
     fixture["request"]["max_tokens"] = 2
-    result = sb.analyze_events(events(ids=(10, 11), finish="length"), fixture)
+    result = sb.analyze_events(events(ids=(10, 11), finish="length"), fixture, model_id=sw.MODEL_ID)
     assert result["passed"]
     assert result["output_budget_reached"]
     assert not result["output_semantics"]["automatic_passed"]
@@ -77,7 +82,7 @@ def test_budget_finish_is_transport_success_but_not_equivalent_completed_work():
 def test_eos_at_budget_boundary_is_still_a_valid_natural_completion():
     fixture = case()
     fixture["request"]["max_tokens"] = 2
-    result = sb.analyze_events(events(), fixture)
+    result = sb.analyze_events(events(), fixture, model_id=sw.MODEL_ID)
     assert result["passed"]
     assert result["output_budget_reached"]
     assert result["ended_with_eos"]
@@ -87,7 +92,7 @@ def test_eos_at_budget_boundary_is_still_a_valid_natural_completion():
 def test_fragmented_tool_call_is_assembled_without_counting_presentation_as_tokens():
     fragments = [{"index": 0, "id": "call_7", "type": "function", "function": {"name": "read_", "arguments": '{"incident_id":'}},
                  {"index": 0, "function": {"name": "incident", "arguments": '"INC-204"}'}}]
-    result = sb.analyze_events(events(text="", finish="tool_calls", tool_fragments=fragments), case("incident-turn-1"))
+    result = sb.analyze_events(events(text="", finish="tool_calls", tool_fragments=fragments), case("incident-turn-1"), model_id=sw.MODEL_ID)
     assert result["passed"]
     assert result["output_semantics"]["automatic_passed"]
     assert result["tool_calls"] == [{"index": 0, "id": "call_7", "type": "function",
@@ -106,20 +111,20 @@ def test_fragmented_tool_call_is_assembled_without_counting_presentation_as_toke
     ('{"service":', False),
 ])
 def test_json_structure_and_values_are_distinct_from_transport(text, passed):
-    result = sb.analyze_events(events(text=text), case("json-incident"))
+    result = sb.analyze_events(events(text=text), case("json-incident"), model_id=sw.MODEL_ID)
     assert result["passed"]
     assert result["output_semantics"]["automatic_passed"] is passed
 
 
 def test_literal_tags_are_checked_as_json_strings_and_not_parsed_as_tools():
-    result = sb.analyze_events(events(text='{"text":"<think> <tool_call>","count":2}'), case("json-literal-tags"))
+    result = sb.analyze_events(events(text='{"text":"<think> <tool_call>","count":2}'), case("json-literal-tags"), model_id=sw.MODEL_ID)
     assert result["passed"]
     assert result["output_semantics"]["automatic_passed"]
     assert result["tool_calls"] == []
 
 
 def test_freeform_json_plan_steps_still_need_semantic_review():
-    result = sb.analyze_events(events(text='{"steps":["test","review"],"approved":false}'), case("json-plan"))
+    result = sb.analyze_events(events(text='{"steps":["test","review"],"approved":false}'), case("json-plan"), model_id=sw.MODEL_ID)
     assert result["passed"]
     assert result["output_semantics"]["automatic_passed"]
     assert result["output_semantics"]["manual_review_required"]
@@ -140,13 +145,22 @@ def test_freeform_json_plan_steps_still_need_semantic_review():
 def test_invalid_stream_contracts_are_retained_as_failures(mutation, check):
     stream = events()
     mutation(stream)
-    result = sb.analyze_events(stream, case())
+    result = sb.analyze_events(stream, case(), model_id=sw.MODEL_ID)
     assert not result["passed"]
     assert not result["checks"][check]
 
 
+def test_model_identity_is_the_served_package_not_the_workload_model():
+    stream = events()
+    stream[0]["data"]["model"] = DFLASH2["model_id"]
+    assert sb.analyze_events(stream, case(), model_id=DFLASH2["model_id"])["passed"]
+    result = sb.analyze_events(stream, case(), model_id=sw.MODEL_ID)
+    assert not result["passed"]
+    assert not result["checks"]["model_identity"]
+
+
 def test_tokens_after_eos_fail_even_if_usage_and_terminal_match():
-    result = sb.analyze_events(events(ids=(248044, 10)), case())
+    result = sb.analyze_events(events(ids=(248044, 10)), case(), model_id=sw.MODEL_ID)
     assert not result["passed"]
     assert not result["checks"]["no_tokens_after_eos"]
 
@@ -170,59 +184,95 @@ def test_truncated_and_overlarge_sse_are_retained_before_error():
         assert output.getvalue()
 
 
-def memory(arm):
-    value = {"tuning": {"namespace": {"checkpoint": sw.REVISION}}, "pages": 100, "snapshot_capacity": 10}
-    if arm["mtp"]:
-        value.update({k: v for k, v in arm.items() if k not in ("id", "mtp")}, speculative_widths=list(range(1, 9)),
-                     speculative_shapes=[[b, w] for b in (1, 2, 4) for w in range(1, 9) if b * w <= 8])
+def catalog(arm):
+    """The real DFlash catalog with the arm's model id, so both arms validate against one graph set."""
+    value = deepcopy(CATALOG)
+    value["model"]["model_id"] = arm["model_id"]
     return value
 
 
-def test_actual_prepared_arm_must_match_fixed_width_and_catalog():
+def test_real_dflash_catalog_validates_only_for_its_own_arm():
+    sb.validate_arm(CATALOG, DFLASH2)
+    with pytest.raises(ValueError, match="model_id"):
+        sb.validate_arm(CATALOG, MTP)
     for arm in sw.arms():
-        actual = memory(arm)
-        sb.validate_arm(actual, arm)
-        if arm["mtp"]:
-            wrong = deepcopy(actual)
-            wrong["speculative_fixed_width"] = 9
-            with pytest.raises(ValueError, match="speculative_fixed_width"):
-                sb.validate_arm(wrong, arm)
-            wrong = deepcopy(actual)
-            wrong["speculative_shapes"].append([4, 8])
-            with pytest.raises(ValueError, match="B/W catalog"):
-                sb.validate_arm(wrong, arm)
-    with pytest.raises(ValueError, match="catalog differs"):
-        sb.validate_arm(memory(sw.arms()[-1]), sw.arms()[0])
+        sb.validate_arm(catalog(arm), arm)
+
+
+def test_catalog_must_declare_the_paired_ceiling_and_complete_adaptive_graph_set():
+    wrong = catalog(DFLASH2)
+    wrong["deployments"][0]["max_active"] = 16
+    with pytest.raises(ValueError, match="max_active"):
+        sb.validate_arm(wrong, DFLASH2)
+    fixed = catalog(DFLASH2)
+    fixed["ranks"][0]["execution_graphs"] = [g for g in fixed["ranks"][0]["execution_graphs"]
+                                             if g["kind"] != "speculative" or g["name"].endswith("x8")]
+    with pytest.raises(ValueError, match="speculative1x1"):
+        sb.validate_arm(fixed, DFLASH2)
+    unmixed = catalog(DFLASH2)
+    unmixed["ranks"][0]["execution_graphs"] = [g for g in unmixed["ranks"][0]["execution_graphs"] if g["kind"] != "mixed"]
+    with pytest.raises(ValueError, match="mixed graph"):
+        sb.validate_arm(unmixed, DFLASH2)
+
+
+def test_idle_requires_every_slot_free_and_round_shapes_cover_batch_8():
+    assert sb.is_idle(metrics(), 8)
+    assert not sb.is_idle(metrics(), 4)
+    assert sb._ROUND.fullmatch('flare_speculative_rounds_total{batch="8",width="3"}')
+    assert not sb._ROUND.fullmatch('flare_speculative_rounds_total{batch="16",width="3"}')
+    assert sb.speculative_shape_band(CATALOG) == max(
+        g["batch_capacity"] * (g["draft_tokens"] + 1) for g in CATALOG["ranks"][0]["execution_graphs"] if g["kind"] == "speculative")
+
+
+TARGETS = {"pages": 100, "snapshots": 10}
 
 
 def metrics(admitted=0):
     return {"flare_active_requests": 0, "flare_pending_requests": 0,
-            "flare_free_request_slots": 4, "flare_retiring_request_slots": 0,
-            "flare_free_kv_pages": 90, "flare_cached_kv_pages": 10,
+            "flare_free_request_slots": 8, "flare_retiring_request_slots": 0,
+            "flare_free_kv_pages": 90, "flare_cached_kv_pages": 10, "flare_snapshot_backing_pages": 0,
             "flare_free_snapshots": 9, "flare_cached_checkpoints": 1,
             "flare_requests_admitted_total": admitted, "flare_requests_completed_total": admitted,
             "flare_requests_failed_total": 0, "flare_requests_cancelled_total": 0,
             "flare_cache_reused_tokens_total": 0,
+            'flare_graph_launches_total{kind="speculative"}': admitted * 3,
             'flare_speculative_rounds_total{batch="4",width="2"}': admitted * 3,
+            'flare_speculative_emitted_tokens_total{batch="4",width="2"}': admitted,
             'flare_speculative_gpu_nanoseconds_total{batch="4",width="2"}': admitted * 1000}
 
 
 def test_actual_round_shape_counters_are_not_inferred_from_client_concurrency():
-    analysis = sb.analyze_events(events(), case())
+    analysis = sb.analyze_events(events(), case(), model_id=sw.MODEL_ID)
     observation = {"case": "chat-capacity", "analysis": analysis, "request_start_perf_counter_ns": 1, "elapsed_ns": 100}
     group = {"stage": "chat", "case_ids": ["chat-capacity"], "concurrency": 1}
-    result = sb.summarize_group(group, [observation], metrics(), metrics(1), memory(sw.arms()[0]))
+    result = sb.summarize_group(group, [observation], metrics(), metrics(1), catalog(MTP), TARGETS)
     assert result["passed"]
     assert result["concurrency"] == 1
-    assert result["speculation"]["shapes"] == [{"batch": 4, "width": 2, "rounds": 3, "gpu_nanoseconds": 1000}]
+    assert result["speculation"]["shapes"] == [{"batch": 4, "width": 2, "rounds": 3, "emitted_tokens": 1, "gpu_nanoseconds": 1000}]
     assert result["actual_output_tokens"] == 2
     assert result["manual_review_cases"] == ["chat-capacity"]
     with pytest.raises(ValueError, match="reset"):
         sb.metric_delta(metrics(1), metrics())
 
 
+def test_pages_parked_behind_snapshots_still_count_as_conserved():
+    # mtp-adaptive c1-r0 group-000: 18560 free pages became 17978 free + 6 cached + 576 snapshot backing.
+    initial = dict(metrics(), flare_free_kv_pages=18560, flare_cached_kv_pages=0, flare_snapshot_backing_pages=0)
+    targets = {"pages": sb.pool_pages(initial), "snapshots": 10}
+    assert targets["pages"] == 18560
+    analysis = sb.analyze_events(events(), case(), model_id=sw.MODEL_ID)
+    observation = {"case": "chat-capacity", "analysis": analysis, "request_start_perf_counter_ns": 1, "elapsed_ns": 100}
+    group = {"stage": "chat", "case_ids": ["chat-capacity"], "concurrency": 1}
+    after = dict(metrics(1), flare_free_kv_pages=17978, flare_cached_kv_pages=6, flare_snapshot_backing_pages=576)
+    result = sb.summarize_group(group, [observation], initial, after, catalog(MTP), targets)
+    assert result["checks"]["pages_conserved"]
+    assert result["passed"]
+    leaked = dict(after, flare_snapshot_backing_pages=575)
+    assert not sb.summarize_group(group, [observation], initial, leaked, catalog(MTP), targets)["checks"]["pages_conserved"]
+
+
 def test_vector_emission_and_completed_round_counts_are_cross_checked():
-    analysis = sb.analyze_events(events(), case())
+    analysis = sb.analyze_events(events(), case(), model_id=sw.MODEL_ID)
     observation = {"case": "chat-capacity", "analysis": analysis, "request_start_perf_counter_ns": 1, "elapsed_ns": 100}
     group = {"stage": "chat", "case_ids": ["chat-capacity"], "concurrency": 1}
     before, after = metrics(), metrics(1)
@@ -230,17 +280,39 @@ def test_vector_emission_and_completed_round_counts_are_cross_checked():
     after['flare_graph_launches_total{kind="speculative"}'] = 3
     before['flare_speculative_emitted_tokens_total{batch="4",width="2"}'] = 0
     after['flare_speculative_emitted_tokens_total{batch="4",width="2"}'] = 1
-    result = sb.summarize_group(group, [observation], before, after, memory(sw.arms()[-1]))
+    result = sb.summarize_group(group, [observation], before, after, catalog(DFLASH2), TARGETS)
     assert result["passed"]
+    assert result["mixed_round_emitted_tokens"] == 0
     after['flare_speculative_emitted_tokens_total{batch="4",width="2"}'] = 2
-    result = sb.summarize_group(group, [observation], before, after, memory(sw.arms()[-1]))
+    result = sb.summarize_group(group, [observation], before, after, catalog(DFLASH2), TARGETS)
+    assert not result["passed"]
+    assert not result["checks"]["speculative_emissions_match_raw_ids"]
+
+
+def test_mixed_rounds_account_for_raw_ids_missing_from_shape_counters():
+    analysis = sb.analyze_events(events(ids=(10, 11, 12, 248044)), case(), model_id=sw.MODEL_ID)
+    observation = {"case": "chat-capacity", "analysis": analysis, "request_start_perf_counter_ns": 1, "elapsed_ns": 100}
+    group = {"stage": "chat", "case_ids": ["chat-capacity"], "concurrency": 1}
+    before, after = metrics(), metrics(1)
+    for key in ('flare_graph_launches_total{kind="speculative"}', 'flare_graph_launches_total{kind="mixed"}',
+                'flare_speculative_emitted_tokens_total{batch="4",width="2"}'):
+        before[key] = 0
+    after['flare_graph_launches_total{kind="speculative"}'] = 3
+    after['flare_speculative_emitted_tokens_total{batch="4",width="2"}'] = 1
+    after['flare_graph_launches_total{kind="mixed"}'] = 2
+    result = sb.summarize_group(group, [observation], before, after, catalog(DFLASH2), TARGETS)
+    assert result["passed"]
+    assert result["mixed_graph_launches"] == 2
+    assert result["mixed_round_emitted_tokens"] == 4 - 1 - 1
+    after['flare_graph_launches_total{kind="mixed"}'] = 0
+    result = sb.summarize_group(group, [observation], before, after, catalog(DFLASH2), TARGETS)
     assert not result["passed"]
     assert not result["checks"]["speculative_emissions_match_raw_ids"]
 
 
 def test_summary_retains_semantic_failures_and_actual_eos_counts():
     fixture = case()
-    analysis = sb.analyze_events(events(), fixture)
+    analysis = sb.analyze_events(events(), fixture, model_id=sw.MODEL_ID)
     observation = {"case": fixture["id"], "analysis": analysis, "request_start_perf_counter_ns": 1, "elapsed_ns": 100}
     result = sb.measurement_summary({"cases": [fixture]}, [observation], [])
     category = result["chat_reasoning"]
@@ -282,7 +354,7 @@ def test_http_writer_uses_exact_frozen_bytes_with_no_model_or_sampling_override(
     raw = b"".join(b"data: " + (e["data"].encode() if isinstance(e["data"], str) else sw.json_bytes(e["data"])) + b"\n\n" for e in events())
     conn = Connection(Response(raw))
     monkeypatch.setattr(sb, "connection", lambda *_: (conn, "/prefix"))
-    result = sb.stream_request("http://unused", fixture, payload, tmp_path / "request", timeout=2, barrier=threading.Barrier(1))
+    result = sb.stream_request("http://unused", fixture, payload, tmp_path / "request", timeout=2, barrier=threading.Barrier(1), model_id=sw.MODEL_ID)
     assert result["analysis"]["passed"]
     assert conn.calls[0][0] == ("POST", "/prefix/v1/chat/completions")
     assert conn.calls[0][1]["body"] is payload
@@ -295,7 +367,7 @@ def test_changed_payload_fails_before_connecting(tmp_path, monkeypatch):
     monkeypatch.setattr(sb, "connection", lambda *_: pytest.fail("must not connect"))
     fixture = case()
     with pytest.raises(ValueError, match="frozen request"):
-        sb.stream_request("http://unused", fixture, sw.json_bytes(fixture["request"]) + b"\n", tmp_path / "request", timeout=1, barrier=threading.Barrier(1))
+        sb.stream_request("http://unused", fixture, sw.json_bytes(fixture["request"]) + b"\n", tmp_path / "request", timeout=1, barrier=threading.Barrier(1), model_id=sw.MODEL_ID)
 
 
 def test_partial_network_failure_preserves_events_and_raw_bytes(tmp_path, monkeypatch):
@@ -303,7 +375,7 @@ def test_partial_network_failure_preserves_events_and_raw_bytes(tmp_path, monkey
     raw = b'data: {"choices":[]}\n\ndata: {"error":'
     conn = Connection(Response(raw))
     monkeypatch.setattr(sb, "connection", lambda *_: (conn, ""))
-    result = sb.stream_request("http://unused", fixture, sw.json_bytes(fixture["request"]), tmp_path / "request", timeout=2, barrier=threading.Barrier(1))
+    result = sb.stream_request("http://unused", fixture, sw.json_bytes(fixture["request"]), tmp_path / "request", timeout=2, barrier=threading.Barrier(1), model_id=sw.MODEL_ID)
     assert not result["analysis"]["passed"]
     assert "truncated" in result["client_error"]
     assert len(result["events"]) == 1
@@ -329,7 +401,7 @@ def test_absolute_deadline_failure_is_preserved_even_if_response_finishes(tmp_pa
     conn = Connection(Response(raw))
     monkeypatch.setattr(sb, "connection", lambda *_: (conn, ""))
     monkeypatch.setattr(sb.threading, "Timer", Timer)
-    result = sb.stream_request("http://unused", fixture, sw.json_bytes(fixture["request"]), tmp_path / "request", timeout=1, barrier=threading.Barrier(1))
+    result = sb.stream_request("http://unused", fixture, sw.json_bytes(fixture["request"]), tmp_path / "request", timeout=1, barrier=threading.Barrier(1), model_id=sw.MODEL_ID)
     assert result["deadline_expired"]
     assert not result["analysis"]["passed"]
     assert "TimeoutError" in result["client_error"]
