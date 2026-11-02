@@ -15,7 +15,7 @@ from pathlib import Path
 
 import torch
 
-from qualify.dflash2_tap_check import HUB_CACHE, PAGE_TOKENS, draft_snapshot, stage_ple_rows
+from qualify.dflash2_tap_check import HUB_CACHE, draft_snapshot, fill_prefill, stage_ple_rows
 from qualify.mtp import device
 from qualify.provenance import plain, write_json
 
@@ -40,27 +40,11 @@ def graphs_for(names, prompt_tokens):
 
 def fill(inputs, requests, state, tokens, generation, *, prompt_row):
     """Admit the prompt on row 0 as the only live request; ``prompt_row`` marks it for a mixed graph."""
-    from ignition.recipes.qwen38.sampling import RequestAdmission
-
-    state.reset_for_preparation()
-    requests.admit(0, RequestAdmission(generation, 1, max_new_tokens=4, top_k=1), tokens)
-    inputs.request_state_rows.zero_()
-    inputs.request_state_rows[0, 0] = 1
-    inputs.row_slot_ids.fill_(-1)
-    inputs.row_slot_ids[0] = 0
-    inputs.row_generations[0] = generation
-    inputs.live_rows.fill_(1)
     inputs.query_lengths.zero_()
-    inputs.query_lengths[0] = len(tokens)
-    inputs.sample_enabled.zero_()
+    inputs.page_tables.zero_()
+    fill_prefill(inputs, requests, state, tokens, generation, max_new_tokens=4)
     inputs.sample_enabled[0] = 1
     inputs.prefill_row.fill_(prompt_row)
-    inputs.token_ids[:len(tokens)] = torch.tensor(tokens, device='cuda')
-    inputs.prefill_positions[:len(tokens)] = torch.arange(len(tokens), device='cuda')[:, None].expand(-1, 3)
-    inputs.vision_token_indices.fill_(-1)
-    pages = -(-len(tokens) // PAGE_TOKENS)
-    inputs.page_tables.zero_()
-    inputs.page_tables[0, :pages] = torch.arange(1, pages + 1, device='cuda', dtype=inputs.page_tables.dtype)
 
 
 def prompt_row(function):

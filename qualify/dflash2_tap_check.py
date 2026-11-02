@@ -123,12 +123,12 @@ def stage_ple_rows(table):
     table.ready.record()
 
 
-def fill_prefill(inputs, requests, state, tokens, generation):
+def fill_prefill(inputs, requests, state, tokens, generation, *, max_new_tokens=1):
     """Admit the prompt on row 0 and fill the decoder inputs for one prefill chunk."""
     from ignition.recipes.qwen38.sampling import RequestAdmission
 
     state.reset_for_preparation()
-    requests.admit(0, RequestAdmission(generation, 1, max_new_tokens=1, top_k=1), tokens)
+    requests.admit(0, RequestAdmission(generation, 1, max_new_tokens=max_new_tokens, top_k=1), tokens)
     inputs.request_state_rows.zero_()
     inputs.request_state_rows[0, 0] = 1
     inputs.row_slot_ids.fill_(-1)
