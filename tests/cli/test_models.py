@@ -325,3 +325,24 @@ def test_rope_parameters_flag_takes_a_json_object():
     for value in ("2", "not json"):
         with pytest.raises(SystemExit):
             _parser().parse_args(["export", "qwen3.8-flash", "--rope-parameters", value])
+
+
+def test_a_named_recipe_prepares_a_directory_of_its_architecture(tmp_path):
+    qualified = resolve("qwen3.8-flash-dflash2").checkpoint
+    write_checkpoint(tmp_path / "qad", qualified.architecture, qualified.stored_bytes)
+    assert resolve(str(tmp_path / "qad")).recipe.name == "qwen38"
+    named = resolve(str(tmp_path / "qad"), recipe_name="qwen38_dflash")
+    assert named.recipe.name == "qwen38_dflash" and named.checkpoint.alias == "qwen3.8-flash-dflash2"
+    assert named.directory == (tmp_path / "qad").resolve() and named.source == str(named.directory)
+    assert named.checkpoint.draft_bytes == qualified.draft_bytes
+    assert named.checkpoint.revision == resolve(str(tmp_path / "qad")).checkpoint.revision
+
+
+def test_a_named_recipe_never_falls_back(tmp_path):
+    write_checkpoint(tmp_path / "glm", "Glm5NextForConditionalGeneration", 1 << 30)
+    with pytest.raises(UsageError, match="qwen38_dflash declares no checkpoint for architecture"):
+        resolve(str(tmp_path / "glm"), recipe_name="qwen38_dflash")
+    with pytest.raises(UsageError, match="unknown recipe 'qwen99'"):
+        resolve(str(tmp_path / "glm"), recipe_name="qwen99")
+    with pytest.raises(UsageError, match="--recipe applies to a checkpoint directory MODEL"):
+        resolve("qwen3.8-flash", recipe_name="qwen38_dflash")

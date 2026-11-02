@@ -84,3 +84,74 @@ def test_draft_preparation_selects_local_or_hub_snapshot(monkeypatch, tmp_path, 
     else:
         assert config.draft_checkpoint == (str(snapshot) if drafting else None)
     assert downloads == ([repository] if drafting and not embedded else [])
+
+
+def _dflash_plan(tmp_path, draft_model, *, speculation=True, name="qwen38_dflash"):
+    configuration = Configuration(tmp_path / "config.toml", {}, exists=True)
+    recipe = next(recipe for recipe in recipes() if recipe.name == name)
+    gpus = (planning.Gpu(0, "Blackwell", "GPU-0", 256 << 30, 250 << 30, (12, 0)),)
+    return recipe, derive(configuration, ResolvedModel(recipe, recipe.checkpoints[0]), Host(gpus, None), gpus="0",
+                          concurrency=Setting(4, "test"), speculation=recipe.speculation if speculation else None,
+                          draft_model=draft_model)
+
+
+def _draft_folder(tmp_path, *names):
+    folder = tmp_path / "draft"
+    folder.mkdir()
+    for name in names:
+        (folder / name).write_bytes(b"{}")
+    return folder
+
+
+def test_a_draft_folder_replaces_the_pinned_download(monkeypatch, tmp_path):
+    import huggingface_hub
+
+    monkeypatch.setenv("HOME", str(tmp_path))
+    folder = _draft_folder(tmp_path, "config.json", "model.safetensors")
+    recipe, plan = _dflash_plan(tmp_path, folder)
+    assert plan.draft_model == folder
+
+    def download(*args, **options):
+        raise AssertionError("a draft folder must not be downloaded")
+
+    monkeypatch.setattr(huggingface_hub, "snapshot_download", download)
+    monkeypatch.setitem(sys.modules, "ignition.recipes.qwen38_dflash.bootstrap", SimpleNamespace(
+        PreparationConfig=lambda **options: SimpleNamespace(**options),
+        prepare_model=lambda snapshot, config, **options: config))
+    config = recipe.prepare(tmp_path / "target", plan, compile_forwards=True, kernel_cache=None, progress=None)
+    assert config.draft_checkpoint == folder
+
+
+@pytest.mark.parametrize("name,files,speculation,message", [
+    ("qwen38", ("config.json", "model.safetensors"), True, "qwen3.8-flash loads no external draft"),
+    ("qwen38_dflash", ("config.json",), True, "lacks model.safetensors"),
+    ("qwen38_dflash", ("config.json", "model.safetensors"), False, "requires speculation"),
+])
+def test_a_draft_folder_is_validated(monkeypatch, tmp_path, name, files, speculation, message):
+    from ignition.errors import UsageError
+
+    monkeypatch.setenv("HOME", str(tmp_path))
+    with pytest.raises(UsageError, match=message):
+        _dflash_plan(tmp_path, _draft_folder(tmp_path, *files), speculation=speculation, name=name)
+
+
+def test_recipe_and_draft_model_are_export_flags():
+    from pathlib import Path
+
+    from ignition.cli import _parser
+
+    args = _parser().parse_args(["export", "/ckpt", "--recipe", "qwen38_dflash", "--draft-model", "/draft"])
+    assert args.recipe_name == "qwen38_dflash" and args.draft_model == Path("/draft")
+    with pytest.raises(SystemExit):
+        _parser().parse_args(["debug-serve", "/ckpt", "--recipe", "qwen38_dflash"])
+
+
+def test_multi_host_export_rejects_a_draft_folder(monkeypatch, tmp_path):
+    from ignition.cli import _parser
+    from ignition.cli.serve import export
+    from ignition.errors import UsageError
+
+    monkeypatch.setenv("HOME", str(tmp_path))
+    args = _parser().parse_args(["export", str(tmp_path), "--ranks", "2", "--draft-model", str(tmp_path)])
+    with pytest.raises(UsageError, match="--draft-model applies to single-host export"):
+        export(args)
