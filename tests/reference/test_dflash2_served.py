@@ -80,7 +80,8 @@ def driver(tmp_path, **overrides):
                            package_dflash2=tmp_path / "pk/models/d/e/model.safetensors",
                            catalog_mtp=tmp_path / "mtp.json", catalog_dflash2=tmp_path / "dflash2.json",
                            output=tmp_path / "out", trials=None, port=8111, timeout=12.5, ready_timeout=5,
-                           publisher_keys=tmp_path / "ctx/development-publisher.json", trust_store=tmp_path / "ctx/trust.toml")
+                           publisher_keys=tmp_path / "ctx/development-publisher.json", trust_store=tmp_path / "ctx/trust.toml",
+                           dflash2_model_id=None)
     for key, value in overrides.items():
         setattr(args, key, value)
     return args
@@ -103,7 +104,7 @@ def test_run_starts_one_container_per_trial_and_stops_it_after_the_benchmark(tmp
         benchmarked.append(args)
         return {"passed": args.arm == "mtp-adaptive"}
 
-    args = driver(tmp_path, trials=["0:1:mtp-adaptive", "0:8:dflash2-adaptive"])
+    args = driver(tmp_path, trials=["0:1:mtp-adaptive", "0:8:dflash2-adaptive"], dflash2_model_id="ckpt")
     results = ds.run(args, popen=popen, stop=stop, ready=lambda url: True, benchmark=benchmark)
     assert [(r["repetition"], r["concurrency"], r["arm"], r["passed"]) for r in results] == [
         (0, 1, "mtp-adaptive", True), (0, 8, "dflash2-adaptive", False)]
@@ -113,6 +114,8 @@ def test_run_starts_one_container_per_trial_and_stops_it_after_the_benchmark(tmp
     first, second = benchmarked
     assert (first.arm, first.concurrency, first.repetition, first.catalog) == ("mtp-adaptive", 1, 0, args.catalog_mtp)
     assert (second.arm, second.concurrency, second.catalog) == ("dflash2-adaptive", 8, args.catalog_dflash2)
+    # Only the DFlash2 arm carries the directory export's model id.
+    assert (first.model_id, second.model_id) == (None, "ckpt")
     assert first.output == tmp_path / "out" / "mtp-adaptive" / "c1-r0" and first.base_url == "http://127.0.0.1:8111"
     assert first.workload == args.workload and first.timeout == 12.5
     assert (tmp_path / "out" / "mtp-adaptive" / "c1-r0.server.log").exists()
