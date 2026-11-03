@@ -1,11 +1,20 @@
-"""The lifted draft block and candidate selector against the DFlash2 reference on the pinned draft.
+"""The shared DFlash2 component (context writer, draft block, selector) against the reference on the pinned draft.
 
-Run on a dedicated device (``CUDA_VISIBLE_DEVICES=1 FLARE_RUN_CUDA_TESTS=1``); the draft's
-tensors are read with ``safetensors`` directly, so no io_uring loader is needed. The
-reference's key/value are rounded to E4M3 exactly as the prepared rings and staging round
-them (clamp to +-448, cast to ``float8_e4m3fn``): that storage contract was validated by
-``qualify/dflash2_acceptance.py`` (E4M3 and BF16 key/value give identical code_edit
-acceptance on real tapped features), so the comparison is against the contract, not BF16.
+Run on a dedicated device (``CUDA_VISIBLE_DEVICES=1 FLARE_RUN_CUDA_TESTS=1``) inside the
+preparation image: the draft loads through the shared loader (``DraftWeights.load``), and the
+reference reads the same tensors with ``safetensors``. The reference's key/value are rounded
+to E4M3 exactly as the prepared rings and staging round them (clamp to +-448, cast to
+``float8_e4m3fn``): that storage contract was validated by ``qualify/dflash2_acceptance.py``
+(E4M3 and BF16 key/value give identical code_edit acceptance on real tapped features), so the
+comparison is against the contract, not BF16.
+
+The component's arithmetic differs from the deleted block's in three places the bounds below
+were first measured against: its rotary multiplies in BF16 with BF16 cosine/sine
+(``ignition/components/dflash2.py:37``; the block and the reference multiply in FP32 and round
+once), its RMS norms are ``Qwen3RMSNorm`` (weight times the BF16-rounded normalized value, two
+roundings; the reference rounds once), and its window staging uses 128-token pages. The bounds
+are the recorded repeatability of the E4M3 contract and are not moved for the component; the
+measured values of each run are printed beside them.
 
 Inputs come in two kinds. Real tapped features are the first trace under
 ``FLARE_DFLASH2_TRACES`` (skipped with a reason when unset): the features before each cut
@@ -108,8 +117,9 @@ def checkpoint_weights():
     from safetensors import safe_open
     from ignition.preparation import inspect_qwen38_checkpoint
     from ignition.preparation.qwen38 import TEXT_PREFIX
+    from ignition.components.dflash2_weights import DraftWeights
+    from ignition.components.parallel import TensorParallelShard
     from ignition.recipes.qwen38_dflash.config import DraftConfig
-    from ignition.recipes.qwen38_dflash.draft_weights import DraftWeights
     from ignition.reference.qwen38_dflash2 import DFlash2Reference
     from ignition.reference.qwen38_quant import CheckpointTensors
 
@@ -122,12 +132,13 @@ def checkpoint_weights():
     with safe_open(str(draft / "model.safetensors"), "pt", device=DEVICE) as file:
         tensors = {name: file.get_tensor(name) for name in file.keys()}
     reference = _round_kv_to_e4m3(DFlash2Reference(config.text, tensors, strict=True))
-    draft_weights = DraftWeights.assemble(config, tensors.__getitem__)
+    shard = TensorParallelShard(0, 1)
+    draft_weights = DraftWeights.load(draft, config, torch.device(DEVICE), shard)
     with CheckpointTensors(inspect_qwen38_checkpoint(target), byte_budget=4 << 30) as reader:
         embedding = reader.read(f"{TEXT_PREFIX}.embed_tokens.weight").to(DEVICE)
         head = reader.read("lm_head.weight").to(DEVICE)
-    weights = SimpleNamespace(config=SimpleNamespace(draft=config, hidden=config.hidden, vocabulary=config.vocabulary),
-                              draft=draft_weights, embedding=embedding, head=head)
+    weights = SimpleNamespace(config=SimpleNamespace(draft=config), draft=draft_weights, embedding=embedding,
+                              head=head, shard=shard)
     return weights, reference
 
 
@@ -140,11 +151,11 @@ def _prepare(checkpoint_weights, batch, tmp_path):
     session stays open (kernel resolution frozen) until the block exits.
     """
     from b12x.preparation import PreparationSession
-    from ignition.components.candidate_selector import PreparedCandidateSelector
-    from ignition.components.dflash_draft import DraftScratch, PreparedContext, PreparedDraftBlock, Rotary
+    from ignition.components.dflash2 import DraftScratch, PreparedDraft
     from ignition.components.paged_batch import Metadata
     from ignition.preparation.compile_pool import CompilePool
     from ignition.preparation.scratch import GraphBufferPool, ScratchArena
+    from ignition.recipes.qwen38_dflash.speculative_model import PreparedFeatureContext
 
     weights, reference = checkpoint_weights
     c = weights.config.draft
@@ -155,8 +166,12 @@ def _prepare(checkpoint_weights, batch, tmp_path):
     context_rows = torch.zeros((context_tokens,), device=DEVICE, dtype=torch.int64)
     live = torch.zeros((context_tokens,), device=DEVICE, dtype=torch.bool)
     auxiliary = torch.zeros((context_tokens, len(c.target_layers) * hidden), device=DEVICE, dtype=torch.bfloat16)
-    rings = tuple(tuple(torch.zeros((batch + 1, window, c.kv_heads, c.head_dim), device=DEVICE, dtype=torch.float8_e4m3fn)
-                        for _ in range(2)) for _ in range(c.layers))
+    # The component reads its rings by name through the pool's ``reserved_region``; row 0 stays unused.
+    regions = {f"draft{layer}.{kind}": torch.zeros((batch + 1, window, c.kv_heads, c.head_dim), device=DEVICE,
+                                                    dtype=torch.float8_e4m3fn)
+               for layer in range(c.layers) for kind in ("key", "value")}
+    pool = SimpleNamespace(reserved_region=regions.__getitem__)
+    rings = tuple((regions[f"draft{layer}.key"], regions[f"draft{layer}.value"]) for layer in range(c.layers))
     rows = torch.arange(1, batch + 1, device=DEVICE, dtype=torch.int64)
     table = torch.zeros((batch, 1), device=DEVICE, dtype=torch.int32)
     live_rows = torch.tensor([batch], device=DEVICE, dtype=torch.int32)
@@ -164,17 +179,20 @@ def _prepare(checkpoint_weights, batch, tmp_path):
     m = Metadata.allocate(tokens, batch, 1, DEVICE, samples=tokens)
     starts = torch.tensor(FABRICATED_STARTS[:batch], device=DEVICE, dtype=torch.int64)
     m.set(starts, torch.full_like(starts, block), rows, table, ids, live_rows)
-    buffers, layers = GraphBufferPool(DEVICE), GraphBufferPool(DEVICE)
-    cursor = buffers.cursor()
+    # The recipe's pools: the context and the draft block each fork the cursor they are given.
+    context_buffers, draft_buffers = GraphBufferPool(DEVICE), GraphBufferPool(DEVICE)
     with PreparationSession(device=DEVICE, autotune=False) as session:
         arena = ScratchArena(DEVICE)
-        context = PreparedContext(weights.draft, auxiliary, rings, window=window, epsilon=c.eps,
-            rotary=Rotary(c, DEVICE), session=session, name="context", workspace=arena, buffers=cursor)
-        scratch = DraftScratch.allocate(tokens, tokens, hidden, vocabulary, cursor)
-        draft = PreparedDraftBlock(weights, scratch, m, rings, page_tokens=64, vocabulary_runtime=None, coordinator=None,
-            session=session, name="draft", workspace=arena, layer_buffers=layers)
-        selector = PreparedCandidateSelector(scratch.hidden.view(batch, block, hidden), weights.draft.selector,
-            top_k=c.top_k, session=session, name="selector")
+        owner = SimpleNamespace(weights=weights, pool=pool, session=session, workspace=arena,
+                                context_buffers=context_buffers)
+        context = PreparedFeatureContext(owner, auxiliary, "context")
+        draft_cursor = draft_buffers.cursor()
+        scratch = DraftScratch.allocate(c, weights.shard, tokens, DEVICE, buffers=draft_cursor)
+        draft = PreparedDraft(weights, scratch, m, pool, runtime=None, vocabulary_runtime=None, embedding_runtime=None,
+            coordinator=None, session=session, name="draft", workspace=arena, buffers=draft_cursor,
+            embedding=weights.embedding, head=weights.head, output_multiplier=1., final_logit_softcapping=None)
+        # The component owns the selector and prepares it inside the block forward.
+        selector = draft.selector
         arena.finalize()
         context_operation = partial(context, auxiliary, positions, context_rows, live)
         paths = (tmp_path / "context.bin", tmp_path / "draft.bin")

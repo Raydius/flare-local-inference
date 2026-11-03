@@ -11,9 +11,11 @@ def disposable_ranges(*, cache, scratch, workspaces, vision_scratch, decoders, o
         return ranges
     from .speculative_model import PreparedDFlashRound
 
-    # Per-graph cursors (tapped features, context scratch, draft scratch, sampling scratch), the draft
-    # layers' intermediates, and the verifier's unread feedback stores.
-    values = [speculation.sampling_buffers.chunks, speculation.layer_buffers.chunks, speculation.feedback]
+    # Per-graph cursors (tapped features, sampling scratch), the component's context and draft pools
+    # (context scratch, draft scratch, staged windows, layer intermediates), and the verifier's unread
+    # feedback stores.
+    values = [speculation.sampling_buffers.chunks, speculation.context_buffers.chunks,
+              speculation.draft_buffers.chunks, speculation.feedback]
     for operation in speculation.owners:
         if not isinstance(operation, PreparedDFlashRound):
             continue

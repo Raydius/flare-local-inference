@@ -12,7 +12,8 @@ from types import SimpleNamespace
 import pytest
 import torch
 
-from ignition.components.dflash_draft import DraftForwards, ring_slots
+from ignition.components.dflash2 import PAGE_TOKENS
+from ignition.components.parallel import TensorParallelShard
 from ignition.components.parallel_draft import PreparedParallelDraftRound
 from ignition.reference.qwen38_dflash2 import PINNED
 from ignition.recipes.qwen38.decoder_state import DecoderInputs
@@ -21,11 +22,14 @@ from ignition.recipes.qwen38.state import HybridStatePool
 from ignition.recipes.qwen38_dflash.config import DraftConfig
 from ignition.recipes.qwen38_dflash.recipe import DRAFT_WINDOWS
 from ignition.recipes.qwen38_dflash.speculative_model import (
-    PreparedAdmission, SpeculativePreparation, prefill_feature_rows, verification_feature_rows,
+    PreparedAdmission, PreparedFeatureContext, SpeculativePreparation, prefill_feature_rows,
+    verification_feature_rows,
 )
 from tests.components.test_parallel_draft_admission import cpu_proposals  # noqa: F401 (autouse fixture)
 
-BATCH, WIDTH, VOCAB, CAPACITY, BLOCK = 2, 4, 64, 2, 8
+# The draft scratch is the component's, sized by the pinned draft's vocabulary, which the owner
+# requires to equal the request vocabulary.
+BATCH, WIDTH, VOCAB, CAPACITY, BLOCK = 2, 4, PINNED["vocab_size"], 2, 8
 DRAFT_TOKEN = 7
 
 
@@ -63,26 +67,50 @@ def owner(pool):
     inputs.live_rows.fill_(BATCH)
     inputs.request_state_rows[:, 0].copy_(torch.arange(1, CAPACITY + 1))
     inputs.query_lengths.fill_(WIDTH)
-    target = SimpleNamespace(shard=None, tree=SimpleNamespace(
-        model=SimpleNamespace(language_model=SimpleNamespace(embed_tokens=SimpleNamespace(weight=torch.zeros(VOCAB, 2560)))),
-        lm_head=SimpleNamespace(weight=torch.zeros(VOCAB, 2560))))
+    # The stub drafter never embeds or projects, so the target's tables are placeholders.
+    target = SimpleNamespace(shard=TensorParallelShard(0, 1), tree=SimpleNamespace(
+        model=SimpleNamespace(language_model=SimpleNamespace(embed_tokens=SimpleNamespace(weight=torch.zeros(1, 2560)))),
+        lm_head=SimpleNamespace(weight=torch.zeros(1, 2560))))
     return SpeculativePreparation(target_weights=target, draft_weights=None, draft_config=DraftConfig.from_dict(deepcopy(PINNED)),
         pool=pool, requests=requests, inputs=inputs, scratch=None, workspace=None, rotary=None, cache=None,
         table=None, session=None, completion=None, frame=None, sequence=None, max_cache_pages=None)
 
 
+def encoded(positions, rows, live):
+    """The adapter's metadata for one write, on fresh CPU buffers."""
+    n = positions.numel()
+    metadata = SimpleNamespace(positions=torch.zeros(n, dtype=torch.int64), starts=torch.zeros(n, dtype=torch.int64),
+                               requests=torch.arange(n), state_rows=torch.zeros(n, dtype=torch.int64))
+    counts = torch.zeros(n, dtype=torch.int32)
+    PreparedFeatureContext.encode(metadata, counts, positions, rows, live)
+    return metadata, counts
+
+
+def test_owner_rejects_a_draft_vocabulary_that_differs_from_the_requests(pool):
+    requests = DeviceRequestState.allocate("cpu", vocab_size=64, capacity=CAPACITY)
+    inputs = DecoderInputs.allocate("cpu", context=256, tokens=32, capacity=CAPACITY)
+    target = SimpleNamespace(shard=TensorParallelShard(0, 1), tree=SimpleNamespace(
+        model=SimpleNamespace(language_model=SimpleNamespace(embed_tokens=SimpleNamespace(weight=torch.zeros(1, 2560)))),
+        lm_head=SimpleNamespace(weight=torch.zeros(1, 2560))))
+    with pytest.raises(ValueError, match="vocabulary"):
+        SpeculativePreparation(target_weights=target, draft_weights=None, draft_config=DraftConfig.from_dict(deepcopy(PINNED)),
+            pool=pool, requests=requests, inputs=inputs, scratch=None, workspace=None, rotary=None, cache=None,
+            table=None, session=None, completion=None, frame=None, sequence=None, max_cache_pages=None)
+
+
 def proposal_round(o, width, validate, drafts):
     """The shared round exactly as ``PreparedDFlashRound`` builds it, with a stub drafter."""
-    o.forwards = DraftForwards(None, o.context, lambda w, s, m, p, **k: drafts.append(_Draft(s, m)) or drafts[-1])
+    o.forwards = SimpleNamespace(decoder=None, context=o.context, markov=None,
+                                 draft=lambda w, s, m, p, **k: drafts.append(_Draft(s, m)) or drafts[-1])
     cursor = o.cursor()
-    o.begin(BATCH, cursor)
+    o.begin(BATCH)
     return PreparedParallelDraftRound(o, BATCH, width, "test.round", buffers=cursor, proposal_only=True,
                                       admission=PreparedAdmission(o, BATCH, validate), draft_page_blocks=1)
 
 
 def test_owner_round_substitutes_copies_under_the_qwen_admission(pool):
     o = owner(pool)
-    assert o.block_size == BLOCK and o.logit_offset == 1 and o.page_tokens == 64 and o.markov_runtime is None
+    assert o.block_size == BLOCK and o.logit_offset == 1 and o.page_tokens == PAGE_TOKENS == 128 and o.markov_runtime is None
     # The maintenance graphs' state transfer keys its draft cache tail on this.
     assert o.draft_tables is None and o.tables is None
     assert o.weights.config.draft.noise_token == PINNED["dflash_config"]["mask_token_id"]
@@ -101,7 +129,9 @@ def test_owner_round_substitutes_copies_under_the_qwen_admission(pool):
     round = proposal_round(o, WIDTH, lambda: validations.append(True), drafts)
     assert round.validator is None and round.validation is None and round.metadata is None
     assert round.draft is drafts[0] and round.selector == drafts[0].select
-    assert o.draft_scratch.logits.shape == (BATCH * BLOCK, VOCAB)
+    # The component's scratch for this round: FP32 logits over the vocabulary, allocated from the draft pool.
+    assert o.draft_scratch.logits.shape == (BATCH * BLOCK, VOCAB) and o.draft_scratch.logits.dtype == torch.float32
+    assert o.draft_scratch.embedding.shape == (BATCH * BLOCK, 2560) and o.draft_buffers.nbytes > 0
     round.prepare()
     round.propose()
     assert validations == [True]
@@ -143,9 +173,14 @@ def test_prefill_features_keep_the_window_and_leave_dead_tokens_unslotted(pool):
     positions, rows, live = prefill_feature_rows(o, qsa, window)
     assert live.tolist() == [False, False, True, True, True, True, False, False]
     assert rows.tolist() == [-1, -1, 2, 2, 2, 2, -1, -1]
-    slots = ring_slots(live, rows, positions, window)
-    assert slots.tolist() == [-1, -1, 2 * window + 2, 2 * window + 3, 2 * window + 0, 2 * window + 1, -1, -1]
-    assert len(set(slots[live].tolist())) == window
+    # Encoded for the component: a live token is its own request at start = position with one accepted
+    # token, so the component's ``position - start`` offset is 0 and inside the window; a dead token
+    # has no accepted token, so the component gives it slot -1.
+    metadata, counts = encoded(positions, rows, live)
+    assert metadata.requests.tolist() == list(range(8))
+    assert metadata.starts.tolist() == [0, 0, 2, 3, 4, 5, 0, 0] and counts.tolist() == [0, 0, 1, 1, 1, 1, 0, 0]
+    assert metadata.state_rows.tolist() == rows.tolist() and metadata.positions is not positions
+    assert metadata.positions.tolist() == positions.tolist()
 
 
 def test_verification_features_cover_the_emitted_columns_only(pool):
@@ -155,7 +190,9 @@ def test_verification_features_cover_the_emitted_columns_only(pool):
     positions, rows, live = verification_feature_rows(o, qsa, BATCH, WIDTH, counts)
     assert live.tolist() == [True, True, False, False, False, False, False, False]
     assert rows.tolist() == [2, 2, -1, -1, -1, -1, -1, -1]
-    assert ring_slots(live, rows, positions, 2048).tolist() == [2 * 2048 + 10, 2 * 2048 + 11, -1, -1, -1, -1, -1, -1]
+    metadata, counts = encoded(positions, rows, live)
+    assert metadata.starts.tolist() == [10, 11, 0, 0, 0, 0, 0, 0] and counts.tolist() == [1, 1, 0, 0, 0, 0, 0, 0]
+    assert (metadata.positions - metadata.starts[metadata.requests]).tolist()[:2] == [0, 0]
 
 
 def test_mixed_prompt_context_writes_the_window_after_the_round(pool):
@@ -165,7 +202,7 @@ def test_mixed_prompt_context_writes_the_window_after_the_round(pool):
     o = owner(pool)
     o.inputs.row_slot_ids.copy_(torch.tensor([1, -1], dtype=torch.int32))
     writes, built = [], []
-    o.context = lambda auxiliary, name, buffers: built.append((auxiliary, name, buffers)) or (
+    o.context = lambda auxiliary, name: built.append((auxiliary, name)) or (
         lambda features, positions, rows, live: writes.append((features, positions, rows, live)))
     chunk = o.window + 3
     auxiliary = torch.zeros((chunk, o.feature_width), dtype=torch.bfloat16)
@@ -175,7 +212,7 @@ def test_mixed_prompt_context_writes_the_window_after_the_round(pool):
     decoder = SimpleNamespace(state=SimpleNamespace(qsa=qsa), auxiliary=auxiliary)
     residual = torch.zeros((chunk, 10240), dtype=torch.bfloat16)
     context = PreparedMixedPromptContext(o, decoder, "mixed.prompt", residual_output=residual, buffers="cursor")
-    assert decoder.residual_output is residual and built == [(auxiliary, "mixed.prompt.context", "cursor")]
+    assert decoder.residual_output is residual and built == [(auxiliary, "mixed.prompt.context")]
     context.begin()
     assert writes == []
     context.finish()

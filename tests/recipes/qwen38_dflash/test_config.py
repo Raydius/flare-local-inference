@@ -1,4 +1,4 @@
-"""The pinned DFlash2 draft configuration and the checkpoint tensor check in front of weight loading."""
+"""The pinned DFlash2 draft configuration and the shared loader's checkpoint check on its geometry."""
 
 from copy import deepcopy
 import json
@@ -6,15 +6,24 @@ import json
 import pytest
 import torch
 
+from ignition.components.dflash2_geometry import DraftAttentionGeometry
+from ignition.components.dflash2_weights import DraftWeights, validate_metadata
+from ignition.components.parallel import TensorParallelShard
 from ignition.reference.qwen38_dflash2 import PINNED, DFlash2Reference
 from ignition.recipes.qwen38_dflash.config import DRAFT_REPOSITORY, DRAFT_REVISION, DraftConfig
-from ignition.recipes.qwen38_dflash.draft_weights import DraftWeights, check_tensors
 
 # Small geometry that keeps the reference's structure; expected_shapes reads only these fields.
 SMALL = {**PINNED, "hidden_size": 32, "intermediate_size": 48, "num_hidden_layers": 1,
          "layer_types": ["sliding_attention"], "num_attention_heads": 2, "num_key_value_heads": 1,
          "head_dim": 16, "sliding_window": 8, "vocab_size": 64,
          "dflash_config": {**PINNED["dflash_config"], "selector_rank": 8, "target_layer_ids": [0]}}
+
+
+def small_config():
+    """The small geometry as the loader reads it: text, layer count, and target layers, without the pin check."""
+    config = DraftConfig.__new__(DraftConfig)
+    object.__setattr__(config, "text", deepcopy(SMALL))
+    return config
 
 
 def test_pinned_config_is_accepted_and_exposes_the_draft_geometry():
@@ -24,9 +33,11 @@ def test_pinned_config_is_accepted_and_exposes_the_draft_geometry():
     assert (config.window, config.layers, config.kv_heads, config.head_dim) == (2048, 5, 8, 128)
     assert (config.hidden, config.intermediate, config.heads, config.vocabulary) == (2560, 7680, 32, 248320)
     assert (config.top_k, config.selector_rank, config.eps) == (16, 256, 1e-6)
-    # The lifted draft component reads rope_theta and head_dim from the top level of `text`.
-    assert config.rope_theta == config.text["rope_theta"] == 10000. and config.text["head_dim"] == 128
-    assert config.text["rope_parameters"] == PINNED["rope_parameters"]
+    assert config.rope_theta == 10000. and config.text["rope_parameters"] == PINNED["rope_parameters"]
+    # The shared component reads the geometry record: full-head rotary at the checkpoint's theta.
+    assert config.attention == DraftAttentionGeometry(32, 8, 128, 128, 128, 10000., 2048)
+    assert config.attention.local(TensorParallelShard(0, 1)) == (32, 8)
+    config.validate_shard(TensorParallelShard(0, 1))
 
 
 @pytest.mark.parametrize("path,value,message", [
@@ -72,26 +83,26 @@ def fabricate(path, config, *, drop=None, reshape=None, dtype=torch.bfloat16, ex
 def inspected(path):
     from ignition.preparation.checkpoint import inspect_indexed_checkpoint
 
-    return inspect_indexed_checkpoint(path).tensors
+    return inspect_indexed_checkpoint(path)
 
 
-def test_single_file_checkpoint_passes_the_tensor_check(tmp_path):
+def test_single_file_checkpoint_passes_the_shared_tensor_check(tmp_path):
     fabricate(tmp_path, SMALL)
-    tensors = inspected(tmp_path)
-    assert set(tensors) == set(DFlash2Reference.expected_shapes(SMALL)) and len(tensors) == 6 + 15
-    check_tensors(tensors, SMALL)
+    manifest = inspected(tmp_path)
+    assert set(manifest.tensors) == set(DFlash2Reference.expected_shapes(SMALL)) and len(manifest.tensors) == 6 + 15
+    validate_metadata(manifest, small_config())
 
 
 @pytest.mark.parametrize("fault,message", [
-    (dict(drop="layers.0.self_attn.k_proj.weight"), "missing draft tensor layers.0.self_attn.k_proj.weight"),
-    (dict(reshape=("fc.weight", (32, 16))), r"fc.weight: expected BF16 \(32, 32\), got BF16 \(32, 16\)"),
-    (dict(extra="layers.1.input_layernorm.weight"), "unexpected draft tensor layers.1"),
-    (dict(dtype=torch.float32), "got F32"),
+    (dict(drop="layers.0.self_attn.k_proj.weight"), "tensor names disagree"),
+    (dict(reshape=("fc.weight", (32, 16))), r"fc.weight: DFlash2 requires BF16 storage with shape \(32, 32\)"),
+    (dict(extra="layers.1.input_layernorm.weight"), "tensor names disagree"),
+    (dict(dtype=torch.float32), "requires BF16 storage"),
 ])
-def test_tensor_check_rejects_missing_misshaped_unexpected_or_non_bf16_tensors(tmp_path, fault, message):
+def test_shared_tensor_check_rejects_missing_misshaped_unexpected_or_non_bf16_tensors(tmp_path, fault, message):
     fabricate(tmp_path, SMALL, **fault)
     with pytest.raises(ValueError, match=message):
-        check_tensors(inspected(tmp_path), SMALL)
+        validate_metadata(inspected(tmp_path), small_config())
 
 
 def test_draft_weights_check_the_checkpoint_before_opening_a_loader(tmp_path):
@@ -99,6 +110,5 @@ def test_draft_weights_check_the_checkpoint_before_opening_a_loader(tmp_path):
     # small geometry exercises the check `DraftWeights.load` runs before any CUDA loader opens.
     fabricate(tmp_path, SMALL)
     config = DraftConfig.from_dict(deepcopy(PINNED))
-    with pytest.raises(ValueError, match="draft tensor"):
-        DraftWeights.load(tmp_path, config, "cpu")
-    assert DraftWeights.__dataclass_fields__.keys() == {"projection", "hidden_norm", "norm", "context_kv", "layers", "selector"}
+    with pytest.raises(ValueError, match="tensor names disagree"):
+        DraftWeights.load(tmp_path, config, "cpu", TensorParallelShard(0, 1))
