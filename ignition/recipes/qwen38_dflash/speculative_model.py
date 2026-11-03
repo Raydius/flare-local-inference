@@ -1,21 +1,22 @@
 """DFlash2 block drafts through the shared proposal-only round, verified by Qwen's hybrid-state verifier.
 
-The shared ``PreparedParallelDraftRound`` owns the drafter path (block forward,
-selector, proposal sampling, history copies, draft RNG); this module owns the
-target side the paged round cannot: the ``PreparedVerificationState`` metadata,
-the Qwen decoder with its feature taps, acceptance, commit, GDN rollback, and
-the ring writes of accepted tokens' features.
+The shared ``PreparedParallelDraftRound`` owns the drafter path (the shared
+DFlash2 block with its embedding, head and selector, proposal sampling, history
+copies, draft RNG); this module owns the target side the paged round cannot:
+the ``PreparedVerificationState`` metadata, the Qwen decoder with its feature
+taps, acceptance, commit, GDN rollback, and the ring writes of accepted tokens'
+features through the component's context writer.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from types import SimpleNamespace
 
 import torch
 
-from ignition.components.candidate_selector import PreparedCandidateSelector
-from ignition.components.dflash_draft import (
-    DraftForwards, DraftScratch, PreparedContext as PreparedDraftContext, PreparedDraftBlock, Rotary,
+from ignition.components.dflash2 import (
+    PAGE_TOKENS, DraftScratch, PreparedContext as PreparedComponentContext, PreparedDraft,
 )
 from ignition.components.gdn_recovery import GDNLayerRecords, PreparedGDNCommit
 from ignition.components.parallel_draft import (
@@ -29,28 +30,24 @@ from ignition.preparation.scratch import GraphBufferPool
 from ignition.recipes.qwen38.decoder import PreparedDecoder
 from ignition.recipes.qwen38.speculative_state import PreparedVerificationState
 
-PAGE_TOKENS = 64
 # The target's per-stream width: the draft embeds, taps, and projects at this width.
 HIDDEN = 2560
-VOCABULARY = 248320
 
 
 @dataclass(frozen=True)
 class SpeculativeConfig:
-    """What the draft block reads beside the draft's own configuration."""
+    """What the shared round and component read beside the target: the draft's configuration."""
 
     draft: object
-    hidden: int = HIDDEN
-    vocabulary: int = VOCABULARY
 
 
 @dataclass(frozen=True)
 class SpeculativeWeights:
-    """The target's embedding and head, the DFlash2 draft, and both configurations.
+    """The target's embedding and head, the DFlash2 draft, and the draft configuration.
 
-    The shared round reads ``config.draft.noise_token`` and ``draft``; the draft
-    block reads ``embedding``, ``head``, ``config.hidden``, ``draft.layers`` and
-    ``draft.norm``; ``shard`` is the target's tensor-parallel shard.
+    The shared round reads ``config.draft.noise_token`` and ``draft``; the
+    component reads ``config.draft`` (geometry, text), ``draft`` (projections,
+    norms, layers, selector), and ``shard``, the target's tensor-parallel shard.
     """
 
     embedding: torch.Tensor
@@ -58,12 +55,6 @@ class SpeculativeWeights:
     draft: object
     config: SpeculativeConfig
     shard: object
-
-
-def rings(config, pool):
-    """One ``(key, value)`` E4M3 ring pair per draft layer, viewed over every state row."""
-    return tuple((pool.region(f"dflash.{index}.key"), pool.region(f"dflash.{index}.value"))
-                 for index in range(config.layers))
 
 
 class PreparedAdmission:
@@ -111,22 +102,45 @@ def verification_feature_rows(owner, qsa, batch, width, counts):
     return positions, torch.where(live, rows, -1), live
 
 
-class PreparedDraft(PreparedDraftBlock):
-    """The component block followed by the predecessor-conditioned candidate selector."""
+class PreparedFeatureContext:
+    """Feed the shared component's context writer from per-token (positions, rows, live) triples.
 
-    def __init__(self, weights, scratch, metadata, pool, *, session, name, workspace, layer_buffers,
-                 runtime=None, vocabulary_runtime=None, coordinator=None):
-        c = weights.config.draft
-        super().__init__(weights, scratch, metadata, rings(c, pool), page_tokens=PAGE_TOKENS,
-            vocabulary_runtime=vocabulary_runtime, coordinator=coordinator,
-            session=session, name=name, workspace=workspace, layer_buffers=layer_buffers)
-        self.selector = PreparedCandidateSelector(scratch.hidden.view(-1, c.block_size, weights.config.hidden),
-            weights.draft.selector, top_k=c.top_k, session=session, name=name + ".selector")
+    The component decides validity from its metadata and per-request accepted
+    counts: a token is written when ``position - starts[request]`` lies in
+    ``[0, count)`` and within the window. Encoding every token as its own
+    request with ``start = position`` and ``count = live`` makes that rule
+    reproduce the recipe's live set exactly (offset 0, count 1 when live; count
+    0 or offset −1 otherwise), so ``prefill_feature_rows`` and
+    ``verification_feature_rows`` stay the only source of liveness and dead
+    tokens take slot −1 inside the component.
+    """
 
-    def __call__(self):
-        super().__call__()
-        c = self.weights.config.draft
-        self.selector.prepare(self.scratch.hidden.view(-1, c.block_size, self.weights.config.hidden))
+    def __init__(self, owner, auxiliary, name):
+        tokens, device = auxiliary.shape[0], auxiliary.device
+        self.metadata = SimpleNamespace(
+            positions=torch.zeros((tokens,), dtype=torch.int64, device=device),
+            starts=torch.zeros((tokens,), dtype=torch.int64, device=device),
+            requests=torch.arange(tokens, dtype=torch.int64, device=device),
+            state_rows=torch.zeros((tokens,), dtype=torch.int64, device=device))
+        self.counts = torch.zeros((tokens,), dtype=torch.int32, device=device)
+        self.context = PreparedComponentContext(owner.weights, auxiliary, self.metadata, owner.pool,
+            session=owner.session, name=name, workspace=owner.workspace, runtime=None, coordinator=None,
+            buffers=owner.context_buffers.cursor())
+
+    @staticmethod
+    def encode(metadata, counts, positions, rows, live):
+        """Write one token per request: its own start and a count of one when live, zero otherwise."""
+        metadata.positions.copy_(positions)
+        metadata.state_rows.copy_(rows)
+        metadata.starts.copy_(torch.where(live, positions, 0))
+        counts.copy_(live.int())
+
+    def __call__(self, auxiliary, positions, rows, live):
+        self.encode(self.metadata, self.counts, positions, rows, live)
+        self.context(auxiliary, self.counts)
+
+    def scratch_tensors(self):
+        return self.context.scratch_tensors()
 
 
 class SpeculativePreparation:
@@ -144,13 +158,17 @@ class SpeculativePreparation:
         self.cache, self.table, self.session = cache, table, session
         self.completion, self.frame, self.sequence, self.max_cache_pages = completion, frame, sequence, max_cache_pages
         device = pool.backing.device
+        self.device = device
         if type(verification_width) is not int or not 1 <= verification_width <= 8:
             raise ValueError("verification width must be between one and eight")
         self.verification_width = verification_width
+        # The round copies the draft's logits into request-vocabulary scratch.
+        if draft_config.vocabulary != requests.vocab_size:
+            raise ValueError("the DFlash2 draft's vocabulary must equal the request vocabulary")
         language = target_weights.tree.model.language_model
         # The draft head is the target's: it projects into the request vocabulary the round samples from.
         self.weights = SpeculativeWeights(language.embed_tokens.weight, target_weights.tree.lm_head.weight,
-            draft_weights, SpeculativeConfig(draft_config, vocabulary=requests.vocab_size), target_weights.shard)
+                                          draft_weights, SpeculativeConfig(draft_config), target_weights.shard)
         self.feature_taps, self.window = draft_config.target_layers, draft_config.window
         self.feature_width = len(self.feature_taps) * HIDDEN
         self.block_size, self.logit_offset, self.page_tokens = draft_config.block_size, 1, PAGE_TOKENS
@@ -158,15 +176,14 @@ class SpeculativePreparation:
         self.markov_runtime = self.tables = None
         # The state transfer reads this: no draft page tables, so snapshots carry no draft cache tail.
         self.draft_tables = None
-        self.draft_rotary = Rotary(draft_config, device)
-        # One cursor per graph: a prefill's tapped features and context scratch, or a round's draft
-        # scratch, sampling scratch, and context scratch. Separate from the decoder scratch's pool,
-        # so nothing here aliases storage the decoder writes inside the same graph.
+        # One cursor per graph for its tapped features and sampling scratch. The component forks the
+        # cursor it is given without joining, so its context scratch and draft block take cursors of
+        # their own pools, as upstream's bootstraps give them; chunks are shared across graphs.
         self.sampling_buffers = GraphBufferPool(device, chunk_bytes=2 << 20)
-        self.layer_buffers = GraphBufferPool(device)
-        # Each round allocates its draft scratch from its own cursor before building the shared round.
-        self.draft_scratch = None
-        self.forwards = DraftForwards(None, self.context, self.draft)
+        self.context_buffers, self.draft_buffers = GraphBufferPool(device), GraphBufferPool(device)
+        # Each round allocates its draft scratch through ``begin`` before building the shared round.
+        self.draft_scratch = self.draft_cursor = None
+        self.forwards = SimpleNamespace(decoder=None, context=self.context, draft=self.draft, markov=None)
         self.rng = SpeculativeRngState.allocate(device, capacity=requests.capacity)
         self.generation, self.offset = torch.zeros_like(requests.generation), torch.zeros_like(requests.generation)
         self.copy_buffers = allocate_copy_buffers(requests.capacity, device)
@@ -192,20 +209,20 @@ class SpeculativePreparation:
     def auxiliary(self, tokens, buffers):
         return buffers.zeros((tokens, self.feature_width), torch.bfloat16)
 
-    def begin(self, batch, buffers):
-        c = self.weights.config
-        self.draft_scratch = DraftScratch.allocate(batch * self.block_size, batch * self.block_size,
-                                                   c.hidden, c.vocabulary, buffers)
-
-    def context(self, auxiliary, name, buffers):
+    def begin(self, batch):
+        """Allocate the round's draft scratch from the draft pool; the block's stages fork after it."""
         c = self.weights.config.draft
-        return PreparedDraftContext(self.weights.draft, auxiliary, rings(c, self.pool), window=c.window,
-            epsilon=c.eps, rotary=self.draft_rotary, session=self.session, name=name,
-            workspace=self.workspace, buffers=buffers)
+        self.draft_cursor = self.draft_buffers.cursor()
+        self.draft_scratch = DraftScratch.allocate(c, self.weights.shard, batch * c.block_size, self.device,
+                                                   buffers=self.draft_cursor)
+
+    def context(self, auxiliary, name):
+        return PreparedFeatureContext(self, auxiliary, name)
 
     def draft(self, weights, scratch, metadata, pool, *, session, name, workspace, **collectives):
         return PreparedDraft(weights, scratch, metadata, pool, session=session, name=name, workspace=workspace,
-                             layer_buffers=self.layer_buffers, **collectives)
+            buffers=self.draft_cursor, embedding=weights.embedding, head=weights.head, output_multiplier=1.,
+            final_logit_softcapping=None, embedding_runtime=None, **collectives)
 
     def prefill(self, decoder, name, *, buffers=None):
         operation = PreparedPrefillContext(self, decoder, name, buffers=buffers)
@@ -228,8 +245,7 @@ class PreparedPrefillContext:
         if decoder.auxiliary is None or decoder.feature_taps != owner.feature_taps:
             raise ValueError("the speculative prefill decoder must tap the draft's target layers")
         self.owner, self.decoder = owner, decoder
-        buffers = owner.cursor() if buffers is None else buffers
-        self.context = owner.context(decoder.auxiliary, name + ".context", buffers)
+        self.context = owner.context(decoder.auxiliary, name + ".context")
 
     def __call__(self):
         self.decoder()
@@ -243,13 +259,14 @@ class PreparedMixedPromptContext:
     Built the way the MTP absorption is: ``decoder`` is the mixed round's prompt namespace,
     whose ``auxiliary`` the packed forward's state gathers into and whose ``state.qsa`` holds
     the prompt role's positions. ``begin()`` has nothing to read back; the ring write runs after
-    the round, as ``PreparedPrefillContext`` runs after a prefill.
+    the round, as ``PreparedPrefillContext`` runs after a prefill. ``buffers`` is the mixed
+    round's cursor, which the context no longer draws from.
     """
 
     def __init__(self, owner, decoder, name, *, residual_output=None, buffers):
         self.owner, self.decoder = owner, decoder
         decoder.residual_output = residual_output
-        self.context = owner.context(decoder.auxiliary, name + ".context", buffers)
+        self.context = owner.context(decoder.auxiliary, name + ".context")
 
     def begin(self):
         pass
@@ -289,10 +306,10 @@ class PreparedDFlashRound:
         if decoder_factory is PreparedDecoder:
             o.decoders.append(self.decoder)
         self.target_residual = self.decoder.scratch.residual if residual_output is None else residual_output
-        o.begin(b, buffers)
+        o.begin(b)
         self.round = PreparedParallelDraftRound(o, b, w, name, buffers=buffers, proposal_only=True,
             admission=PreparedAdmission(o, b, self.state._validate), draft_page_blocks=1)
-        self.context = o.context(self.auxiliary, f"{name}.context", buffers)
+        self.context = o.context(self.auxiliary, f"{name}.context")
         self.sampling_scratch = prepare_sampling_scratch(b, w, o.requests.vocab_size, device, buffers=buffers,
                                                          proposal=False, verification=True)
         self.buffers = buffers

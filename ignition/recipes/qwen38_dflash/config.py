@@ -4,6 +4,8 @@ from dataclasses import dataclass
 import json
 from pathlib import Path
 
+from ignition.components.dflash2_geometry import DraftAttentionGeometry
+
 DRAFT_REPOSITORY = "incoai/Qwen3.8-Flash-Next-DFlash2"
 DRAFT_REVISION = "a22a1744e85c17364dcc54a6a420af7135d4c7f6"
 
@@ -22,9 +24,7 @@ class DraftConfig:
         from ignition.reference.qwen38_dflash2 import validate_config
 
         validate_config(c, strict=True)
-        # The lifted draft component's rotary reads a top-level ``rope_theta``; the DFlash2
-        # checkpoint stores it under ``rope_parameters``.
-        return cls({**c, "rope_theta": float(c["rope_parameters"]["rope_theta"])})
+        return cls(c)
 
     @property
     def block_size(self):
@@ -84,4 +84,16 @@ class DraftConfig:
 
     @property
     def rope_theta(self):
-        return self.text["rope_theta"]
+        return float(self.text["rope_parameters"]["rope_theta"])
+
+    @property
+    def attention(self):
+        """The shared component's geometry: full-head rotary at the checkpoint's theta over the sliding window."""
+        c = self.text
+        return DraftAttentionGeometry(c["num_attention_heads"], c["num_key_value_heads"], c["head_dim"],
+            c["head_dim"], c["head_dim"], self.rope_theta, c["sliding_window"])
+
+    def validate_shard(self, shard):
+        self.attention.local(shard)
+        shard.partition(self.text["hidden_size"], alignment=64)
+        shard.partition(self.text["intermediate_size"], alignment=128)
