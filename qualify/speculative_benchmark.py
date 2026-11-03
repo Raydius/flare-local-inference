@@ -496,6 +496,9 @@ def measurement_summary(workload, observations, groups):
 def run(args):
     workload = validate_artifacts(args.workload)
     arm = next(a for a in arms() if a["id"] == args.arm)
+    # A package exported from a checkpoint directory carries the directory name as its model id.
+    if getattr(args, "model_id", None):
+        arm = {**arm, "model_id": args.model_id}
     catalog = json.loads(args.catalog.read_text())
     validate_arm(catalog, arm)
     max_active = catalog["deployments"][0]["max_active"]

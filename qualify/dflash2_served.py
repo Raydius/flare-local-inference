@@ -128,7 +128,8 @@ def run(args, *, popen=subprocess.Popen, stop=subprocess.run, ready=healthy, ben
                     popen=popen, stop=stop, ready=ready, ready_timeout=args.ready_timeout):
             measurements = benchmark(SimpleNamespace(
                 workload=args.workload, arm=arm, concurrency=concurrency, base_url=base_url,
-                catalog=catalog, output=folder, repetition=repetition, timeout=args.timeout))
+                catalog=catalog, output=folder, repetition=repetition, timeout=args.timeout,
+                model_id=args.dflash2_model_id if arm == "dflash2-adaptive" else None))
         results.append({"repetition": repetition, "concurrency": concurrency, "arm": arm,
                         "passed": measurements["passed"], "output": str(folder)})
         print(json.dumps(results[-1]), flush=True)
@@ -185,6 +186,8 @@ def main():
     runner.add_argument("--package-dflash2", type=Path, required=True, help="DFlash2 package model.safetensors")
     runner.add_argument("--catalog-mtp", type=Path, required=True, help="flare inspect --json --graphs of the MTP package")
     runner.add_argument("--catalog-dflash2", type=Path, required=True, help="flare inspect --json --graphs of the DFlash2 package")
+    runner.add_argument("--dflash2-model-id", default=None,
+                        help="model id the DFlash2 package and its served responses carry when it differs from the arm (a directory export reports its directory name)")
     runner.add_argument("--output", type=Path, required=True)
     runner.add_argument("--trials", nargs="+", metavar="REPETITION:CONCURRENCY:ARM",
                         help="run only these trials of the plan (default: all, in plan order)")
