@@ -139,9 +139,6 @@ class PreparedFeatureContext:
         self.encode(self.metadata, self.counts, positions, rows, live)
         self.context(auxiliary, self.counts)
 
-    def scratch_tensors(self):
-        return self.context.scratch_tensors()
-
 
 class SpeculativePreparation:
     """Shared persistent owners for every prepared DFlash2 graph capacity."""
@@ -224,8 +221,8 @@ class SpeculativePreparation:
             buffers=self.draft_cursor, embedding=weights.embedding, head=weights.head, output_multiplier=1.,
             final_logit_softcapping=None, embedding_runtime=None, **collectives)
 
-    def prefill(self, decoder, name, *, buffers=None):
-        operation = PreparedPrefillContext(self, decoder, name, buffers=buffers)
+    def prefill(self, decoder, name):
+        operation = PreparedPrefillContext(self, decoder, name)
         self.owners.append(operation)
         return operation
 
@@ -241,7 +238,7 @@ class SpeculativePreparation:
 class PreparedPrefillContext:
     """Prefill through the tapped decoder, then write the chunk's features into the request's rings."""
 
-    def __init__(self, owner, decoder, name, *, buffers=None):
+    def __init__(self, owner, decoder, name):
         if decoder.auxiliary is None or decoder.feature_taps != owner.feature_taps:
             raise ValueError("the speculative prefill decoder must tap the draft's target layers")
         self.owner, self.decoder = owner, decoder
