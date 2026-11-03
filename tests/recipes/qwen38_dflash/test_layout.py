@@ -34,11 +34,11 @@ def test_dflash_layout_carries_rings_and_no_mtp_regions():
     assert layout.row_bytes % 256 == 0
     for layer in range(5):
         for field in ("key", "value"):
-            region = layout.region(f"dflash.{layer}.{field}")
+            region = layout.region(f"draft{layer}.{field}")
             assert region.shape == (2048, 8, 128)
             assert region.dtype == torch.float8_e4m3fn
     names = [r.name for r in layout.regions]
-    assert names.index("dflash.0.key") > names.index("qsa.47.boundary_selector")
+    assert names.index("draft0.key") > names.index("qsa.47.boundary_selector")
     assert not any(name.startswith("draft_") or name.startswith("target_residual") for name in names)
     with pytest.raises(KeyError):
         layout.region("target_residual")
@@ -53,9 +53,12 @@ def test_dflash_layout_carries_rings_and_no_mtp_regions():
 def test_pool_forwards_draft_windows_and_views_rings():
     pool = HybridStatePool.allocate(2, "cpu", speculative_tokens=7, mtp=False, draft_windows=DRAFT_WINDOWS)
     assert pool.layout.draft_ring_capacity == 0
-    ring = pool.region("dflash.4.value")
+    ring = pool.region("draft4.value")
     assert ring.shape == (2, 2048, 8, 128) and ring.dtype == torch.float8_e4m3fn
     assert ring.stride(0) == pool.layout.row_bytes
+    # The shared component reads rings through the paged pools' accessor; here it is the same view.
+    assert pool.reserved_region("draft4.value").data_ptr() == ring.data_ptr()
+    assert pool.reserved_region("draft4.value").shape == ring.shape
     with pytest.raises(KeyError):
         pool.region("draft_raw_keys")
 
