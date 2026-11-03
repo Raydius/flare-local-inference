@@ -41,8 +41,9 @@ class HybridStateLayout(StateLayout):
         ``mtp`` keeps the MTP feedback and draft ring regions; without it the
         speculative widening of the GDN, PLE and QSA histories remains and no
         draft ring is reported. ``draft_windows=(layers, window, kv_heads,
-        head_dim)`` adds E4M3 ``dflash.{layer}.key``/``value`` sliding-window
-        regions that snapshots copy as plain state.
+        head_dim)`` adds E4M3 ``draft{layer}.key``/``value`` sliding-window
+        regions that snapshots copy as plain state, named as the shared DFlash2
+        component reads them.
         """
         if type(speculative_tokens) is not int or not 0 <= speculative_tokens <= 7:
             raise ValueError("hybrid state supports zero through seven speculative tokens")
@@ -80,8 +81,8 @@ class HybridStateLayout(StateLayout):
         if draft_windows is not None:
             layers, window, kv_heads, head_dim = draft_windows
             for layer in range(layers):
-                add(f"dflash.{layer}.key", (window, kv_heads, head_dim), torch.float8_e4m3fn)
-                add(f"dflash.{layer}.value", (window, kv_heads, head_dim), torch.float8_e4m3fn)
+                add(f"draft{layer}.key", (window, kv_heads, head_dim), torch.float8_e4m3fn)
+                add(f"draft{layer}.value", (window, kv_heads, head_dim), torch.float8_e4m3fn)
         ring = 0
         if speculative_tokens and mtp:
             ring = geometry.raw_ring_capacity
@@ -171,6 +172,10 @@ class HybridStatePool(StateStorage):
             view("rope_delta"),
             backed_slots,
         )
+
+    def reserved_region(self, name):
+        """The region over every row, for components that index rows the admission already bounds."""
+        return self.region(name)
 
     def reset_for_preparation(self):
         """Restore empty unpublished model state after serialized benchmark use."""

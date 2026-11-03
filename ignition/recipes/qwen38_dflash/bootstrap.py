@@ -12,6 +12,7 @@ import torch
 
 from ignition.components.capacity import speculative_token_capacity
 from ignition.components.completion import CompletionOutputs
+from ignition.components.dflash2_weights import DraftWeights
 from ignition.components.parallel import TensorParallelShard
 from ignition.components.prompt_logprobs import (
     PreparedScoredPrefill, PromptScoring, prefill_graph_count, prefill_modes,
@@ -47,7 +48,6 @@ from ignition.recipes.qwen38.tuning import preparation_session
 from ignition.recipes.qwen38.vision import PreparedVision, VisionScratch
 
 from .config import DRAFT_REVISION, DraftConfig
-from .draft_weights import DraftWeights
 from .export import disposable_ranges
 from .recipe import DRAFT_WINDOWS, RECIPE
 
@@ -154,7 +154,7 @@ def _prepare_model(snapshot: Path, config: PreparationConfig, *, transient, prog
         release_page_cache(manifest.shard_paths)
     draft_weights = None
     if drafting:
-        draft_weights = DraftWeights.load(config.draft_checkpoint, draft_config, device, progress=progress)
+        draft_weights = DraftWeights.load(config.draft_checkpoint, draft_config, device, shard, progress=progress)
     host_storage = {} if package_storage is None else {"host_allocator": package_storage.host_allocate}
     table = PLETable.load(manifest, device, tokens=config.token_capacity, progress=progress, **host_storage)
     sample_rows = max(batch * width for batch, width in config.speculative_shapes) if drafting else config.request_capacity
@@ -443,7 +443,9 @@ def _prepare_model(snapshot: Path, config: PreparationConfig, *, transient, prog
                 speculative_shapes=config.speculative_shapes,
                 speculative_state_columns=8, draft_raw_ring_capacity=layout.draft_ring_capacity,
                 draft_window_tokens=draft_config.window,
-                speculative_fixed_width=config.speculative_fixed_width)
+                speculative_fixed_width=config.speculative_fixed_width,
+                context_buffer_bytes=speculation.context_buffers.nbytes,
+                draft_buffer_bytes=speculation.draft_buffers.nbytes)
         hashes = {"tokenizer": ("tokenizer.json", FRONTEND_SHA256["tokenizer.json"])}
         cache_regions = [history_region(buffers, f"cache.{layer}.{name}", getattr(value, name), contract_proto.PAGED_KEY_VALUE,
             tokens_per_record=4 if name == "compressed_k_cache" else 1)

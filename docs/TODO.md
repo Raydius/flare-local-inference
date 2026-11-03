@@ -4,8 +4,10 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
 
 ## Open
 
-- [ ] `qwen38_dflash` change 3: TP sharding of the draft (no PreparedShardedEmbedding/all-reduce
-      path yet). Served comparison against the MTP package recorded in
+- [ ] `qwen38_dflash` tensor parallelism: the draft now runs on the shared DFlash2 component, whose
+      sharded embedding, head, and reductions are in place at `runtime=None`; the recipe's bootstrap
+      is still single-GPU (`ignition/recipes/qwen38_dflash/recipe.py` rejects `world_size != 1`).
+      Served comparison against the MTP package recorded in
       `qualify/results/dflash2-served/summary.json`.
 
 - [ ] `ignition/recipes/qwen38_dflash/bootstrap.py` repeats ~256 of the ~390 lines of qwen38's
@@ -223,9 +225,6 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
 - [ ] Reduce the host-bridge cost of the 512-thread selected barrier gather for 512-byte rows at
       1 MiB per rank: 20.1% above the best measured geometry. Raw width comparisons:
       `~/benchmarks/gather-byte-ladder/width-*.jsonl`.
-
-- [ ] Fold `ignition/components/dflash_draft.py` into upstream's
-      `ignition/components/dflash2.py`, preserving TP-sharded and packed-verification behavior.
 
 - [ ] Give reproducer 4 in `tests/preparation/test_aot.py` a pad value other than 63 so it pins
       the destination-write ordering rule independently of the masked-fill value.

@@ -161,16 +161,14 @@ def test_dflash_mixed_state_writes_the_rings_a_prefill_and_a_round_would(tmp_pat
     from pathlib import Path
     from types import SimpleNamespace
 
-    from safetensors import safe_open
-
     from b12x.preparation import PreparationSession
-    from ignition.components.dflash_draft import PreparedContext, Rotary
+    from ignition.components.dflash2_weights import DraftWeights
+    from ignition.components.parallel import TensorParallelShard
     from ignition.preparation.scratch import GraphBufferPool, ScratchArena
     from ignition.recipes.qwen38_dflash.config import DraftConfig
-    from ignition.recipes.qwen38_dflash.draft_weights import DraftWeights
     from ignition.recipes.qwen38_dflash.recipe import DRAFT_WINDOWS
     from ignition.recipes.qwen38_dflash.speculative_model import (
-        PreparedMixedPromptContext, prefill_feature_rows, rings, verification_feature_rows,
+        PreparedFeatureContext, PreparedMixedPromptContext, prefill_feature_rows, verification_feature_rows,
     )
 
     assert os.environ.get("CUDA_VISIBLE_DEVICES")
@@ -179,8 +177,9 @@ def test_dflash_mixed_state_writes_the_rings_a_prefill_and_a_round_would(tmp_pat
         pytest.skip("requires the pinned DFlash2 draft")
     device = torch.device("cuda", 0)
     config = DraftConfig.load(draft)
-    with safe_open(str(draft / "model.safetensors"), "pt", device=str(device)) as file:
-        draft_weights = DraftWeights.assemble(config, file.get_tensor)
+    shard = TensorParallelShard(0, 1)
+    draft_weights = DraftWeights.load(draft, config, device, shard)
+    weights = SimpleNamespace(config=SimpleNamespace(draft=config), draft=draft_weights, shard=shard)
     window, feature_width = config.window, len(config.target_layers) * 2560
     batch, width, prefill, length = 4, 3, window + 64, window + 52
     prompt_row, prompt_slot, consumed = 1, 0, 63
@@ -214,18 +213,21 @@ def test_dflash_mixed_state_writes_the_rings_a_prefill_and_a_round_would(tmp_pat
         inputs.vision_token_indices.fill_(-1)
         return inputs
 
-    def context_for(auxiliary, name, buffers):
-        return PreparedContext(draft_weights, auxiliary, rings(config, pool), window=window, epsilon=config.eps,
-            rotary=Rotary(config, device), session=session, name=name, workspace=arena, buffers=buffers)
+    def context_for(auxiliary, name):
+        owner = SimpleNamespace(weights=weights, pool=pool, session=session, workspace=arena,
+                                context_buffers=context_buffers)
+        return PreparedFeatureContext(owner, auxiliary, name)
 
     def ring_rows(pool, slot):
-        return [ring[inputs_rows[slot]].float() for pair in rings(config, pool) for ring in pair]
+        return [pool.reserved_region(f"draft{layer}.{kind}")[inputs_rows[slot]].float()
+                for layer in range(config.layers) for kind in ("key", "value")]
 
     inputs_rows = [1, 2, 3, 4]
     results = {}
     with PreparationSession(device=str(device), autotune=False) as session:
         arena = ScratchArena(device)
         cursor = GraphBufferPool(device).cursor()
+        context_buffers = GraphBufferPool(device)
 
         # The mixed state: one prompt chunk and a verification batch packed into one forward.
         pool, requests = fresh()
@@ -261,7 +263,7 @@ def test_dflash_mixed_state_writes_the_rings_a_prefill_and_a_round_would(tmp_pat
         prompt_context = PreparedMixedPromptContext(prompt_owner, prompt_decoder, "mixed.prompt",
                                                     residual_output=scratch.prompt_residual, buffers=cursor)
         assert prompt_decoder.residual_output is scratch.prompt_residual
-        decode_context = context_for(decode_features, "mixed.decode", cursor)
+        decode_context = context_for(decode_features, "mixed.decode")
         arena.finalize()
         packing.upload_roles()
         prompt_context.begin()
@@ -290,7 +292,7 @@ def test_dflash_mixed_state_writes_the_rings_a_prefill_and_a_round_would(tmp_pat
         inputs.prefill_positions[:length].copy_(torch.arange(length, device=device)[:, None].expand(-1, 3))
         p2 = PreparedDecoderState(inputs, requests, pool, tokens=prefill, rows=1, mode="prefill", maintain_draft_state=True)
         features2 = cursor.zeros((prefill, feature_width), torch.bfloat16)
-        context2 = context_for(features2, "prefill", cursor)
+        context2 = context_for(features2, "prefill")
         owner2 = SimpleNamespace(inputs=inputs, requests=requests)
         p2.prepare_hidden(torch.zeros((prefill, 2560), dtype=torch.bfloat16, device=device),
                           torch.zeros((1, 2560), dtype=torch.bfloat16, device=device))
@@ -309,7 +311,7 @@ def test_dflash_mixed_state_writes_the_rings_a_prefill_and_a_round_would(tmp_pat
             torch.ones(batch, dtype=torch.int32, device=device), width=width, rows=batch,
             token_limits=decode_inputs.query_lengths[:batch])
         features3 = cursor.zeros((batch * width, feature_width), torch.bfloat16)
-        context3 = context_for(features3, "round", cursor)
+        context3 = context_for(features3, "round")
         d2.begin()
         features3.copy_(features_of(d2.qsa.query_positions, decode_slots.clamp_min(0).repeat_interleave(width)))
         context3(features3, *verification_feature_rows(SimpleNamespace(inputs=decode_inputs, requests=requests),
