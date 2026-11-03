@@ -296,7 +296,7 @@ def _prepare_model(snapshot: Path, config: PreparationConfig, *, transient, prog
                             embedding_injection=injection, max_cache_pages=planned_pages,
                             sampling_workspace=sampling_workspace,
                             scoring=scoring if kind == "scored_prefill" else None, **taps, **collectives)
-                        forward = speculation.prefill(decoder, name, buffers=cursor) if enabled else decoder
+                        forward = speculation.prefill(decoder, name) if enabled else decoder
                         add(name, forward, kind, rows,
                             capacity if mode == "prefill" else 1,
                             forward_fields, enabled=enabled)
