@@ -60,6 +60,19 @@ def test_container_command_serves_the_package_with_the_probe_flags():
     assert "--served-model-name" not in tail and "--mtp-draft-tokens" not in tail
 
 
+def test_container_command_can_drop_history_drafts_and_raise_the_served_context():
+    package = Path("/home/u/models/.cache/flare/packages/models/org_2Fmodel/gb202-tp1-1/model.safetensors")
+    options = dict(name="probe", uid=1000, gid=1000, home="/home/u",
+                   publisher_keys="/home/u/.cache/ctx/development-publisher.json", trust_store="/home/u/.cache/ctx/trust.toml")
+    default = ds.container_command("img", package, **options)
+    assert default == ds.container_command("img", package, history_drafts=True, max_context_tokens=None, **options)
+    probe = ds.container_command("img", package, history_drafts=False, max_context_tokens=1_048_576, **options)
+    tail = probe[probe.index("--entrypoint"):]
+    assert "--history-drafts" not in tail and tail[tail.index("--max-context-tokens") + 1] == "1048576"
+    assert "--max-context-tokens" not in default
+    assert [item for item in default if item != "--history-drafts"] == probe[:-2]
+
+
 class Process:
     def __init__(self, command, *, stdout, stderr):
         assert stderr is subprocess.STDOUT
