@@ -23,6 +23,7 @@ def test_prompt_names_three_records_over_one_catalog():
     assert messages[1]["content"] == _catalog(4800) and messages[1]["content"].count("service-4799:") == 1
     assert "service-0007, service-2400, and service-4799" in messages[2]["content"]
     assert case["request"]["max_tokens"] == 512 and case["request"]["model"] == "ckpt"
+    assert case["request"]["return_token_ids"] is False and case["request"]["return_token_timestamps"] is False
     assert case["prompt_tokens"] == [] and case["id"] == "long-services-4800"
     assert case["request_sha256"] == lc.value_sha(case["request"])
 
@@ -52,7 +53,7 @@ def delta(rounds, offered, accepted, width=4):
 
 def observation(content, prompt_tokens, generated=100, elapsed_ns=2_000_000_000):
     return {"case": "x", "elapsed_ns": elapsed_ns,
-            "analysis": {"usage": {"prompt_tokens": prompt_tokens}, "generated_token_ids": [1] * generated,
+            "analysis": {"usage": {"prompt_tokens": prompt_tokens, "completion_tokens": generated},
                          "finish_reason": "stop", "content": content,
                          "checks": {"no_stream_error": True, "one_valid_terminal": True}}}
 
@@ -77,7 +78,7 @@ def test_buckets_and_summary_apply_the_criterion():
     assert lc.summary(blind, sub)["retrieval_passed"] is False and lc.summary(blind, sub)["criterion_met"] is False
 
 
-def test_run_serves_once_without_history_drafts_and_sends_past_native_first(tmp_path, monkeypatch):
+def test_run_serves_once_without_history_drafts_and_sends_past_native_first(tmp_path):
     started, sent = [], []
 
     class Process:
