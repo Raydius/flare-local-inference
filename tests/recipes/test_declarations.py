@@ -502,6 +502,7 @@ def test_dflash_alias_declares_its_own_target_checkpoint():
 
 def test_dflash_yarn_variant_extends_the_declared_serving_context(monkeypatch, tmp_path):
     import sys
+    from dataclasses import replace
     from types import ModuleType
 
     from ignition.cli.preparation import rope_scaled
@@ -542,16 +543,11 @@ def test_dflash_yarn_variant_extends_the_declared_serving_context(monkeypatch, t
     bootstrap.PreparationConfig = PreparationConfig
     bootstrap.prepare_model = lambda snapshot, config, *, progress, compile_decoder: seen.update(config=config)
     monkeypatch.setitem(sys.modules, bootstrap.__name__, bootstrap)
-    scaled.recipe.prepare(tmp_path, replace_draft(extended, tmp_path), compile_forwards=True, kernel_cache=None, progress=None)
+    # A local draft directory, so preparation fetches nothing.
+    local_draft = replace(extended, draft_model=tmp_path / "draft")
+    scaled.recipe.prepare(tmp_path, local_draft, compile_forwards=True, kernel_cache=None, progress=None)
     kwargs = seen["config"].kwargs
     assert kwargs["context"] == 1_048_576 and kwargs["rope_scaling"] is scaled.checkpoint.rope_scaling
-
-
-def replace_draft(plan, directory):
-    """The plan with a local draft directory, so preparation fetches nothing."""
-    from dataclasses import replace
-
-    return replace(plan, draft_model=directory / "draft")
 
 
 def test_dflash_stored_bytes_match_the_local_target_snapshot():

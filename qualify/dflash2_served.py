@@ -148,17 +148,23 @@ def _shapes(rows):
              "emitted_tokens": row.get("emitted_tokens", 0)} for row in rows]
 
 
-def trial_summary(measurements):
-    totals = {}
-    for group in measurements["groups"]:
-        for key, value in group["metrics_delta"].items():
-            totals[key] = totals.get(key, 0) + value
+def drafts_by_source(totals):
+    """Offered and accepted draft counts by source (`mtp`, `copy`) from a metrics total or delta."""
     drafts = {}
     for key, value in totals.items():
         if match := _DRAFT.fullmatch(key):
             _, source, outcome = match.groups()
             outcomes = drafts.setdefault(source, {})
             outcomes[outcome] = outcomes.get(outcome, 0) + value
+    return drafts
+
+
+def trial_summary(measurements):
+    totals = {}
+    for group in measurements["groups"]:
+        for key, value in group["metrics_delta"].items():
+            totals[key] = totals.get(key, 0) + value
+    drafts = drafts_by_source(totals)
     code_edit = measurements["measurements"].get("code_edit", {})
     return {"passed": measurements["passed"], "transport_passed": measurements.get("transport_passed", False),
             "errors": measurements.get("errors", []),
