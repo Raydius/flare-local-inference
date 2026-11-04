@@ -1,11 +1,13 @@
 """Qualified checkpoint, serving range, and memory costs of the Qwen 3.8 DFlash2 recipe."""
 
+from dataclasses import replace
 from pathlib import Path
 from types import MappingProxyType
 
 from ignition.errors import UsageError
 from ignition.preparation.qwen38 import ARCHITECTURE
-from ignition.recipes.declaration import Checkpoint, RankCosts, RankUsage, Recipe, SamplingDefaults, SamplingRange, Speculation
+from ignition.recipes.declaration import (Checkpoint, RankCosts, RankUsage, Recipe, RopeScaling, SamplingDefaults,
+    SamplingRange, Speculation)
 from ignition.recipes.qwen38.recipe import _GRAPH_BYTES, _costs
 
 from .config import DRAFT_REPOSITORY, DRAFT_REVISION
@@ -83,7 +85,14 @@ RECIPE = Recipe(
     sampling_defaults=SamplingDefaults(temperature=1., top_p=.95, top_k=20,
         ranges={"temperature": SamplingRange(.7, 1.), "top_p": SamplingRange(.8, .95),
                 "presence_penalty": SamplingRange(0., 2.)}),
-    checkpoints=(_CHECKPOINT,),
+    checkpoints=(
+        _CHECKPOINT,
+        # Rope interpolation extends the trained 262,144-token context by four, as qwen38's yarn4
+        # alias does: frequency-only, without YaRN's attention temperature. The draft's rotary and
+        # its 2048-position rings take the extended positions unscaled.
+        replace(_CHECKPOINT, alias="qwen3.8-flash-dflash2-yarn4", context=1_048_576,
+                rope_scaling=RopeScaling(4., 262144)),
+    ),
     context=262144, page_tokens=64, concurrency=32, max_concurrency=64, prefill_chunk=4096,
     # Rounds adapt among zero through seven DFlash2 drafts; verification commits accepted tokens
     # into the live state row, so it keeps no extra rows.
