@@ -106,8 +106,7 @@ def test_retention_scope_preserves_body_error_when_pool_cleanup_fails(monkeypatc
     assert any('transient pool cleanup failed' in note for note in raised.value.__notes__)
 
 
-@pytest.mark.parametrize('integrated', [True, False])
-def test_capture_drains_after_prepare_and_sync_before_capture(monkeypatch, integrated):
+def test_capture_drains_after_prepare_and_sync_before_capture(monkeypatch):
     events = []
     @contextmanager
     def retention():
@@ -139,10 +138,5 @@ def test_capture_drains_after_prepare_and_sync_before_capture(monkeypatch, integ
         {'speculative': SimpleNamespace(kind='speculative')},
         session=SimpleNamespace(namespace=SimpleNamespace(to_dict=lambda: {}), capture=nullcontext),
         device='cuda:0', stream=stream, pool=None,
-        warmup_storage=SimpleNamespace(transient=nullcontext, retain_transient_backing=retention,
-                                       integrated=integrated))
-    if integrated:
-        assert events[:5] == ['begin', 'prepare_many', 'sync', 'finish', 'prepare_capture']
-    else:
-        assert events[:3] == ['prepare_many', 'sync', 'prepare_capture']
-        assert 'begin' not in events and 'finish' not in events
+        warmup_storage=SimpleNamespace(transient=nullcontext, retain_transient_backing=retention))
+    assert events[:5] == ['begin', 'prepare_many', 'sync', 'finish', 'prepare_capture']
