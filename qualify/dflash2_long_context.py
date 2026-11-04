@@ -16,10 +16,11 @@ import argparse
 import json
 import os
 from pathlib import Path
+import subprocess
 import threading
 
 from qualify import speculative_benchmark
-from qualify.dflash2_served import PORT, Server, _DRAFT, container_command, healthy
+from qualify.dflash2_served import PORT, Server, container_command, drafts_by_source, healthy
 from qualify.provenance import write_json
 from qualify.speculative_workload import SAMPLING, _catalog, _message, json_bytes, value_sha
 
@@ -48,7 +49,9 @@ def prompt(records, *, model):
                          "timeout, retry limit, and owner, then recommend which deserves the first retry-policy review.")],
         tools=[], chat_template_kwargs={"enable_thinking": False, "add_generation_prompt": True},
         **SAMPLING, seed=48200 + records, max_tokens=512, stream=True, stream_options={"include_usage": True},
-        return_token_ids=True, return_token_timestamps=True)
+        # No token-id echo: the first event would carry the whole prompt's ids, and a prompt past the
+        # native context renders that line beyond the benchmark reader's 1 MiB line bound.
+        return_token_ids=False, return_token_timestamps=False)
     return dict(id=f"long-services-{records}", request=request, request_sha256=value_sha(request),
                 prompt_tokens=[], expected_output_semantics={"kind": "text"})
 
@@ -71,27 +74,24 @@ def draft_counts(delta):
     offered = sum(row.get("offered_drafts", 0) for row in rounds)
     accepted = sum(row.get("accepted_drafts", 0) for row in rounds)
     launches = sum(row.get("rounds", 0) for row in rounds)
-    sources = {}
-    for key, value in delta.items():
-        if match := _DRAFT.fullmatch(key):
-            _, source, outcome = match.groups()
-            sources.setdefault(source, {})[outcome] = sources.setdefault(source, {}).get(outcome, 0) + value
     return {"offered_drafts": offered, "accepted_drafts": accepted, "speculative_rounds": launches,
             "accepted_per_round": accepted / launches if launches else None,
             "acceptance_rate": accepted / offered if offered else None,
-            "rounds_by_shape": rounds, "drafts_by_source": sources}
+            "rounds_by_shape": rounds, "drafts_by_source": drafts_by_source(delta)}
 
 
 def bucket(observation, expected, delta):
     analysis = observation["analysis"]
     usage = analysis.get("usage") or {}
     elapsed = observation.get("elapsed_ns")
-    generated = len(analysis["generated_token_ids"])
+    generated = usage.get("completion_tokens") or 0
     return {"case": observation["case"], "prompt_tokens": usage.get("prompt_tokens"),
             "generated_tokens": generated, "finish_reason": analysis["finish_reason"],
             "completed": "client_error" not in observation and analysis["checks"]["no_stream_error"]
                          and analysis["checks"]["one_valid_terminal"],
             "client_error": observation.get("client_error"),
+            # Over the whole request, prefill included; no per-token timestamps are requested.
+            "request_seconds": elapsed / 1e9 if elapsed else None,
             "output_tokens_per_second": generated / (elapsed / 1e9) if elapsed else None,
             "retrieval": check_retrieval(analysis["content"], expected), "expected_values": expected,
             **draft_counts(delta)}
@@ -101,11 +101,10 @@ def summary(past_native, sub_native):
     ratio = (past_native["accepted_per_round"] / sub_native["accepted_per_round"]
              if past_native["accepted_per_round"] and sub_native["accepted_per_round"] else None)
     retrieval = past_native["retrieval"]["passed"] and sub_native["retrieval"]["passed"]
+    past_native_long_enough = (past_native["prompt_tokens"] or 0) > NATIVE_CONTEXT
     return {"past_native": past_native, "sub_native": sub_native, "ratio": ratio, "criterion": CRITERION,
-            "retrieval_passed": retrieval,
-            "past_native_exceeds_native_context": (past_native["prompt_tokens"] or 0) > NATIVE_CONTEXT,
-            "criterion_met": bool(retrieval and ratio is not None and ratio >= CRITERION
-                                  and (past_native["prompt_tokens"] or 0) > NATIVE_CONTEXT)}
+            "retrieval_passed": retrieval, "past_native_exceeds_native_context": past_native_long_enough,
+            "criterion_met": bool(retrieval and past_native_long_enough and ratio is not None and ratio >= CRITERION)}
 
 
 def measure(base_url, case, folder, *, timeout, model_id):
@@ -117,9 +116,7 @@ def measure(base_url, case, folder, *, timeout, model_id):
     return observation, speculative_benchmark.metric_delta(before, after)
 
 
-def run(args, *, popen=None, stop=None, ready=healthy, measure=measure):
-    import subprocess
-
+def run(args, *, popen=subprocess.Popen, stop=subprocess.run, ready=healthy, measure=measure):
     base_url = f"http://127.0.0.1:{args.port}"
     args.output.mkdir(parents=True, exist_ok=True)
     command = container_command(args.image, args.package, name="dflash2-long-context", uid=os.getuid(), gid=os.getgid(),
@@ -127,7 +124,7 @@ def run(args, *, popen=None, stop=None, ready=healthy, measure=measure):
                                 port=args.port, history_drafts=False, max_context_tokens=args.max_context_tokens)
     buckets = {}
     with Server(command, "dflash2-long-context", base_url, args.output / "server.log",
-                popen=popen or subprocess.Popen, stop=stop or subprocess.run, ready=ready, ready_timeout=args.ready_timeout):
+                popen=popen, stop=stop, ready=ready, ready_timeout=args.ready_timeout):
         for name, tokens in (("past_native", args.past_native_tokens), ("sub_native", args.sub_native_tokens)):
             records = records_for(tokens)
             case = prompt(records, model=args.model_id)
