@@ -46,13 +46,14 @@ def trials(plan, selection=None):
 
 
 def container_command(image, package, *, name, uid, gid, home, publisher_keys, trust_store, port=PORT,
-                      history_drafts=True, max_context_tokens=None):
+                      history_drafts=True, max_context_tokens=None, mtp_draft_tokens=None, adaptive_verification=True):
     """The 3a probe's serving container: host network, GPU 0, the package cache and trust files at their host paths.
 
     The trust store already approves the development signer that exported both packages, so no
     first-use acceptance flag is passed. `history_drafts=False` serves without history copies so
     draft counters measure the learned draft alone; `max_context_tokens` raises the served context
-    of a rope-scaled package.
+    of a rope-scaled package; `mtp_draft_tokens` caps drafts per round (0 disables speculation) and
+    `adaptive_verification=False` pins every round at the maximum captured width.
     """
     package, home = Path(package), Path(home)
     publisher_keys, trust_store = Path(publisher_keys).resolve(), Path(trust_store).resolve()
@@ -71,6 +72,10 @@ def container_command(image, package, *, name, uid, gid, home, publisher_keys, t
                 "--publisher-keys", str(publisher_keys), "--trust-store", str(trust_store)]
     if max_context_tokens is not None:
         command += ["--max-context-tokens", str(max_context_tokens)]
+    if mtp_draft_tokens is not None:
+        command += ["--mtp-draft-tokens", str(mtp_draft_tokens)]
+    if not adaptive_verification:
+        command.append("--no-mtp-adaptive-verification")
     return command
 
 
@@ -159,11 +164,17 @@ def drafts_by_source(totals):
     return drafts
 
 
-def trial_summary(measurements):
+def metrics_totals(measurements):
+    """The trial's native counter deltas summed over its groups."""
     totals = {}
     for group in measurements["groups"]:
         for key, value in group["metrics_delta"].items():
             totals[key] = totals.get(key, 0) + value
+    return totals
+
+
+def trial_summary(measurements):
+    totals = metrics_totals(measurements)
     drafts = drafts_by_source(totals)
     code_edit = measurements["measurements"].get("code_edit", {})
     return {"passed": measurements["passed"], "transport_passed": measurements.get("transport_passed", False),

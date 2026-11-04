@@ -416,7 +416,8 @@ def pool_pages(values):
     return sum(values.get(key, -1) for key in ("flare_free_kv_pages", "flare_cached_kv_pages", "flare_snapshot_backing_pages"))
 
 
-def summarize_group(group, observations, before, after, catalog, targets):
+def summarize_group(group, observations, before, after, catalog, targets, *, speculating=True):
+    """Transport and conservation checks over one group; a non-speculating arm emits through decode graphs only."""
     delta = metric_delta(before, after)
     count = len(observations)
     checks = {"requests_observed": count == len(group["case_ids"]),
@@ -442,8 +443,11 @@ def summarize_group(group, observations, before, after, catalog, targets):
     # Mixed rounds launch no per-shape speculative counters, so their emissions only appear in the raw IDs.
     shape_emitted = sum(row.get("emitted_tokens", 0) for row in shapes)
     mixed = delta.get('flare_graph_launches_total{kind="mixed"}', 0)
-    checks["speculative_emissions_match_raw_ids"] = (shape_emitted + count == emitted
-                                                    or (mixed > 0 and shape_emitted + count <= emitted))
+    if speculating:
+        checks["speculative_emissions_match_raw_ids"] = (shape_emitted + count == emitted
+                                                        or (mixed > 0 and shape_emitted + count <= emitted))
+    else:
+        checks["speculative_emissions_match_raw_ids"] = shape_emitted == 0
     semantics_pass = all(a["output_semantics"]["automatic_passed"] for a in analyses)
     return {**group, "passed": all(checks.values()) and semantics_pass,
             "transport_passed": all(checks.values()), "checks": checks, "metrics_delta": delta,
@@ -495,7 +499,9 @@ def measurement_summary(workload, observations, groups):
 
 def run(args):
     workload = validate_artifacts(args.workload)
-    arm = next(a for a in arms() if a["id"] == args.arm)
+    # A sweep supplies its own arm policy; the comparison binds one of the frozen arms by id.
+    arm = getattr(args, "arm_policy", None) or next(a for a in arms() if a["id"] == args.arm)
+    speculating = arm.get("speculative_fixed_width") != 1
     # A package exported from a checkpoint directory carries the directory name as its model id.
     if getattr(args, "model_id", None):
         arm = {**arm, "model_id": args.model_id}
@@ -536,7 +542,7 @@ def run(args):
                 results = list(pool.map(submit, group["case_ids"]))
             measurements["observations"].extend(results)
             after = idle_metrics(args.base_url, folder, "after", args.timeout, max_active)
-            summary = summarize_group(group, results, before, after, catalog, targets)
+            summary = summarize_group(group, results, before, after, catalog, targets, speculating=speculating)
             summary["category"] = cases[group["case_ids"][0]]["category"]
             measurements["groups"].append(summary)
             write_json(folder / "group.json", {**summary, "metrics_before": before, "metrics_after": after})

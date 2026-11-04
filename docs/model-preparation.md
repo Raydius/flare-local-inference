@@ -555,6 +555,12 @@ tables; the draft's rotary and its 2048-position rings take positions past
 probes a scaled package with one retrieval prompt past the native context and
 one below it, history copies off, and records the draft's accepted tokens per
 round in both buckets against a 10 % criterion.
+`python -m qualify.dflash2_draft_sweep --workload WORKLOAD --image IMAGE --package PACKAGE --catalog CATALOG --publisher-keys KEYS --trust-store STORE --output DIR`
+serves one package once per draft count, fixed 0 through 7
+(`--mtp-draft-tokens N --no-mtp-adaptive-verification`) plus the adaptive
+controller, at concurrency 1 and 8 on the frozen speculation workload, and
+tabulates code_edit tokens per second, accepted drafts per round, and
+acceptance rate per count; history copies stay off unless `--history-drafts`.
 
 ## GLM 5.3 Flash
 
