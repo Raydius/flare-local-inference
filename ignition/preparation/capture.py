@@ -61,11 +61,7 @@ def capture_forwards(functions, signatures, *, session, device, stream, pool,
                    for name, forward in forwards.items()):
                 raise ValueError("grouped forwards require one type and graph signature")
         stream.wait_stream(torch.cuda.current_stream(device))
-        # Retaining transient physical backing across the whole warmup catalog works around a DGX Spark
-        # CUDA_ERROR_ILLEGAL_INSTRUCTION (upstream a794c99d); discrete devices release it between forwards
-        # so a large catalog fits the device.
-        retention = (warmup_storage.retain_transient_backing()
-                     if warmup_storage is not None and warmup_storage.integrated else nullcontext())
+        retention = nullcontext() if warmup_storage is None else warmup_storage.retain_transient_backing()
         with retention:
             with torch.cuda.stream(stream):
                 if compile_group is None:
