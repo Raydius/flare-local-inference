@@ -23,7 +23,8 @@ from ignition.components.speculation import (
 )
 
 
-def example(*, batch=1, width=4, consumed=2, budget=20, eos=(), slot=2, vocab=16, completion_capacity=16):
+def example(*, batch=1, width=4, consumed=2, budget=20, eos=(), slot=2, vocab=16, completion_capacity=16,
+            copy_offered_mask=None):
     state = DeviceRequestState.allocate("cpu", vocab_size=vocab)
     state.admit(slot, RequestAdmission(generation=7, seed=2**64 - 1, max_new_tokens=budget,
         temperature=1, top_k=0, top_p=1, eos_token_ids=eos), [1, 2], consumed_tokens=2, ple_history=(1, 2))
@@ -50,8 +51,20 @@ def example(*, batch=1, width=4, consumed=2, budget=20, eos=(), slot=2, vocab=16
     frame, sequence = torch.tensor([1], dtype=torch.int32), torch.tensor([37], dtype=torch.int64)
     logits = torch.zeros((*inputs.shape, state.vocab_size), device=inputs.device)
     commit = PreparedSpeculativeCommit(state, acceptance, inputs, slots, epochs, live,
-        completion_outputs(records), frame, sequence, logits=logits)
+        completion_outputs(records), frame, sequence, logits=logits, copy_offered_mask=copy_offered_mask)
     return state, acceptance, commit, records
+
+
+def test_commit_sizes_records_from_completion_capacity_and_masks_copies_to_offered():
+    # Width 4 round on a capacity-12 completion: the record row is 16 + 12 fields and the copy
+    # mask keeps only the bits of the three offered drafts (a literal 24 or ``8 - width`` fails).
+    mask = torch.tensor([0b1011_0101], dtype=torch.int64)
+    state, acceptance, commit, records = example(width=4, completion_capacity=12, copy_offered_mask=mask)
+    assert commit.token_capacity == 12 and records.shape == (2, 4, 28)
+    commit()
+    assert records[1, 2, 9].item() == 3 and records[1, 2, 11].item() == 0b101
+    assert records[1, 2, 16:19].tolist() == [4, 5, 9] and records[1, 2, 19:].eq(-1).all()
+    assert commit.idle_record.shape == (28,)
 
 
 @pytest.mark.parametrize("width", range(1, 17))
