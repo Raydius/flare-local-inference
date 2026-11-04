@@ -289,6 +289,44 @@ def test_vector_emission_and_completed_round_counts_are_cross_checked():
     assert not result["checks"]["speculative_emissions_match_raw_ids"]
 
 
+def test_a_non_speculating_arm_is_checked_against_decode_graphs_only():
+    analysis = sb.analyze_events(events(), case(), model_id=sw.MODEL_ID)
+    observation = {"case": "chat-capacity", "analysis": analysis, "request_start_perf_counter_ns": 1, "elapsed_ns": 100}
+    group = {"stage": "chat", "case_ids": ["chat-capacity"], "concurrency": 1}
+    before, after = metrics(), metrics(1)
+    for key in list(after):
+        if key.startswith("flare_speculative_") or key == 'flare_graph_launches_total{kind="speculative"}':
+            after[key] = before[key]
+    speculating = sb.summarize_group(group, [observation], before, after, catalog(DFLASH2), TARGETS)
+    assert not speculating["checks"]["speculative_emissions_match_raw_ids"]
+    floor = sb.summarize_group(group, [observation], before, after, catalog(DFLASH2), TARGETS, speculating=False)
+    assert floor["passed"] and floor["speculation"]["shapes"] == []
+    after['flare_speculative_emitted_tokens_total{batch="4",width="2"}'] += 1
+    leaked = sb.summarize_group(group, [observation], before, after, catalog(DFLASH2), TARGETS, speculating=False)
+    assert not leaked["checks"]["speculative_emissions_match_raw_ids"]
+
+
+def test_an_arm_policy_replaces_the_frozen_arm_lookup_before_any_request(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    monkeypatch.setattr(sb, "validate_artifacts", lambda workload: {"cases": []})
+    catalog_path = tmp_path / "catalog.json"
+    catalog_path.write_text(json.dumps(CATALOG))
+
+    def args(**policy):
+        return SimpleNamespace(workload=tmp_path / "workload", arm="fixed-4", concurrency=1, base_url="http://127.0.0.1:1",
+                               catalog=catalog_path, output=tmp_path / "out", repetition=0, timeout=1, model_id=None, **policy)
+
+    # Without a policy the id must name a frozen arm.
+    with pytest.raises(StopIteration):
+        sb.run(args())
+    # With one, the policy is validated against the catalog before any request or output directory.
+    wrong = {**DFLASH2, "id": "fixed-4", "model_id": "elsewhere", "speculative_fixed_width": 5}
+    with pytest.raises(ValueError, match="model_id"):
+        sb.run(args(arm_policy=wrong))
+    assert not (tmp_path / "out").exists()
+
+
 def test_mixed_rounds_account_for_raw_ids_missing_from_shape_counters():
     analysis = sb.analyze_events(events(ids=(10, 11, 12, 248044)), case(), model_id=sw.MODEL_ID)
     observation = {"case": "chat-capacity", "analysis": analysis, "request_start_perf_counter_ns": 1, "elapsed_ns": 100}

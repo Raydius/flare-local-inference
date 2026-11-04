@@ -73,6 +73,21 @@ def test_container_command_can_drop_history_drafts_and_raise_the_served_context(
     assert [item for item in default if item != "--history-drafts"] == probe[:-2]
 
 
+def test_container_command_can_fix_the_draft_count_and_disable_adaptive_verification():
+    package = Path("/home/u/models/.cache/flare/packages/models/org_2Fmodel/gb202-tp1-1/model.safetensors")
+    options = dict(name="sweep", uid=1000, gid=1000, home="/home/u",
+                   publisher_keys="/home/u/.cache/ctx/development-publisher.json", trust_store="/home/u/.cache/ctx/trust.toml")
+    default = ds.container_command("img", package, **options)
+    assert default == ds.container_command("img", package, mtp_draft_tokens=None, adaptive_verification=True, **options)
+    assert "--mtp-draft-tokens" not in default and "--no-mtp-adaptive-verification" not in default
+    fixed = ds.container_command("img", package, mtp_draft_tokens=4, adaptive_verification=False, **options)
+    assert fixed == default + ["--mtp-draft-tokens", "4", "--no-mtp-adaptive-verification"]
+    floor = ds.container_command("img", package, mtp_draft_tokens=0, adaptive_verification=False, **options)
+    assert floor == default + ["--mtp-draft-tokens", "0", "--no-mtp-adaptive-verification"]
+    adaptive = ds.container_command("img", package, mtp_draft_tokens=3, **options)
+    assert adaptive == default + ["--mtp-draft-tokens", "3"]
+
+
 class Process:
     def __init__(self, command, *, stdout, stderr):
         assert stderr is subprocess.STDOUT
