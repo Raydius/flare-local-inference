@@ -500,6 +500,60 @@ def test_dflash_alias_declares_its_own_target_checkpoint():
     assert resolve("qwen3.8-flash-yarn4").recipe is QWEN.recipe
 
 
+def test_dflash_yarn_variant_extends_the_declared_serving_context(monkeypatch, tmp_path):
+    import sys
+    from types import ModuleType
+
+    from ignition.cli.preparation import rope_scaled
+
+    scaled = resolve("qwen3.8-flash-dflash2-yarn4")
+    assert scaled.recipe is DFLASH.recipe
+    base = DFLASH.checkpoint
+    for field in ("repository", "revision", "architecture", "stored_bytes", "device_bytes", "draft_bytes", "expansion_bytes"):
+        assert getattr(scaled.checkpoint, field) == getattr(base, field)
+    assert scaled.checkpoint.rope_scaling.original_max_position_embeddings == DFLASH.recipe.context == 262_144
+    assert scaled.checkpoint.context == DFLASH.recipe.context * 4 == 1_048_576
+    # Repository resolution still names the native declaration first.
+    assert resolve(DFLASH_TARGET).checkpoint is base
+    assert resolve(f"{DFLASH_TARGET}@{DFLASH_REVISION}").checkpoint is base
+
+    plain = fitted(DFLASH, 1)
+    extended = fitted(scaled, 1)
+    assert plain.declared_context == 262_144 and extended.declared_context == 1_048_576
+    assert extended.recipe.context == 262_144 and extended.demand_pages == 4 * plain.demand_pages
+    assert extended.to_dict()["rope_scaling"]["factor"] == 4.
+    assert extended.costs == plain.costs and extended.speculation == plain.speculation
+    with pytest.raises(planning.UsageError, match="64 through 1,048,576"):
+        planning.plan(scaled.recipe, scaled.checkpoint, plain.gpus, selected=(0,), concurrency=4,
+                      reserve_bytes=0, speculation=scaled.recipe.speculation, prefill_chunk=1_048_640)
+
+    # The console's form: `--rope-parameters` on the base alias resolves to the same declaration.
+    console = rope_scaled(DFLASH, {"rope_type": "yarn", "factor": 4.0, "original_max_position_embeddings": 262144})
+    assert console.context == 1_048_576 and console.rope_scaling == scaled.checkpoint.rope_scaling
+    assert console.draft_bytes == 1_206_131_200 and console.alias == base.alias
+
+    seen = {}
+    bootstrap = ModuleType("ignition.recipes.qwen38_dflash.bootstrap")
+
+    class PreparationConfig:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+
+    bootstrap.PreparationConfig = PreparationConfig
+    bootstrap.prepare_model = lambda snapshot, config, *, progress, compile_decoder: seen.update(config=config)
+    monkeypatch.setitem(sys.modules, bootstrap.__name__, bootstrap)
+    scaled.recipe.prepare(tmp_path, replace_draft(extended, tmp_path), compile_forwards=True, kernel_cache=None, progress=None)
+    kwargs = seen["config"].kwargs
+    assert kwargs["context"] == 1_048_576 and kwargs["rope_scaling"] is scaled.checkpoint.rope_scaling
+
+
+def replace_draft(plan, directory):
+    """The plan with a local draft directory, so preparation fetches nothing."""
+    from dataclasses import replace
+
+    return replace(plan, draft_model=directory / "draft")
+
+
 def test_dflash_stored_bytes_match_the_local_target_snapshot():
     index = Path.home() / "models" / DFLASH_TARGET / "model.safetensors.index.json"
     if not index.is_file():

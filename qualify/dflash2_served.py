@@ -45,11 +45,14 @@ def trials(plan, selection=None):
     return [trial for trial in ordered if trial in wanted]
 
 
-def container_command(image, package, *, name, uid, gid, home, publisher_keys, trust_store, port=PORT):
+def container_command(image, package, *, name, uid, gid, home, publisher_keys, trust_store, port=PORT,
+                      history_drafts=True, max_context_tokens=None):
     """The 3a probe's serving container: host network, GPU 0, the package cache and trust files at their host paths.
 
     The trust store already approves the development signer that exported both packages, so no
-    first-use acceptance flag is passed.
+    first-use acceptance flag is passed. `history_drafts=False` serves without history copies so
+    draft counters measure the learned draft alone; `max_context_tokens` raises the served context
+    of a rope-scaled package.
     """
     package, home = Path(package), Path(home)
     publisher_keys, trust_store = Path(publisher_keys).resolve(), Path(trust_store).resolve()
@@ -61,10 +64,14 @@ def container_command(image, package, *, name, uid, gid, home, publisher_keys, t
                "--ipc", "host", "--shm-size", "8g", "--network", "host", "-u", f"{uid}:{gid}"]
     for path, mode in mounts.items():
         command += ["-v", f"{path}:{path}" + (f":{mode}" if mode else "")]
-    return command + ["-e", f"HOME={home}", "--entrypoint", "/usr/local/bin/flare", image,
-                      "run", str(package), "--gpus", "0", "--history-drafts", "--max-concurrency", "8",
-                      "--host", "0.0.0.0", "--port", str(port), "--offline",
-                      "--publisher-keys", str(publisher_keys), "--trust-store", str(trust_store)]
+    command += ["-e", f"HOME={home}", "--entrypoint", "/usr/local/bin/flare", image, "run", str(package), "--gpus", "0"]
+    if history_drafts:
+        command.append("--history-drafts")
+    command += ["--max-concurrency", "8", "--host", "0.0.0.0", "--port", str(port), "--offline",
+                "--publisher-keys", str(publisher_keys), "--trust-store", str(trust_store)]
+    if max_context_tokens is not None:
+        command += ["--max-context-tokens", str(max_context_tokens)]
+    return command
 
 
 def healthy(base_url):

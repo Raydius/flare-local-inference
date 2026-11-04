@@ -502,6 +502,18 @@ rejected. With `--mixed-prefill`, mixed graphs run the DFlash2 round around the
 packed prompt/decode target forward and write the prompt chunk's draft context
 from the same graph.
 
+`qwen3.8-flash-dflash2-yarn4` is the same target and draft at a 1,048,576-token
+serving context through frequency-only rope interpolation of factor 4 anchored
+at the native 262,144 tokens, as `qwen3.8-flash-yarn4` is for the MTP recipe;
+`ignition export qwen3.8-flash-dflash2 --rope-parameters '{"rope_type":"yarn","factor":4.0,"original_max_position_embeddings":262144}'`
+prepares the same declaration. The scaling applies to the target's rotary
+tables; the draft's rotary and its 2048-position rings take positions past
+262,144 unscaled. Serve the package with `--max-context-tokens 1048576`.
+`python -m qualify.dflash2_long_context --image IMAGE --package PACKAGE --publisher-keys KEYS --trust-store STORE --output DIR`
+probes a scaled package with one retrieval prompt past the native context and
+one below it, history copies off, and records the draft's accepted tokens per
+round in both buckets against a 10 % criterion.
+
 ## GLM 5.3 Flash
 
 The `glm-5.3-flash` recipe uses `nvidia/GLM-5.3-Flash-FP4-Local` and supports
