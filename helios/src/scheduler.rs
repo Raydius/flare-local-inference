@@ -2704,6 +2704,7 @@ impl RequestScheduler {
                     vector.accepted_drafts as usize,
                     vector.emitted_count > vector.accepted_drafts,
                     survival,
+                    vector.copy_offered_mask,
                 );
                 // The population learns from the rounds the request's own profile learns from.
                 if host_population {
