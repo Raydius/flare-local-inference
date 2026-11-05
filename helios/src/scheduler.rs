@@ -2721,6 +2721,7 @@ impl RequestScheduler {
                     vector.accepted_drafts as usize,
                     vector.emitted_count > vector.accepted_drafts,
                     survival,
+                    vector.copy_offered_mask,
                 );
                 // The population and GPU confidence calibration learn from the exact
                 // offered, determined prefix outcomes that update the request's profile.

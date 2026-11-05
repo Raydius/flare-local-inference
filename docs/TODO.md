@@ -60,10 +60,6 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
       replaces (`ignition/components/split_draft.py:103` via
       `ignition/components/parallel_draft.py:401`), biasing prefix allocation for copies.
 
-- [ ] Scheduler acceptance learning ignores the copy mask (`helios/src/scheduler.rs:2421`), so
-      copies inflate the learned MTP acceptance curve used for packed-round allocation.
-      Pre-existing on Qwen.
-
 - [ ] Preflight file-descriptor capacity before TP core assembly opens every
       payload file and cache lease. Report the required limit before partially
       assembling ranks; see heliopause/src/export/core.rs and model-preparation.md.
