@@ -10,15 +10,19 @@ specifics and the live patch index.
 NVIDIA is out of scope until a patch proves worth it, so the upstream contribution gates
 in `AGENTS.md` (maintainer-request scope, the `.githooks/commit-msg` design-review hook,
 the Claude Opus 5.5 kernel/optimization ban) do not apply here — the operator overruled
-them. The hook stays disabled. `AGENTS.md`'s architecture and package-compatibility rules
-still describe how Flare works; break them knowingly, not by accident.
+them. The hook is nonetheless enabled in this clone (`core.hooksPath=.githooks` in
+`.git/config`), so every commit needs one `Design-Signed-Off-By` acknowledgment as
+`docs/design-review.md` describes. Patches that prove worth it now go upstream as PRs from
+`pr/*` branches cut on `upstream/main` (#211 and #212, opened 2026-11-04/05).
+`AGENTS.md`'s architecture and package-compatibility rules still describe how Flare works;
+break them knowingly, not by accident.
 
 ## Remotes
 
 | Remote     | URL                                                  | Role                      |
 | ---------- | ---------------------------------------------------- | ------------------------- |
 | `origin`   | `git@github.com:Raydius/flare-local-inference.git`   | our fork (push here)      |
-| `upstream` | `https://github.com/NVIDIA/flare-local-inference.git` | NVIDIA (fetch-only; push URL is `DISABLE`) |
+| `upstream` | `https://github.com/NVIDIA/flare-local-inference.git` | NVIDIA (fetch-only; push URL is `DISABLE`); GitHub redirects it to `NVIDIA/spark-local-inference` |
 
 ## Branch model
 
@@ -27,11 +31,12 @@ base/current (tag → an upstream commit)
   └─ patch/00-fork-tooling      # this file + scripts/fork/ (never upstreamed)
        └─ patch/01-<topic>       # one logical change each
             └─ patch/NN-<topic>  # topmost patch = what you build
-                 └─ deploy           # README patch notes; GitHub default branch
+                 └─ deploy           # README patch notes + DFlash2 work; GitHub default branch
 ```
 
-- **`deploy`** — one commit above the topmost patch: README's patch notes and this file's
-  inventory pointer. It is the GitHub default branch, so the notes show on the repo page, and
+- **`deploy`** — the patch stack, the commits that keep README's patch notes current, and
+  the DFlash2 work merged above them (2026-11-04; it has no `patch/NN` branches and is
+  inventoried in README's Active patches). It is the GitHub default branch, so the notes show on the repo page, and
   `rebase.sh`'s default `STACK_TIP`. A new patch goes below it: `git rebase --onto patch/NN-<new>
   patch/NN-<old> deploy`, then add the README row and amend.
 
