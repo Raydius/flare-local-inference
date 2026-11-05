@@ -1644,12 +1644,12 @@ fn acceptance_keeps_request_program_and_censored_prefixes_separate() {
     use speculation::{AcceptanceProfile, ProposalSource::{Copy, Mtp}};
     let mut a = AcceptanceProfile::default();
     let b = AcceptanceProfile::default();
-    a.observe(Mtp, 2, 5, 2, false, None);
+    a.observe(Mtp, 2, 5, 2, false, None, 0);
     assert!(a.prefix_probability(Mtp, 0).unwrap() > 0.5);
     assert!(a.prefix_probability(Mtp, 1).unwrap() > 0.25);
     assert_eq!(a.prefix_probability(Copy, 0), Some(0.5));
     assert_eq!(a.prefix_probability(Mtp, 2), Some(0.125));
-    a.observe(Copy, 2, 5, 2, true, None);
+    a.observe(Copy, 2, 5, 2, true, None, 0);
     assert!(a.prefix_probability(Copy, 2).unwrap() < 0.125);
     assert_eq!(a.prefix_probability(Mtp, 2), Some(0.125));
     assert!(a.prefix_probability(Copy, 3).unwrap() < 0.0625);

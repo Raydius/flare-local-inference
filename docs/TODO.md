@@ -35,10 +35,6 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
       replaces (`ignition/components/split_draft.py:103` via
       `ignition/components/parallel_draft.py:401`), biasing prefix allocation for copies.
 
-- [ ] Scheduler acceptance learning ignores the copy mask (`helios/src/scheduler.rs:2421`), so
-      copies inflate the learned MTP acceptance curve used for packed-round allocation.
-      Pre-existing on Qwen.
-
 - [ ] Expose the selected deployment's rebuild metadata in `flare inspect``--json`. Payload
       packages report `rebuild: null` even when `DeploymentBody.rebuild` is present.
 

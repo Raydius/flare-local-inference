@@ -2528,6 +2528,7 @@ impl RequestScheduler {
                     vector.accepted_drafts as usize,
                     vector.emitted_count > vector.accepted_drafts,
                     survival.map(|rows| rows[lane.request.slot as usize].as_slice()),
+                    vector.copy_offered_mask,
                 );
             }
             if record.status == 3 {

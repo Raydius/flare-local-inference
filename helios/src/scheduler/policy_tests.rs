@@ -1272,7 +1272,7 @@ fn efficient_thirty_millisecond_speculation_beats_seventeen_millisecond_rounds()
     let h = add(&mut s, 1, 64, 2048);
     ready(&mut s, &[h]);
     for _ in 0..128 {
-        s.request_mut(h).unwrap().acceptance.observe(speculation::ProposalSource::Mtp, 0, 7, 7, true, None);
+        s.request_mut(h).unwrap().acceptance.observe(speculation::ProposalSource::Mtp, 0, 7, 7, true, None, 0);
     }
     let plan = s.plan().unwrap();
     assert_eq!(
@@ -1280,7 +1280,7 @@ fn efficient_thirty_millisecond_speculation_beats_seventeen_millisecond_rounds()
         (GraphKind::Speculative, 8, 30 * MS)
     );
     for _ in 0..256 {
-        s.request_mut(h).unwrap().acceptance.observe(speculation::ProposalSource::Mtp, 0, 7, 0, true, None);
+        s.request_mut(h).unwrap().acceptance.observe(speculation::ProposalSource::Mtp, 0, 7, 0, true, None, 0);
     }
     assert!(s.plan().unwrap().token_capacity < 8);
 }
@@ -1308,7 +1308,7 @@ fn speculative_cohorts_are_selected_by_expected_lane_value() {
         r.generated_tokens = 1;
         for _ in 0..128 {
             r.acceptance
-                .observe(speculation::ProposalSource::Mtp, 0, 7, if index >= 6 { 7 } else { 0 }, true, None);
+                .observe(speculation::ProposalSource::Mtp, 0, 7, if index >= 6 { 7 } else { 0 }, true, None, 0);
         }
     }
     for batch in [1, 2, 4, 8] {
@@ -1362,7 +1362,7 @@ fn long_prefill_and_low_acceptance_decode_both_make_progress() {
         s.request_mut(decode)
             .unwrap()
             .acceptance
-            .observe(speculation::ProposalSource::Mtp, 0, 7, 0, true, None);
+            .observe(speculation::ProposalSource::Mtp, 0, 7, 0, true, None, 0);
     }
     let prefill = add(&mut s, 2, 32768, 128);
     let mut last = s.now_ns;
@@ -1433,7 +1433,7 @@ fn decode_waiting_selects_a_smaller_prefill_at_the_efficiency_knee() {
         r.generated_tokens = 1;
         r.accounting.last_output_ns = Some(now);
         for _ in 0..128 {
-            r.acceptance.observe(speculation::ProposalSource::Mtp, 0, 7, 7, true, None);
+            r.acceptance.observe(speculation::ProposalSource::Mtp, 0, 7, 7, true, None, 0);
         }
     }
     let smaller = s.plan().unwrap();
@@ -1487,7 +1487,7 @@ fn five_and_sixteen_streams_receive_repeated_output_service() {
                     s.request_mut(h)
                         .unwrap()
                         .acceptance
-                        .observe(speculation::ProposalSource::Mtp, 0, 7, accepted, true, None);
+                        .observe(speculation::ProposalSource::Mtp, 0, 7, accepted, true, None, 0);
                 }
             }
         }
@@ -1573,7 +1573,7 @@ fn snapshot_enabling_a_shared_decode_batch_competes_by_the_complete_sequence_cos
     let handles: Vec<_> = (1..=16).map(|id| add(&mut s, id, 64, 4096)).collect();
     for &h in &handles {
         for _ in 0..128 {
-            s.request_mut(h).unwrap().acceptance.observe(speculation::ProposalSource::Mtp, 0, 7, 7, true, None);
+            s.request_mut(h).unwrap().acceptance.observe(speculation::ProposalSource::Mtp, 0, 7, 7, true, None, 0);
         }
     }
     for _ in 0..200 {
@@ -1682,7 +1682,7 @@ fn prerequisite_cohort_accounts_for_ready_batch_mates() {
             s.request_mut(handle)
                 .unwrap()
                 .acceptance
-                .observe(speculation::ProposalSource::Mtp, 0, 7, 7, true, None);
+                .observe(speculation::ProposalSource::Mtp, 0, 7, 7, true, None, 0);
         }
     }
     let decode = add(&mut s, 15, 64, 4096);
@@ -2517,7 +2517,7 @@ fn acceptance_learning_escapes_width_one_and_pays_for_complete_rounds() {
     let generated = s.request(handle).unwrap().generated_tokens;
     for _ in 0..256 {
         s.request_mut(handle).unwrap().acceptance.observe(speculation::ProposalSource::Mtp,
-            generated, 7, 0, true, None);
+            generated, 7, 0, true, None, 0);
     }
     s.refresh.acceptance_credit_ns = 0.0;
     assert_eq!(s.plan().unwrap().token_capacity, 1);
@@ -3443,8 +3443,8 @@ fn host_prefix_allocator_prices_the_configured_acceptance_transform() {
         let profile = &mut scheduler.request_mut(handle).unwrap().acceptance;
         *profile = Default::default();
         for _ in 0..8 {
-            if index == 0 { profile.observe(speculation::ProposalSource::Mtp, 0, 1, 1, false, None); }
-            else { profile.observe(speculation::ProposalSource::Mtp, 0, 1, 0, true, Some(&[0.3; 15])); }
+            if index == 0 { profile.observe(speculation::ProposalSource::Mtp, 0, 1, 1, false, None, 0); }
+            else { profile.observe(speculation::ProposalSource::Mtp, 0, 1, 0, true, Some(&[0.3; 15]), 0); }
         }
     }
     let mask = handles.iter().fold(0, |mask, handle| mask | 1 << handle.slot);
@@ -3722,7 +3722,7 @@ fn cached_host_prefix_ranks_match_greedy_allocation_for_every_small_cohort_order
                 let profile = &mut scheduler.request_mut(*handle).unwrap().acceptance;
                 let probability = [0.1, 0.9, 0.5, 0.5][index];
                 let survival: [f32; 15] = std::array::from_fn(|depth| (probability as f32).powi(depth as i32 + 1));
-                for _ in 0..8 { profile.observe(speculation::ProposalSource::Mtp, 1, 7, 0, true, Some(&survival)); }
+                for _ in 0..8 { profile.observe(speculation::ProposalSource::Mtp, 1, 7, 0, true, Some(&survival), 0); }
             }
             let available: Vec<_> = handles.iter().map(|handle| handle.slot as usize).collect();
             for weights in [[1.0; 4], [1.0, 2.0, 0.0, 3.0]] {
