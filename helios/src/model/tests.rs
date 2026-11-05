@@ -716,7 +716,7 @@ fn history_proposal_count_is_bounded_by_the_lane_verification_width() {
     let state_step = |scheduler: &mut RequestScheduler, handle: crate::scheduler::RequestHandle, fence: u64| {
         let step = scheduler.plan().unwrap();
         scheduler.commit(&step, Fence(fence)).unwrap();
-        let mut completed = [CompletionRecord::default(); 4];
+        let mut completed: [CompletionRecord; 4] = std::array::from_fn(|_| CompletionRecord::default());
         completed[handle.slot as usize] = CompletionRecord {
             generation: handle.generation as i64,
             submission_sequence: fence as i64,
@@ -736,7 +736,7 @@ fn history_proposal_count_is_bounded_by_the_lane_verification_width() {
         let step = scheduler.plan().unwrap();
         assert_eq!(step.kind, GraphKind::Prefill);
         scheduler.commit(&step, Fence(fence)).unwrap();
-        let mut completed = [CompletionRecord::default(); 4];
+        let mut completed: [CompletionRecord; 4] = std::array::from_fn(|_| CompletionRecord::default());
         completed[handle.slot as usize] = CompletionRecord {
             generation: handle.generation as i64,
             submission_sequence: fence as i64,
@@ -765,7 +765,7 @@ fn history_proposal_count_is_bounded_by_the_lane_verification_width() {
         let tokens: [i64; 8] = std::array::from_fn(|i| first + i as i64);
         consumed += 8;
         generated += 8;
-        let mut completed = [CompletionRecord::default(); 4];
+        let mut completed: [CompletionRecord; 4] = std::array::from_fn(|_| CompletionRecord::default());
         completed[teacher.slot as usize] = CompletionRecord {
             generation: teacher.generation as i64,
             submission_sequence: fence as i64,
@@ -779,7 +779,7 @@ fn history_proposal_count_is_bounded_by_the_lane_verification_width() {
                 accepted_drafts: 7,
                 draft_cache_consumed: consumed - 1,
                 verification_width: 8,
-                tokens,
+                tokens: tokens.to_vec(),
                 ..Default::default()
             }),
             ..Default::default()

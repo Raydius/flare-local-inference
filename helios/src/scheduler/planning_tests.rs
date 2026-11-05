@@ -42,7 +42,7 @@ fn planning_scheduler(active: usize, allocation: PrefixAllocation) -> RequestSch
         for sample in 0..8 {
             let accepted = (id + sample) % 8;
             request.acceptance.observe(speculation::ProposalSource::Mtp, 17,
-                7, accepted, accepted < 7, None);
+                7, accepted, accepted < 7, None, 0);
         }
     }
     scheduler
@@ -115,7 +115,7 @@ fn ranked_prefix_allocation_matches_greedy_frontiers() {
                         });
                         if seed == 0 { request.acceptance = Default::default(); }
                         else { request.acceptance.observe(source, request.generated_tokens,
-                            7, slot % 8, slot % 8 < 7, None); }
+                            7, slot % 8, slot % 8 < 7, None, 0); }
                         values[slot].output_token = [0.0, 1.0, 1.0, 4.0][(slot + seed) % 4];
                     }
                     scheduler.limits.max_sequence_tokens = if seed == 3 { 83 } else { 8192 };

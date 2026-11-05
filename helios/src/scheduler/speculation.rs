@@ -133,6 +133,7 @@ impl AcceptanceProfile {
     }
 
     /// Rejection falsifies every longer offered prefix; termination censors its suffix.
+    /// A depth the copy mask names updates the copy curve; every other depth updates `source`.
     pub(super) fn observe(
         &mut self,
         source: ProposalSource,
@@ -141,6 +142,7 @@ impl AcceptanceProfile {
         accepted: usize,
         rejected: bool,
         survival: Option<&[f32]>,
+        copy_mask: i64,
     ) {
         debug_assert!(accepted <= offered && offered <= self.prefixes[source as usize].len());
         if offered == 0 {
@@ -149,7 +151,12 @@ impl AcceptanceProfile {
         let observed = if rejected { offered } else { accepted };
         for depth in 0..observed {
             let value = survival.map_or(f64::from(depth < accepted), |p| f64::from(p[depth]));
-            self.prefixes[source as usize][depth].observe(value, generated);
+            let curve = if depth < COPY_DRAFT_CAPACITY && copy_mask & (1i64 << depth) != 0 {
+                ProposalSource::Copy
+            } else {
+                source
+            };
+            self.prefixes[curve as usize][depth].observe(value, generated);
         }
         self.rounds = self.rounds.saturating_add(1);
     }
@@ -176,10 +183,10 @@ mod tests {
     #[test]
     fn shallow_rounds_do_not_refresh_unobserved_suffixes() {
         let mut profile = AcceptanceProfile::default();
-        for _ in 0..256 { profile.observe(ProposalSource::Mtp, 0, 7, 0, true, None); }
+        for _ in 0..256 { profile.observe(ProposalSource::Mtp, 0, 7, 0, true, None, 0); }
         let before = profile.curve(ProposalSource::Mtp, 0, true);
         for generated in 1..=1024 {
-            profile.observe(ProposalSource::Mtp, generated, 1, 1, true, None);
+            profile.observe(ProposalSource::Mtp, generated, 1, 1, true, None, 0);
         }
         let means = profile.curve(ProposalSource::Mtp, 1024, false);
         let upper = profile.curve(ProposalSource::Mtp, 1024, true);
@@ -193,15 +200,33 @@ mod tests {
     fn probability_feedback_replaces_the_binary_sample_and_respects_censoring() {
         let mut profile = AcceptanceProfile::default();
         let survival = [0.8, 0.4, 0.2, 0.1, 0.05, 0.025, 0.01, -1., -1., -1., -1., -1., -1., -1., -1.];
-        profile.observe(ProposalSource::Mtp, 0, 7, 0, true, Some(&survival));
+        profile.observe(ProposalSource::Mtp, 0, 7, 0, true, Some(&survival), 0);
         for depth in 0..7 {
             let expected = (2.0 * 0.5f64.powi(depth as i32 + 1) + f64::from(survival[depth])) / 3.0;
             assert!((profile.prefix_probability(ProposalSource::Mtp, depth).unwrap() - expected).abs() < 1e-12);
         }
         let before = profile.curve(ProposalSource::Mtp, 0, false);
-        profile.observe(ProposalSource::Mtp, 0, 7, 1, false, Some(&survival));
+        profile.observe(ProposalSource::Mtp, 0, 7, 1, false, Some(&survival), 0);
         assert_eq!(profile.curve(ProposalSource::Mtp, 0, false)[1..], before[1..]);
     }
+}
+
+#[cfg(test)]
+#[test]
+fn copied_depths_update_the_copy_curve_and_leave_the_mtp_curve_alone() {
+    let mut profile = AcceptanceProfile::default();
+    let means = |profile: &AcceptanceProfile, source: ProposalSource|
+        profile.prefixes[source as usize].iter().map(|p| p.mean()).collect::<Vec<_>>();
+    let (mtp, copy) = (means(&profile, ProposalSource::Mtp), means(&profile, ProposalSource::Copy));
+    profile.observe(ProposalSource::Mtp, 0, 5, 3, true, None, 0b11);
+    let (after_mtp, after_copy) = (means(&profile, ProposalSource::Mtp), means(&profile, ProposalSource::Copy));
+    assert_eq!(after_mtp[..2], mtp[..2]);
+    assert!(after_copy[0] > copy[0] && after_copy[1] > copy[1]);
+    assert_eq!(after_copy[2..], copy[2..]);
+    assert!(after_mtp[2] > mtp[2]);
+    assert!(after_mtp[3] < mtp[3] && after_mtp[4] < mtp[4]);
+    assert_eq!(after_mtp[5..], mtp[5..]);
+    assert_eq!(profile.rounds(), 1);
 }
 
 #[cfg(test)]
@@ -220,7 +245,7 @@ fn acceptance_profiles_follow_package_capacity() {
     for capacity in [1, 8, 13, 16, 32, 257] {
         let mut profile = AcceptanceProfile::new(capacity);
         assert_eq!(profile.curve(ProposalSource::Mtp, 0, false).len(), capacity - 1);
-        profile.observe(ProposalSource::Mtp, 0, capacity - 1, capacity - 1, false, None);
+        profile.observe(ProposalSource::Mtp, 0, capacity - 1, capacity - 1, false, None, 0);
         assert_eq!(profile.rounds(), u64::from(capacity > 1));
         assert!(profile.prefix_probability(ProposalSource::Mtp, capacity - 1).is_none());
     }
