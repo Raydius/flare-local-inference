@@ -1,0 +1,563 @@
+{
+  "arms": {
+    "dflash2-adaptive": {
+      "1": {
+        "0": {
+          "passed": false,
+          "transport_passed": true,
+          "errors": [],
+          "code_edit_output_tokens_per_second": {
+            "count": 8,
+            "median": 260.8708363519976,
+            "p99": 397.66675362671964,
+            "minimum": 151.9148277438077,
+            "maximum": 397.66675362671964
+          },
+          "code_edit_rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 1,
+              "rounds": 688,
+              "emitted_tokens": 688
+            },
+            {
+              "batch": 1,
+              "width": 2,
+              "rounds": 46,
+              "emitted_tokens": 87
+            },
+            {
+              "batch": 1,
+              "width": 3,
+              "rounds": 876,
+              "emitted_tokens": 2255
+            },
+            {
+              "batch": 1,
+              "width": 6,
+              "rounds": 11,
+              "emitted_tokens": 48
+            },
+            {
+              "batch": 1,
+              "width": 7,
+              "rounds": 79,
+              "emitted_tokens": 370
+            },
+            {
+              "batch": 1,
+              "width": 8,
+              "rounds": 115,
+              "emitted_tokens": 616
+            }
+          ],
+          "rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 1,
+              "rounds": 861,
+              "emitted_tokens": 861
+            },
+            {
+              "batch": 1,
+              "width": 2,
+              "rounds": 48,
+              "emitted_tokens": 91
+            },
+            {
+              "batch": 1,
+              "width": 3,
+              "rounds": 1680,
+              "emitted_tokens": 4166
+            },
+            {
+              "batch": 1,
+              "width": 4,
+              "rounds": 177,
+              "emitted_tokens": 596
+            },
+            {
+              "batch": 1,
+              "width": 5,
+              "rounds": 133,
+              "emitted_tokens": 410
+            },
+            {
+              "batch": 1,
+              "width": 6,
+              "rounds": 15,
+              "emitted_tokens": 63
+            },
+            {
+              "batch": 1,
+              "width": 7,
+              "rounds": 122,
+              "emitted_tokens": 529
+            },
+            {
+              "batch": 1,
+              "width": 8,
+              "rounds": 127,
+              "emitted_tokens": 661
+            }
+          ],
+          "drafts_by_source": {
+            "mtp": {
+              "offered": 3276,
+              "accepted": 2390
+            },
+            "copy": {
+              "offered": 2891,
+              "accepted": 1836
+            }
+          },
+          "mixed_graph_launches": 31,
+          "requests_failed": 0
+        },
+        "1": {
+          "passed": false,
+          "transport_passed": true,
+          "errors": [],
+          "code_edit_output_tokens_per_second": {
+            "count": 8,
+            "median": 339.88827098267484,
+            "p99": 396.4016683790222,
+            "minimum": 151.8217320873657,
+            "maximum": 396.4016683790222
+          },
+          "code_edit_rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 1,
+              "rounds": 654,
+              "emitted_tokens": 654
+            },
+            {
+              "batch": 1,
+              "width": 2,
+              "rounds": 165,
+              "emitted_tokens": 286
+            },
+            {
+              "batch": 1,
+              "width": 3,
+              "rounds": 360,
+              "emitted_tokens": 961
+            },
+            {
+              "batch": 1,
+              "width": 7,
+              "rounds": 160,
+              "emitted_tokens": 786
+            },
+            {
+              "batch": 1,
+              "width": 8,
+              "rounds": 239,
+              "emitted_tokens": 1372
+            }
+          ],
+          "rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 1,
+              "rounds": 800,
+              "emitted_tokens": 800
+            },
+            {
+              "batch": 1,
+              "width": 2,
+              "rounds": 231,
+              "emitted_tokens": 412
+            },
+            {
+              "batch": 1,
+              "width": 3,
+              "rounds": 1233,
+              "emitted_tokens": 3018
+            },
+            {
+              "batch": 1,
+              "width": 4,
+              "rounds": 178,
+              "emitted_tokens": 510
+            },
+            {
+              "batch": 1,
+              "width": 5,
+              "rounds": 243,
+              "emitted_tokens": 789
+            },
+            {
+              "batch": 1,
+              "width": 6,
+              "rounds": 2,
+              "emitted_tokens": 6
+            },
+            {
+              "batch": 1,
+              "width": 7,
+              "rounds": 162,
+              "emitted_tokens": 793
+            },
+            {
+              "batch": 1,
+              "width": 8,
+              "rounds": 253,
+              "emitted_tokens": 1420
+            }
+          ],
+          "drafts_by_source": {
+            "mtp": {
+              "offered": 3861,
+              "accepted": 2803
+            },
+            "copy": {
+              "offered": 3095,
+              "accepted": 1857
+            }
+          },
+          "mixed_graph_launches": 24,
+          "requests_failed": 0
+        }
+      },
+      "8": {
+        "0": {
+          "passed": false,
+          "transport_passed": true,
+          "errors": [],
+          "code_edit_output_tokens_per_second": {
+            "count": 1,
+            "median": 528.1509125476067,
+            "p99": 528.1509125476067,
+            "minimum": 528.1509125476067,
+            "maximum": 528.1509125476067
+          },
+          "code_edit_rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 1,
+              "rounds": 428,
+              "emitted_tokens": 428
+            },
+            {
+              "batch": 2,
+              "width": 1,
+              "rounds": 29,
+              "emitted_tokens": 58
+            },
+            {
+              "batch": 2,
+              "width": 8,
+              "rounds": 25,
+              "emitted_tokens": 175
+            },
+            {
+              "batch": 4,
+              "width": 1,
+              "rounds": 10,
+              "emitted_tokens": 32
+            },
+            {
+              "batch": 4,
+              "width": 2,
+              "rounds": 1,
+              "emitted_tokens": 7
+            },
+            {
+              "batch": 4,
+              "width": 3,
+              "rounds": 1,
+              "emitted_tokens": 8
+            },
+            {
+              "batch": 4,
+              "width": 4,
+              "rounds": 1,
+              "emitted_tokens": 14
+            },
+            {
+              "batch": 4,
+              "width": 5,
+              "rounds": 1,
+              "emitted_tokens": 17
+            },
+            {
+              "batch": 4,
+              "width": 6,
+              "rounds": 1,
+              "emitted_tokens": 21
+            },
+            {
+              "batch": 4,
+              "width": 7,
+              "rounds": 1,
+              "emitted_tokens": 20
+            },
+            {
+              "batch": 4,
+              "width": 8,
+              "rounds": 2,
+              "emitted_tokens": 33
+            },
+            {
+              "batch": 8,
+              "width": 1,
+              "rounds": 1,
+              "emitted_tokens": 8
+            },
+            {
+              "batch": 8,
+              "width": 2,
+              "rounds": 1,
+              "emitted_tokens": 14
+            },
+            {
+              "batch": 8,
+              "width": 3,
+              "rounds": 1,
+              "emitted_tokens": 20
+            },
+            {
+              "batch": 8,
+              "width": 4,
+              "rounds": 1,
+              "emitted_tokens": 18
+            },
+            {
+              "batch": 8,
+              "width": 5,
+              "rounds": 1,
+              "emitted_tokens": 28
+            },
+            {
+              "batch": 8,
+              "width": 6,
+              "rounds": 1,
+              "emitted_tokens": 33
+            },
+            {
+              "batch": 8,
+              "width": 7,
+              "rounds": 2,
+              "emitted_tokens": 81
+            },
+            {
+              "batch": 8,
+              "width": 8,
+              "rounds": 70,
+              "emitted_tokens": 2388
+            }
+          ],
+          "rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 1,
+              "rounds": 446,
+              "emitted_tokens": 446
+            },
+            {
+              "batch": 1,
+              "width": 2,
+              "rounds": 2,
+              "emitted_tokens": 4
+            },
+            {
+              "batch": 1,
+              "width": 3,
+              "rounds": 231,
+              "emitted_tokens": 550
+            },
+            {
+              "batch": 1,
+              "width": 4,
+              "rounds": 105,
+              "emitted_tokens": 349
+            },
+            {
+              "batch": 1,
+              "width": 5,
+              "rounds": 1,
+              "emitted_tokens": 5
+            },
+            {
+              "batch": 1,
+              "width": 6,
+              "rounds": 16,
+              "emitted_tokens": 47
+            },
+            {
+              "batch": 1,
+              "width": 7,
+              "rounds": 1,
+              "emitted_tokens": 7
+            },
+            {
+              "batch": 1,
+              "width": 8,
+              "rounds": 20,
+              "emitted_tokens": 58
+            },
+            {
+              "batch": 2,
+              "width": 1,
+              "rounds": 56,
+              "emitted_tokens": 112
+            },
+            {
+              "batch": 2,
+              "width": 2,
+              "rounds": 23,
+              "emitted_tokens": 88
+            },
+            {
+              "batch": 2,
+              "width": 3,
+              "rounds": 1,
+              "emitted_tokens": 6
+            },
+            {
+              "batch": 2,
+              "width": 4,
+              "rounds": 80,
+              "emitted_tokens": 452
+            },
+            {
+              "batch": 2,
+              "width": 5,
+              "rounds": 1,
+              "emitted_tokens": 10
+            },
+            {
+              "batch": 2,
+              "width": 6,
+              "rounds": 27,
+              "emitted_tokens": 197
+            },
+            {
+              "batch": 2,
+              "width": 7,
+              "rounds": 1,
+              "emitted_tokens": 14
+            },
+            {
+              "batch": 2,
+              "width": 8,
+              "rounds": 27,
+              "emitted_tokens": 199
+            },
+            {
+              "batch": 4,
+              "width": 1,
+              "rounds": 53,
+              "emitted_tokens": 182
+            },
+            {
+              "batch": 4,
+              "width": 2,
+              "rounds": 1,
+              "emitted_tokens": 7
+            },
+            {
+              "batch": 4,
+              "width": 3,
+              "rounds": 15,
+              "emitted_tokens": 135
+            },
+            {
+              "batch": 4,
+              "width": 4,
+              "rounds": 114,
+              "emitted_tokens": 1206
+            },
+            {
+              "batch": 4,
+              "width": 5,
+              "rounds": 1,
+              "emitted_tokens": 17
+            },
+            {
+              "batch": 4,
+              "width": 6,
+              "rounds": 1,
+              "emitted_tokens": 21
+            },
+            {
+              "batch": 4,
+              "width": 7,
+              "rounds": 1,
+              "emitted_tokens": 20
+            },
+            {
+              "batch": 4,
+              "width": 8,
+              "rounds": 3,
+              "emitted_tokens": 45
+            },
+            {
+              "batch": 8,
+              "width": 1,
+              "rounds": 1,
+              "emitted_tokens": 8
+            },
+            {
+              "batch": 8,
+              "width": 2,
+              "rounds": 1,
+              "emitted_tokens": 14
+            },
+            {
+              "batch": 8,
+              "width": 3,
+              "rounds": 1,
+              "emitted_tokens": 20
+            },
+            {
+              "batch": 8,
+              "width": 4,
+              "rounds": 1,
+              "emitted_tokens": 18
+            },
+            {
+              "batch": 8,
+              "width": 5,
+              "rounds": 1,
+              "emitted_tokens": 28
+            },
+            {
+              "batch": 8,
+              "width": 6,
+              "rounds": 1,
+              "emitted_tokens": 33
+            },
+            {
+              "batch": 8,
+              "width": 7,
+              "rounds": 2,
+              "emitted_tokens": 81
+            },
+            {
+              "batch": 8,
+              "width": 8,
+              "rounds": 70,
+              "emitted_tokens": 2388
+            }
+          ],
+          "drafts_by_source": {
+            "mtp": {
+              "offered": 4072,
+              "accepted": 2729
+            },
+            "copy": {
+              "offered": 2680,
+              "accepted": 1526
+            }
+          },
+          "mixed_graph_launches": 64,
+          "requests_failed": 0
+        }
+      }
+    }
+  },
+  "trials": 3
+}
