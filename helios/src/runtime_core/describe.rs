@@ -450,6 +450,8 @@ pub(super) fn vision_json(
                 "min_pixels": c.min_pixels, "max_pixels": c.max_pixels}),
             Profile::Glm(_) => json!({"profile": "glm"}),
             Profile::PaddedGrid(_) => json!({"profile": "padded_grid"}),
+            Profile::MuseGlimmer(c) => json!({"profile": "muse_glimmer", "patch_size": c.patch_size,
+                "merge_size": c.merge_size, "max_image_tokens": c.max_image_tokens}),
         }
     });
     json!({

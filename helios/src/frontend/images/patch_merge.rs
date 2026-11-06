@@ -62,49 +62,69 @@ impl Processor {
         prompt_token_ids: &[u32],
         images: &ProcessedImages,
     ) -> Result<ImagePrompt> {
-        let image_ids = frontend.encode(&self.image_token, false)?;
-        let [image_id] = image_ids.as_slice() else {
-            return Err("image placeholder must encode one token".into());
-        };
-        let envelope_id = |marker: &str| -> Result<u32> {
-            let ids = frontend.encode(marker, false)?;
-            match ids.as_slice() {
-                [id] => Ok(*id),
-                _ => Err("image envelope marker must encode one token".into()),
-            }
-        };
-        let start_id = envelope_id(&self.start_token)?;
-        let end_id = envelope_id(&self.end_token)?;
-        let placeholder_count = prompt_token_ids
-            .iter()
-            .filter(|id| **id == *image_id)
-            .count();
-        if placeholder_count != images.geometry.len() {
-            return Err("image placeholder count does not match input images".into());
-        }
-        let mut token_ids = Vec::new();
-        let mut geometry = images.geometry.iter();
-        for &id in prompt_token_ids {
-            if id == *image_id {
-                let tokens = geometry.next().expect("placeholder count was checked").tokens;
-                token_ids.push(start_id);
-                token_ids.extend(std::iter::repeat_n(*image_id, tokens));
-                token_ids.push(end_id);
-            } else {
-                token_ids.push(id);
-            }
-        }
-        let mm_token_type_ids = token_ids
-            .iter()
-            .map(|id| i32::from(*id == *image_id))
-            .collect();
-        Ok(ImagePrompt {
-            position_ids: std::array::from_fn(|_| (0..token_ids.len() as i64).collect()),
-            token_ids,
-            mm_token_type_ids,
-            rope_delta: 0,
-        })
+        bracketed_prompt(
+            frontend,
+            prompt_token_ids,
+            images,
+            &self.image_token,
+            &self.start_token,
+            &self.end_token,
+        )
     }
+}
+
+/// Replaces each `image_token` placeholder with `start_token`, one `image_token` per image
+/// token, and `end_token`; shared by every profile with a bracketed image layout.
+pub(super) fn bracketed_prompt(
+    frontend: &Frontend,
+    prompt_token_ids: &[u32],
+    images: &ProcessedImages,
+    image_token: &str,
+    start_token: &str,
+    end_token: &str,
+) -> Result<ImagePrompt> {
+    let image_ids = frontend.encode(image_token, false)?;
+    let [image_id] = image_ids.as_slice() else {
+        return Err("image placeholder must encode one token".into());
+    };
+    let envelope_id = |marker: &str| -> Result<u32> {
+        let ids = frontend.encode(marker, false)?;
+        match ids.as_slice() {
+            [id] => Ok(*id),
+            _ => Err("image envelope marker must encode one token".into()),
+        }
+    };
+    let start_id = envelope_id(start_token)?;
+    let end_id = envelope_id(end_token)?;
+    let placeholder_count = prompt_token_ids
+        .iter()
+        .filter(|id| **id == *image_id)
+        .count();
+    if placeholder_count != images.geometry.len() {
+        return Err("image placeholder count does not match input images".into());
+    }
+    let mut token_ids = Vec::new();
+    let mut geometry = images.geometry.iter();
+    for &id in prompt_token_ids {
+        if id == *image_id {
+            let tokens = geometry.next().expect("placeholder count was checked").tokens;
+            token_ids.push(start_id);
+            token_ids.extend(std::iter::repeat_n(*image_id, tokens));
+            token_ids.push(end_id);
+        } else {
+            token_ids.push(id);
+        }
+    }
+    let mm_token_type_ids = token_ids
+        .iter()
+        .map(|id| i32::from(*id == *image_id))
+        .collect();
+    Ok(ImagePrompt {
+        position_ids: std::array::from_fn(|_| (0..token_ids.len() as i64).collect()),
+        token_ids,
+        mm_token_type_ids,
+        rope_delta: 0,
+    })
 }
 
 #[cfg(test)]
