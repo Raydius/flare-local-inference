@@ -1,0 +1,158 @@
+{
+  "arms": {
+    "fixed-7": {
+      "1": {
+        "0": {
+          "passed": false,
+          "transport_passed": true,
+          "errors": [],
+          "code_edit_output_tokens_per_second": {
+            "count": 8,
+            "median": 380.73557899788125,
+            "p99": 466.4744501400614,
+            "minimum": 77.11452294172213,
+            "maximum": 466.4744501400614
+          },
+          "code_edit_rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 8,
+              "rounds": 1278,
+              "emitted_tokens": 4193
+            }
+          ],
+          "rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 8,
+              "rounds": 2383,
+              "gpu_nanoseconds": 30585909956,
+              "emitted_tokens": 7869,
+              "offered_drafts": 11252,
+              "accepted_drafts": 5499
+            }
+          ],
+          "drafts_by_source": {
+            "mtp": {
+              "offered": 7606,
+              "accepted": 3591
+            },
+            "copy": {
+              "offered": 3646,
+              "accepted": 1908
+            }
+          },
+          "mixed_graph_launches": 3,
+          "requests_failed": 0,
+          "arm": "fixed-7",
+          "fixed_width": 8,
+          "offered_drafts": 11252,
+          "accepted_drafts": 5499,
+          "speculative_rounds": 2383,
+          "accepted_per_round": 2.3075954678976083,
+          "acceptance_rate": 0.48871311766797015,
+          "width_overrun": false
+        }
+      },
+      "8": {
+        "0": {
+          "passed": false,
+          "transport_passed": true,
+          "errors": [],
+          "code_edit_output_tokens_per_second": {
+            "count": 1,
+            "median": 341.5661435004029,
+            "p99": 341.5661435004029,
+            "minimum": 341.5661435004029,
+            "maximum": 341.5661435004029
+          },
+          "code_edit_rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 8,
+              "rounds": 528,
+              "emitted_tokens": 528
+            },
+            {
+              "batch": 2,
+              "width": 8,
+              "rounds": 29,
+              "emitted_tokens": 279
+            },
+            {
+              "batch": 4,
+              "width": 8,
+              "rounds": 38,
+              "emitted_tokens": 565
+            },
+            {
+              "batch": 8,
+              "width": 8,
+              "rounds": 72,
+              "emitted_tokens": 2316
+            }
+          ],
+          "rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 8,
+              "rounds": 972,
+              "gpu_nanoseconds": 12564942148,
+              "emitted_tokens": 2328,
+              "offered_drafts": 2981,
+              "accepted_drafts": 1363
+            },
+            {
+              "batch": 2,
+              "width": 8,
+              "rounds": 103,
+              "gpu_nanoseconds": 1628259771,
+              "emitted_tokens": 665,
+              "offered_drafts": 1027,
+              "accepted_drafts": 461
+            },
+            {
+              "batch": 4,
+              "width": 8,
+              "rounds": 163,
+              "gpu_nanoseconds": 3458050885,
+              "emitted_tokens": 1966,
+              "offered_drafts": 3483,
+              "accepted_drafts": 1380
+            },
+            {
+              "batch": 8,
+              "width": 8,
+              "rounds": 72,
+              "gpu_nanoseconds": 2079038384,
+              "emitted_tokens": 2316,
+              "offered_drafts": 2912,
+              "accepted_drafts": 1844
+            }
+          ],
+          "drafts_by_source": {
+            "mtp": {
+              "offered": 7347,
+              "accepted": 3471
+            },
+            "copy": {
+              "offered": 3056,
+              "accepted": 1577
+            }
+          },
+          "mixed_graph_launches": 4,
+          "requests_failed": 0,
+          "arm": "fixed-7",
+          "fixed_width": 8,
+          "offered_drafts": 10403,
+          "accepted_drafts": 5048,
+          "speculative_rounds": 1310,
+          "accepted_per_round": 3.853435114503817,
+          "acceptance_rate": 0.48524464096895126,
+          "width_overrun": false
+        }
+      }
+    }
+  },
+  "trials": 2
+}
