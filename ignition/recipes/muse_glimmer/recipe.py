@@ -17,11 +17,15 @@ def prepare(snapshot, plan, *, compile_forwards, kernel_cache, progress, retain_
         raise ValueError("Muse Glimmer preparation runs on exactly one GPU")
     drafting = {}
     if plan.speculation is not None:
-        from huggingface_hub import snapshot_download
-        from .draft_config import REPOSITORY, REVISION
+        # An external draft folder (`ignition export --draft-model`) replaces the pinned assistant download.
+        draft = plan.draft_model
+        if draft is None:
+            from huggingface_hub import snapshot_download
+            from .draft_config import REPOSITORY, REVISION
 
-        drafting = dict(draft_snapshot=Path(snapshot_download(REPOSITORY, revision=REVISION,
-            cache_dir=plan.hub_cache, allow_patterns=("config.json", "model.safetensors"))),
+            draft = snapshot_download(REPOSITORY, revision=REVISION, cache_dir=plan.hub_cache,
+                                      allow_patterns=plan.recipe.draft_files)
+        drafting = dict(draft_snapshot=Path(draft),
             speculative_widths=plan.speculation.widths,
             speculative_fixed_width=plan.speculation.fixed_width,
             speculative_token_capacity=plan.speculative_token_capacity,
@@ -63,7 +67,7 @@ RECIPE = Recipe(name="muse_glimmer", served_model_name="Muse-Glimmer-30B",
     # The packed round catalog is bounded by `graph_budget` (64 rounds: 29 + 21 + 14 across batches 4, 2, 1); the
     # rebuild manifest requires it declared.
     speculation=Speculation(draft_tokens=15, token_capacity=64, packed_verification=True, graph_budget=64),
-    max_images=4, image_bytes=32 << 20, language_model_only=True,
+    max_images=4, image_bytes=32 << 20, language_model_only=True, draft_files=("config.json", "model.safetensors"),
     verification_rows=0,
     # 39 FP8 sliding rings of 2048 × 2 × 128 per key/value, 13 paged full layers at 128-token pages, and with
     # drafting five FP8 draft rings of 2048 × 8 × 128: `continuation_layout` / `page_bytes` at TP1.
