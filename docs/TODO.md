@@ -47,7 +47,11 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
       needle/passkey retrieval, image requests, and speculation past the native 262,144-token
       context against native-quality baselines. GPU execution is blocked in this environment by
       the 8 MiB locked-memory limit for b12x's `io_uring` bounce buffers and by fully occupied
-      GPUs.
+      GPUs. Passkey retrieval measured 2026-11-05 (`qualify/long_context_passkey.py`, results in
+      `qualify/results/yarn4-passkey/`): the `qwen3.8-flash-yarn4` MTP package exported from
+      `pr/rope-scaling` and the DFlash2 yarn4 package each pass 12/12 cells (200k, 320k, 520k and
+      1,000k prompt tokens × needle depths 0.1, 0.5, 0.9) and the native 262k MTP package passes its
+      3/3 cells at 200k; image requests and score-workspace measurements remain open.
 
 - [ ] Exercise per-message checkpoint restore and prefill graph selection through Qwen, GLM,
       DeepSeek, MiMo, Step, and Nemotron services. See
