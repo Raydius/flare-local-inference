@@ -177,10 +177,10 @@ class DraftScratch:
     local_logits: torch.Tensor
     gathered_logits: torch.Tensor
     logits: torch.Tensor
-    convolution: dict
+    convolution: dict | None
+    block_size: int
     retained: list = field(default_factory=list)
     selectors: dict = field(default_factory=dict)
-    block_size: int = 8
 
     @classmethod
     def allocate(cls, config, shard, tokens, device, *, buffers, block_size=None):
@@ -196,8 +196,11 @@ class DraftScratch:
         vocab_width = ((c["vocab_size"] + shard.world_size - 1) // shard.world_size + 63) // 64 * 64
         def zeros(*shape, dtype=torch.bfloat16):
             return s.zeros(shape, dtype)
-        convolution = dict(coefficients=zeros(tokens, 2 * 2 * hidden // 16),
-                           before=zeros(tokens, hidden), after=zeros(tokens, hidden))
+        # Projector-less DFlash drafts declare no grouped-convolution geometry.
+        convolution = None
+        if "conv_kernel_size" in c.get("dflash_config", {}):
+            convolution = dict(coefficients=zeros(tokens, 2 * 2 * hidden // 16),
+                               before=zeros(tokens, hidden), after=zeros(tokens, hidden))
         return cls(zeros(tokens, hidden // shard.world_size), zeros(tokens, hidden), zeros(tokens, hidden),
             zeros(tokens, heads * a.key_dim + kv_heads * (a.key_dim + a.value_dim)),
             zeros(tokens, heads, a.key_dim), zeros(tokens, kv_heads, a.key_dim),
@@ -276,13 +279,16 @@ class PreparedDraft:
         self.layers = []
         for index, layer in enumerate(weights.draft.layers):
             prefix = f"{name}.layer{index}"
-            conv = {kind: PreparedGroupedConvolution(s.normalized, getattr(layer, kind), block_size=s.block_size,
-                group_size=16, session=session, name=prefix + "." + kind, buffers=s.convolution,
-                token_capacity=s.convolution["before"].shape[0]) for kind in ("attention_conv", "mlp_conv")}
-            attention = DraftAttention(index, layer, conv["attention_conv"].before, c, weights.shard, s, metadata, pool,
+            # A projector-less layer carries no convolutions: attention and MLP read the normed rows directly.
+            conv = {kind: None if getattr(layer, kind) is None else PreparedGroupedConvolution(
+                s.normalized, getattr(layer, kind), block_size=s.block_size, group_size=16, session=session,
+                name=prefix + "." + kind, buffers=s.convolution, token_capacity=s.convolution["before"].shape[0])
+                for kind in ("attention_conv", "mlp_conv")}
+            sources = {kind: s.normalized if conv[kind] is None else conv[kind].before for kind in conv}
+            attention = DraftAttention(index, layer, sources["attention_conv"], c, weights.shard, s, metadata, pool,
                 runtime=runtime, coordinator=coordinator, session=session, name=prefix + ".attention",
                 workspace=workspace, buffers=stages)
-            mlp = PreparedMLP(conv["mlp_conv"].before, layer.mlp, s.mlp.gate_up, s.mlp.intermediate, s.mlp.output,
+            mlp = PreparedMLP(sources["mlp_conv"], layer.mlp, s.mlp.gate_up, s.mlp.intermediate, s.mlp.output,
                 session=session, name=prefix + ".mlp", workspace=workspace)
             reduction = PreparedAllReduce(s.mlp.output, s.output, runtime=runtime, coordinator=coordinator,
                 session=session, name=prefix + ".mlp.reduce")
@@ -292,14 +298,17 @@ class PreparedDraft:
         self.head = PreparedVocabularyProjection(s.hidden, head, s.local_logits, s.gathered_logits,
             runtime=vocabulary_runtime, coordinator=coordinator, session=session, name=name + ".head",
             activation_mode="a16", workspace=workspace)
-        selector_key = (s.hidden.shape[0], id(weights.draft.selector))
-        if selector_key not in s.selectors:
-            selector = PreparedCandidateSelector(s.hidden.view(-1, s.block_size, s.hidden.shape[-1]),
-                weights.draft.selector, top_k=c.text["dflash_config"]["selector_top_k"], session=session,
-                name=name + ".selector")
-            s.selectors[selector_key] = selector
-            s.retained.append(selector.projected)
-        self.selector = s.selectors[selector_key]
+        # The round driver reads `selector` through getattr; a projector-less draft sets it explicitly.
+        self.selector = None
+        if weights.draft.selector is not None:
+            selector_key = (s.hidden.shape[0], id(weights.draft.selector))
+            if selector_key not in s.selectors:
+                selector = PreparedCandidateSelector(s.hidden.view(-1, s.block_size, s.hidden.shape[-1]),
+                    weights.draft.selector, top_k=c.text["dflash_config"]["selector_top_k"], session=session,
+                    name=name + ".selector")
+                s.selectors[selector_key] = selector
+                s.retained.append(selector.projected)
+            self.selector = s.selectors[selector_key]
         self.multiplier = output_multiplier
         self.softcap = final_logit_softcapping
 
@@ -308,16 +317,21 @@ class PreparedDraft:
         self.embedding()
         for norm, conv, attention, post_norm, mlp_conv, mlp, reduce in self.layers:
             s.normalized.copy_(norm(s.embedding))
-            s.embedding.add_(conv.finish(attention(conv.prepare(s.normalized))))
+            s.embedding.add_(attention(s.normalized) if conv is None
+                             else conv.finish(attention(conv.prepare(s.normalized))))
             s.normalized.copy_(post_norm(s.embedding))
-            s.embedding.add_(mlp_conv.finish(reduce(mlp(mlp_conv.prepare(s.normalized)))))
+            s.embedding.add_(reduce(mlp(s.normalized)) if mlp_conv is None
+                             else mlp_conv.finish(reduce(mlp(mlp_conv.prepare(s.normalized)))))
         s.hidden.copy_(self.norm(s.embedding[self.metadata.sample_indices]))
         self.head(s.hidden)
         # The unary transform consumes the head result in FP32.
         unary = s.gathered_logits[:, :c.text["vocab_size"]].float() * self.multiplier
         s.logits.copy_(unary if self.softcap is None else (unary / self.softcap).tanh() * self.softcap)
-        self.selector.prepare(s.hidden.view(-1, s.block_size, s.hidden.shape[-1]))
+        if self.selector is not None:
+            self.selector.prepare(s.hidden.view(-1, s.block_size, s.hidden.shape[-1]))
 
     def scratch_tensors(self):
+        if self.selector is None:
+            return (self.scratch.scratch_tensors(),)
         return self.scratch.scratch_tensors(), self.selector.projected
 

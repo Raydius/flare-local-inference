@@ -183,6 +183,7 @@ def _moe_26b_raw(*, nvfp4=False):
             "config_groups": {
                 "group_0": {
                     "weights": {"dynamic": False, "num_bits": 4, "type": "float", "group_size": 16},
+                    "input_activations": {"dynamic": False, "num_bits": 4, "type": "float", "group_size": 16},
                 }
             },
             "ignore": [
@@ -234,6 +235,7 @@ def _dense_31b_raw(*, nvfp4=False):
             "config_groups": {
                 "group_0": {
                     "weights": {"dynamic": False, "num_bits": 4, "type": "float", "group_size": 16},
+                    "input_activations": {"dynamic": False, "num_bits": 4, "type": "float", "group_size": 16},
                 }
             },
             "ignore": ["lm_head", "*embed_vision*", "*self_attn*", "*vision_tower*"],

@@ -28,8 +28,12 @@ class DraftLayerWeights:
     input_norm: torch.Tensor
     post_attention_norm: torch.Tensor
     mlp: MLPWeights
-    attention_conv: dict
-    mlp_conv: dict
+    attention_conv: dict | None
+    mlp_conv: dict | None
+
+
+# Projector-less DFlash drafts name the context projection and its norm under ``encoder``.
+_PROJECTION_NAMES = {"dflash2": ("fc", "hidden_norm"), "dflash": ("encoder.fc", "encoder.output_norm_enc")}
 
 
 @dataclass(frozen=True)
@@ -39,14 +43,16 @@ class DraftWeights:
     context_kv: Weight | torch.Tensor
     norm: torch.Tensor
     layers: tuple[DraftLayerWeights, ...]
-    selector: dict
+    selector: dict | None
 
     @classmethod
-    def load(cls, snapshot, config, device, shard, *, progress=None, online_mxfp8=False):
+    def load(cls, snapshot, config, device, shard, *, progress=None, online_mxfp8=False, projector="dflash2"):
         config.validate_shard(shard)
         manifest = inspect_indexed_checkpoint(snapshot)
-        validate_metadata(manifest, config)
+        validate_metadata(manifest, config, projector=projector)
         c, a = config.text, config.attention
+        projection_name, hidden_norm_name = _PROJECTION_NAMES[projector]
+        convolutions = projector == "dflash2"
         q_range = shard.partition(a.heads * a.key_dim, alignment=a.key_dim)
         first, last = shard.replicated_partition(a.kv_heads)
         kv_range = first * a.key_dim, last * a.key_dim
@@ -61,8 +67,8 @@ class DraftWeights:
                 return loader.load_tensor(prefix + ".weight", extent=(
                     slice(*(rows or (None, None))), slice(*(columns or (None, None)))))
 
-            projection = pack(matrix("fc", rows=shard.partition(c["hidden_size"], alignment=64)))
-            hidden_norm, norm = loader.load_tensors(("hidden_norm.weight", "norm.weight"))
+            projection = pack(matrix(projection_name, rows=shard.partition(c["hidden_size"], alignment=64)))
+            hidden_norm, norm = loader.load_tensors((hidden_norm_name + ".weight", "norm.weight"))
             for i in range(config.layers):
                 p = f"layers.{i}"
                 qkv = torch.cat([matrix(p + ".self_attn." + n + "_proj", rows=r)
@@ -77,27 +83,35 @@ class DraftWeights:
                 mlp = MLPWeights(pack(torch.cat([matrix(p + ".mlp." + n + "_proj", rows=intermediate)
                     for n in ("gate", "up")])), pack(matrix(p + ".mlp.down_proj", columns=intermediate)))
                 def conv(name):
+                    if not convolutions:
+                        return None
                     base, projection = loader.load_tensors((p + "." + name + ".base_kernel",
                                                            p + "." + name + ".kernel_projection.weight"))
                     return dict(base=base, projection=projection)
                 layers.append(DraftLayerWeights(qkv, output, qn, kn, inn, post, mlp,
                                                 conv("attention_conv"), conv("mlp_conv")))
-            values = loader.load_tensors(("candidate_selector.hidden_projection.weight",
-                "candidate_selector.predecessor_codebook", "candidate_selector.successor_codebook"))
+            selector = None
+            if convolutions:
+                values = loader.load_tensors(("candidate_selector.hidden_projection.weight",
+                    "candidate_selector.predecessor_codebook", "candidate_selector.successor_codebook"))
+                selector = dict(zip(("projection", "predecessor", "successor"), values, strict=True))
         context = pack(torch.cat(context_parts))
-        return cls(projection, hidden_norm, context, norm, tuple(layers),
-                   dict(zip(("projection", "predecessor", "successor"), values, strict=True)))
+        return cls(projection, hidden_norm, context, norm, tuple(layers), selector)
 
 
-def validate_metadata(manifest, config):
+def validate_metadata(manifest, config, projector="dflash2"):
     c = config.text
     h, i = c["hidden_size"], c["intermediate_size"]
     q, kv, head = c["num_attention_heads"] * c["head_dim"], c["num_key_value_heads"] * c["head_dim"], c["head_dim"]
-    d = c["dflash_config"]
-    expected = {"fc.weight": (h, h * len(config.target_layers)), "hidden_norm.weight": (h,), "norm.weight": (h,),
-        "candidate_selector.hidden_projection.weight": (d["selector_rank"], h),
-        "candidate_selector.predecessor_codebook": (c["vocab_size"], d["selector_rank"]),
-        "candidate_selector.successor_codebook": (c["vocab_size"], d["selector_rank"])}
+    projection_name, hidden_norm_name = _PROJECTION_NAMES[projector]
+    expected = {projection_name + ".weight": (h, h * len(config.target_layers)),
+                hidden_norm_name + ".weight": (h,), "norm.weight": (h,)}
+    d = None
+    if projector == "dflash2":
+        d = c["dflash_config"]
+        expected.update({"candidate_selector.hidden_projection.weight": (d["selector_rank"], h),
+            "candidate_selector.predecessor_codebook": (c["vocab_size"], d["selector_rank"]),
+            "candidate_selector.successor_codebook": (c["vocab_size"], d["selector_rank"])})
     for layer in range(config.layers):
         p = f"layers.{layer}."
         for name, shape in {"self_attn.q_proj": (q, h), "self_attn.k_proj": (kv, h),
@@ -105,7 +119,7 @@ def validate_metadata(manifest, config):
                 "self_attn.k_norm": (head,), "input_layernorm": (h,), "post_attention_layernorm": (h,),
                 "mlp.gate_proj": (i, h), "mlp.up_proj": (i, h), "mlp.down_proj": (h, i)}.items():
             expected[p + name + ".weight"] = shape
-        for name in ("attention_conv", "mlp_conv"):
+        for name in ("attention_conv", "mlp_conv") if d is not None else ():
             expected[p + name + ".base_kernel"] = (2, d["conv_kernel_size"], h)
             expected[p + name + ".kernel_projection.weight"] = (2 * d["conv_kernel_size"] * (h // d["conv_group_size"]), h)
     if set(manifest.tensors) != set(expected):
