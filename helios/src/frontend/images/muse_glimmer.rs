@@ -100,14 +100,14 @@ impl Processor {
             (ideal_h.round_ties_even() as u64).max(1),
             (ideal_w.round_ties_even() as u64).max(1),
         ));
-        let height = grid_h as usize * self.patch_size * self.merge_size;
-        let width = grid_w as usize * self.patch_size * self.merge_size;
-        let patches = (height / self.patch_size) * (width / self.patch_size);
+        let rows = grid_h as usize * self.merge_size;
+        let cols = grid_w as usize * self.merge_size;
+        let patches = rows * cols;
         check_image_patches(self.limits, patches)?;
         Ok(ImageGeometry {
-            height,
-            width,
-            grid_thw: [1, (height / self.patch_size) as i64, (width / self.patch_size) as i64],
+            height: rows * self.patch_size,
+            width: cols * self.patch_size,
+            grid_thw: [1, rows as i64, cols as i64],
             patches,
             tokens: patches / (self.merge_size * self.merge_size),
         })
@@ -129,7 +129,7 @@ impl Processor {
             .try_fold(0usize, |sum, image| sum.checked_add(image.patches))
             .ok_or_else(|| Error::frontend(FrontendError::Input(Failure::new("patch count overflow"))))?;
         self.limits.check_batch(images.len(), total)?;
-        let windows: usize = geometry.iter().map(|g| windows(g)).sum();
+        let windows: usize = geometry.iter().map(windows).sum();
         let mut result = ProcessedImages {
             geometry,
             cu_seqlens: vec![0],
@@ -227,9 +227,12 @@ fn taps(index: usize, size: usize) -> ([i64; 2], [f32; 2]) {
     let mut weights = [0f32; 2];
     for (offset, (index, weight)) in indices.iter_mut().zip(&mut weights).enumerate() {
         let raw = floor as i64 + offset as i64;
-        let inside = (0..TABLE_SIDE as i64).contains(&raw);
         *index = raw.clamp(0, TABLE_SIDE as i64 - 1);
-        *weight = (1.0 - (source - floor - offset as f32).abs()).max(0.0) * f32::from(u8::from(inside));
+        *weight = if (0..TABLE_SIDE as i64).contains(&raw) {
+            (1.0 - (source - floor - offset as f32).abs()).max(0.0)
+        } else {
+            0.0
+        };
     }
     (indices, weights)
 }
@@ -242,6 +245,7 @@ fn cpython_set_order(items: [(u64, u64); 4]) -> Vec<(u64, u64)> {
     const PRIME_1: u64 = 11_400_714_785_074_694_791;
     const PRIME_2: u64 = 14_029_467_366_897_019_727;
     const PRIME_5: u64 = 2_870_177_450_012_600_261;
+    const MASK: u64 = 7;
     fn hash(item: (u64, u64)) -> u64 {
         let mut acc = PRIME_5;
         for lane in [item.0, item.1] {
@@ -250,7 +254,6 @@ fn cpython_set_order(items: [(u64, u64); 4]) -> Vec<(u64, u64)> {
         acc = acc.wrapping_add(2 ^ (PRIME_5 ^ 3_527_539));
         if acc == u64::MAX { 1_546_275_796 } else { acc }
     }
-    const MASK: u64 = 7;
     let mut table: [Option<(u64, u64)>; 8] = [None; 8];
     for item in items {
         let hash = hash(item);

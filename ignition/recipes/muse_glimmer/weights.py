@@ -13,6 +13,9 @@ import torch
 
 from ignition.components.weights import DirectWeightLoader, MLPWeights
 from .config import PREFIX, ModelConfig
+from .draft_config import DraftConfig
+
+VISION_PREFIX = "model.vision_"
 
 
 @dataclass(frozen=True)
@@ -56,7 +59,6 @@ class ModelWeights:
         with loading(), MuseGlimmerWeightLoader(manifest, device, shard=shard, progress=progress) as loader:
             config = loader.config
             if draft_snapshot is not None:
-                from .draft_config import DraftConfig
                 config = replace(config, draft=DraftConfig.load(draft_snapshot, config))
             first, last = shard.partition(config.hidden)
             embedding = loader.load_tensor(PREFIX + ".embed_tokens.weight", extent=(slice(None), slice(first, last)))
@@ -80,9 +82,6 @@ class ModelWeights:
                 tower = VisionWeights.load(vision_model(manifest.snapshot), loader)
         return cls(config, shard, embedding, norm, head, layers, torch.cuda.memory_allocated(device) - before,
                    draft=draft, vision=tower)
-
-
-VISION_PREFIX = "model.vision_"
 
 
 def vision_model(snapshot):

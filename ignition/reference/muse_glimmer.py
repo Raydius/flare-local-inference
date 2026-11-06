@@ -29,12 +29,9 @@ from pathlib import Path
 import torch
 
 from ignition.preparation.checkpoint import inspect_indexed_checkpoint
+from ignition.recipes.muse_glimmer.config import PREFIX, PROJECTIONS
 from ignition.reference.muse_spark import CheckpointReader
 from ignition.reference.qwen38_quant import Nvfp4Projection, nvfp4_linear_reference
-
-PREFIX = "model.language_model"
-PROJECTIONS = ("self_attn.q_proj", "self_attn.k_proj", "self_attn.v_proj", "self_attn.gate_proj",
-               "self_attn.o_proj", "mlp.gate_proj", "mlp.up_proj", "mlp.down_proj")
 
 
 class Fp8History:
