@@ -142,7 +142,7 @@ def table(result):
 def run(args):
     settings = Settings.from_args(args)
     configuration = Configuration.load(args.config)
-    model = resolve_model(configuration, args.model)
+    model = resolve_model(configuration, args.model, getattr(args, "rope_parameters", None))
     if not model.recipe.benchmark_world_sizes:
         raise UsageError(f"ignition bench is not supported by recipe {model.recipe.name!r}")
     if settings.speculation_study and not model.recipe.speculation_study:
