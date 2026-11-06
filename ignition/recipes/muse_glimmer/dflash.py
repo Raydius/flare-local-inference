@@ -18,14 +18,16 @@ class PreparedDraft(_PreparedDraft):
 
     The assistant carries no convolutions and no selector (``DraftConfig`` admits no
     ``dflash_config``), so the shared draft runs ``norm -> attention -> add; post-norm
-    -> MLP -> add`` and sets ``selector = None`` for the round driver.
+    -> MLP -> add`` and sets ``selector = None`` for the round driver. Proposal logits
+    are the bare ``lm_head`` readout, as Transformers' DFlash candidate generator reads
+    them: the target's ``output_multiplier`` and softcap would flatten the proposal
+    distribution (top probability ~4e-4) and stochastic verification would reject
+    every draft.
     """
 
     def __init__(self, weights, *args, **kwargs):
-        c = weights.config.text
         super().__init__(weights, *args, embedding=weights.embedding, head=weights.head,
-            output_multiplier=c["output_multiplier"], final_logit_softcapping=c["final_logit_softcapping"],
-            **kwargs)
+            output_multiplier=1., final_logit_softcapping=None, **kwargs)
 
 
 @dataclass(frozen=True)

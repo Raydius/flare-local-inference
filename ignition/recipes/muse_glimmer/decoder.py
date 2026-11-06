@@ -71,8 +71,11 @@ class PreparedFeedForward(torch.nn.Module):
 
 class PreparedDecoder:
     def __init__(self, weights, scratch, metadata, pool, *, mode, runtime, embedding_runtime, vocabulary_runtime,
-                 coordinator, session, name, workspace, buffers=None, scoring=None):
+                 coordinator, session, name, workspace, buffers=None, scoring=None, vision_state=None):
         self.weights, self.scratch, self.metadata, self.pool = weights, scratch, metadata, pool
+        # Prefill with images: ``<|patch|>`` rows take published features after the embedding norm, where
+        # the canonical ``MuseGlimmerModel.forward`` scatters them into the normed ``inputs_embeds``.
+        self.vision_state = vision_state
         c = weights.config.text
         self.embedding = PreparedShardedEmbedding(weights.embedding, metadata.token_ids, scratch.local_embedding,
             scratch.embedding, runtime=embedding_runtime, coordinator=coordinator, session=session,
@@ -104,6 +107,8 @@ class PreparedDecoder:
 
     def __call__(self):
         hidden = self.embedding_norm(self.embedding())
+        if self.vision_state is not None:
+            self.vision_state.inject(self.metadata, hidden)
         for index, layer in enumerate(self.layers):
             hidden = layer(hidden)
             if index in self.target_layers:
