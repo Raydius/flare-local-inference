@@ -1,0 +1,1750 @@
+{
+  "arms": {
+    "adaptive": {
+      "1": {
+        "0": {
+          "passed": false,
+          "transport_passed": true,
+          "errors": [],
+          "code_edit_output_tokens_per_second": {
+            "count": 8,
+            "median": 405.46289812762694,
+            "p99": 554.1323145668453,
+            "minimum": 147.93928232997317,
+            "maximum": 554.1323145668453
+          },
+          "code_edit_rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 1,
+              "rounds": 642,
+              "emitted_tokens": 642
+            },
+            {
+              "batch": 1,
+              "width": 2,
+              "rounds": 56,
+              "emitted_tokens": 106
+            },
+            {
+              "batch": 1,
+              "width": 3,
+              "rounds": 299,
+              "emitted_tokens": 877
+            },
+            {
+              "batch": 1,
+              "width": 4,
+              "rounds": 90,
+              "emitted_tokens": 346
+            },
+            {
+              "batch": 1,
+              "width": 8,
+              "rounds": 284,
+              "emitted_tokens": 2205
+            }
+          ],
+          "rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 1,
+              "rounds": 801,
+              "gpu_nanoseconds": 5356468608,
+              "emitted_tokens": 801,
+              "offered_drafts": 0,
+              "accepted_drafts": 0
+            },
+            {
+              "batch": 1,
+              "width": 2,
+              "rounds": 61,
+              "gpu_nanoseconds": 538796192,
+              "emitted_tokens": 114,
+              "offered_drafts": 59,
+              "accepted_drafts": 56
+            },
+            {
+              "batch": 1,
+              "width": 3,
+              "rounds": 1144,
+              "gpu_nanoseconds": 11059289246,
+              "emitted_tokens": 2996,
+              "offered_drafts": 2280,
+              "accepted_drafts": 1858
+            },
+            {
+              "batch": 1,
+              "width": 4,
+              "rounds": 199,
+              "gpu_nanoseconds": 2005117248,
+              "emitted_tokens": 664,
+              "offered_drafts": 591,
+              "accepted_drafts": 467
+            },
+            {
+              "batch": 1,
+              "width": 5,
+              "rounds": 116,
+              "gpu_nanoseconds": 1254751840,
+              "emitted_tokens": 397,
+              "offered_drafts": 460,
+              "accepted_drafts": 283
+            },
+            {
+              "batch": 1,
+              "width": 6,
+              "rounds": 95,
+              "gpu_nanoseconds": 1099168096,
+              "emitted_tokens": 352,
+              "offered_drafts": 465,
+              "accepted_drafts": 260
+            },
+            {
+              "batch": 1,
+              "width": 7,
+              "rounds": 3,
+              "gpu_nanoseconds": 36420384,
+              "emitted_tokens": 10,
+              "offered_drafts": 18,
+              "accepted_drafts": 7
+            },
+            {
+              "batch": 1,
+              "width": 8,
+              "rounds": 356,
+              "gpu_nanoseconds": 4393500607,
+              "emitted_tokens": 2543,
+              "offered_drafts": 2450,
+              "accepted_drafts": 2199
+            }
+          ],
+          "drafts_by_source": {
+            "mtp": {
+              "offered": 6323,
+              "accepted": 5130
+            },
+            "copy": {
+              "offered": 0,
+              "accepted": 0
+            }
+          },
+          "mixed_graph_launches": 24,
+          "requests_failed": 0,
+          "arm": "adaptive",
+          "fixed_width": null,
+          "offered_drafts": 6323,
+          "accepted_drafts": 5130,
+          "speculative_rounds": 2775,
+          "accepted_per_round": 1.8486486486486486,
+          "acceptance_rate": 0.8113237387316148,
+          "width_overrun": false
+        }
+      },
+      "8": {
+        "0": {
+          "passed": false,
+          "transport_passed": true,
+          "errors": [],
+          "code_edit_output_tokens_per_second": {
+            "count": 1,
+            "median": 533.2173526910591,
+            "p99": 533.2173526910591,
+            "minimum": 533.2173526910591,
+            "maximum": 533.2173526910591
+          },
+          "code_edit_rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 1,
+              "rounds": 382,
+              "emitted_tokens": 382
+            },
+            {
+              "batch": 2,
+              "width": 1,
+              "rounds": 70,
+              "emitted_tokens": 140
+            },
+            {
+              "batch": 2,
+              "width": 5,
+              "rounds": 2,
+              "emitted_tokens": 12
+            },
+            {
+              "batch": 2,
+              "width": 6,
+              "rounds": 5,
+              "emitted_tokens": 35
+            },
+            {
+              "batch": 2,
+              "width": 7,
+              "rounds": 11,
+              "emitted_tokens": 94
+            },
+            {
+              "batch": 2,
+              "width": 8,
+              "rounds": 72,
+              "emitted_tokens": 536
+            },
+            {
+              "batch": 4,
+              "width": 1,
+              "rounds": 10,
+              "emitted_tokens": 31
+            },
+            {
+              "batch": 4,
+              "width": 2,
+              "rounds": 1,
+              "emitted_tokens": 7
+            },
+            {
+              "batch": 4,
+              "width": 3,
+              "rounds": 1,
+              "emitted_tokens": 12
+            },
+            {
+              "batch": 4,
+              "width": 4,
+              "rounds": 1,
+              "emitted_tokens": 12
+            },
+            {
+              "batch": 4,
+              "width": 5,
+              "rounds": 1,
+              "emitted_tokens": 18
+            },
+            {
+              "batch": 4,
+              "width": 6,
+              "rounds": 1,
+              "emitted_tokens": 24
+            },
+            {
+              "batch": 4,
+              "width": 7,
+              "rounds": 2,
+              "emitted_tokens": 39
+            },
+            {
+              "batch": 4,
+              "width": 8,
+              "rounds": 24,
+              "emitted_tokens": 414
+            },
+            {
+              "batch": 8,
+              "width": 1,
+              "rounds": 1,
+              "emitted_tokens": 8
+            },
+            {
+              "batch": 8,
+              "width": 2,
+              "rounds": 1,
+              "emitted_tokens": 15
+            },
+            {
+              "batch": 8,
+              "width": 3,
+              "rounds": 1,
+              "emitted_tokens": 22
+            },
+            {
+              "batch": 8,
+              "width": 4,
+              "rounds": 1,
+              "emitted_tokens": 28
+            },
+            {
+              "batch": 8,
+              "width": 5,
+              "rounds": 1,
+              "emitted_tokens": 29
+            },
+            {
+              "batch": 8,
+              "width": 6,
+              "rounds": 1,
+              "emitted_tokens": 37
+            },
+            {
+              "batch": 8,
+              "width": 7,
+              "rounds": 2,
+              "emitted_tokens": 80
+            },
+            {
+              "batch": 8,
+              "width": 8,
+              "rounds": 47,
+              "emitted_tokens": 1950
+            }
+          ],
+          "rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 1,
+              "rounds": 414,
+              "gpu_nanoseconds": 2736681120,
+              "emitted_tokens": 414,
+              "offered_drafts": 0,
+              "accepted_drafts": 0
+            },
+            {
+              "batch": 1,
+              "width": 2,
+              "rounds": 3,
+              "gpu_nanoseconds": 26508032,
+              "emitted_tokens": 5,
+              "offered_drafts": 3,
+              "accepted_drafts": 2
+            },
+            {
+              "batch": 1,
+              "width": 3,
+              "rounds": 79,
+              "gpu_nanoseconds": 759432960,
+              "emitted_tokens": 218,
+              "offered_drafts": 156,
+              "accepted_drafts": 140
+            },
+            {
+              "batch": 1,
+              "width": 4,
+              "rounds": 112,
+              "gpu_nanoseconds": 1141793184,
+              "emitted_tokens": 329,
+              "offered_drafts": 330,
+              "accepted_drafts": 221
+            },
+            {
+              "batch": 1,
+              "width": 5,
+              "rounds": 22,
+              "gpu_nanoseconds": 243874304,
+              "emitted_tokens": 91,
+              "offered_drafts": 84,
+              "accepted_drafts": 72
+            },
+            {
+              "batch": 1,
+              "width": 6,
+              "rounds": 6,
+              "gpu_nanoseconds": 66927488,
+              "emitted_tokens": 19,
+              "offered_drafts": 25,
+              "accepted_drafts": 15
+            },
+            {
+              "batch": 1,
+              "width": 7,
+              "rounds": 5,
+              "gpu_nanoseconds": 60325824,
+              "emitted_tokens": 20,
+              "offered_drafts": 30,
+              "accepted_drafts": 15
+            },
+            {
+              "batch": 1,
+              "width": 8,
+              "rounds": 23,
+              "gpu_nanoseconds": 285873664,
+              "emitted_tokens": 148,
+              "offered_drafts": 154,
+              "accepted_drafts": 128
+            },
+            {
+              "batch": 2,
+              "width": 1,
+              "rounds": 87,
+              "gpu_nanoseconds": 658448672,
+              "emitted_tokens": 174,
+              "offered_drafts": 0,
+              "accepted_drafts": 0
+            },
+            {
+              "batch": 2,
+              "width": 2,
+              "rounds": 1,
+              "gpu_nanoseconds": 10430048,
+              "emitted_tokens": 4,
+              "offered_drafts": 2,
+              "accepted_drafts": 2
+            },
+            {
+              "batch": 2,
+              "width": 3,
+              "rounds": 33,
+              "gpu_nanoseconds": 373838208,
+              "emitted_tokens": 153,
+              "offered_drafts": 131,
+              "accepted_drafts": 87
+            },
+            {
+              "batch": 2,
+              "width": 4,
+              "rounds": 14,
+              "gpu_nanoseconds": 171856192,
+              "emitted_tokens": 77,
+              "offered_drafts": 84,
+              "accepted_drafts": 49
+            },
+            {
+              "batch": 2,
+              "width": 5,
+              "rounds": 30,
+              "gpu_nanoseconds": 406160224,
+              "emitted_tokens": 225,
+              "offered_drafts": 232,
+              "accepted_drafts": 167
+            },
+            {
+              "batch": 2,
+              "width": 6,
+              "rounds": 62,
+              "gpu_nanoseconds": 880677087,
+              "emitted_tokens": 436,
+              "offered_drafts": 590,
+              "accepted_drafts": 314
+            },
+            {
+              "batch": 2,
+              "width": 7,
+              "rounds": 30,
+              "gpu_nanoseconds": 440878752,
+              "emitted_tokens": 246,
+              "offered_drafts": 300,
+              "accepted_drafts": 188
+            },
+            {
+              "batch": 2,
+              "width": 8,
+              "rounds": 73,
+              "gpu_nanoseconds": 1142608961,
+              "emitted_tokens": 547,
+              "offered_drafts": 539,
+              "accepted_drafts": 401
+            },
+            {
+              "batch": 4,
+              "width": 1,
+              "rounds": 33,
+              "gpu_nanoseconds": 306535648,
+              "emitted_tokens": 117,
+              "offered_drafts": 0,
+              "accepted_drafts": 0
+            },
+            {
+              "batch": 4,
+              "width": 2,
+              "rounds": 1,
+              "gpu_nanoseconds": 13020128,
+              "emitted_tokens": 7,
+              "offered_drafts": 3,
+              "accepted_drafts": 3
+            },
+            {
+              "batch": 4,
+              "width": 3,
+              "rounds": 18,
+              "gpu_nanoseconds": 263186432,
+              "emitted_tokens": 183,
+              "offered_drafts": 144,
+              "accepted_drafts": 111
+            },
+            {
+              "batch": 4,
+              "width": 4,
+              "rounds": 114,
+              "gpu_nanoseconds": 1802846846,
+              "emitted_tokens": 1217,
+              "offered_drafts": 1308,
+              "accepted_drafts": 780
+            },
+            {
+              "batch": 4,
+              "width": 5,
+              "rounds": 1,
+              "gpu_nanoseconds": 17578144,
+              "emitted_tokens": 18,
+              "offered_drafts": 16,
+              "accepted_drafts": 14
+            },
+            {
+              "batch": 4,
+              "width": 6,
+              "rounds": 1,
+              "gpu_nanoseconds": 18296064,
+              "emitted_tokens": 24,
+              "offered_drafts": 20,
+              "accepted_drafts": 20
+            },
+            {
+              "batch": 4,
+              "width": 7,
+              "rounds": 2,
+              "gpu_nanoseconds": 38924223,
+              "emitted_tokens": 39,
+              "offered_drafts": 36,
+              "accepted_drafts": 32
+            },
+            {
+              "batch": 4,
+              "width": 8,
+              "rounds": 25,
+              "gpu_nanoseconds": 503087834,
+              "emitted_tokens": 431,
+              "offered_drafts": 434,
+              "accepted_drafts": 354
+            },
+            {
+              "batch": 8,
+              "width": 1,
+              "rounds": 1,
+              "gpu_nanoseconds": 11440928,
+              "emitted_tokens": 8,
+              "offered_drafts": 0,
+              "accepted_drafts": 0
+            },
+            {
+              "batch": 8,
+              "width": 2,
+              "rounds": 1,
+              "gpu_nanoseconds": 17671104,
+              "emitted_tokens": 15,
+              "offered_drafts": 7,
+              "accepted_drafts": 7
+            },
+            {
+              "batch": 8,
+              "width": 3,
+              "rounds": 1,
+              "gpu_nanoseconds": 20095455,
+              "emitted_tokens": 22,
+              "offered_drafts": 14,
+              "accepted_drafts": 14
+            },
+            {
+              "batch": 8,
+              "width": 4,
+              "rounds": 1,
+              "gpu_nanoseconds": 21787136,
+              "emitted_tokens": 28,
+              "offered_drafts": 21,
+              "accepted_drafts": 20
+            },
+            {
+              "batch": 8,
+              "width": 5,
+              "rounds": 1,
+              "gpu_nanoseconds": 24140863,
+              "emitted_tokens": 29,
+              "offered_drafts": 28,
+              "accepted_drafts": 21
+            },
+            {
+              "batch": 8,
+              "width": 6,
+              "rounds": 1,
+              "gpu_nanoseconds": 25308096,
+              "emitted_tokens": 37,
+              "offered_drafts": 35,
+              "accepted_drafts": 29
+            },
+            {
+              "batch": 8,
+              "width": 7,
+              "rounds": 2,
+              "gpu_nanoseconds": 52997120,
+              "emitted_tokens": 80,
+              "offered_drafts": 84,
+              "accepted_drafts": 64
+            },
+            {
+              "batch": 8,
+              "width": 8,
+              "rounds": 47,
+              "gpu_nanoseconds": 1304368352,
+              "emitted_tokens": 1950,
+              "offered_drafts": 1876,
+              "accepted_drafts": 1637
+            }
+          ],
+          "drafts_by_source": {
+            "mtp": {
+              "offered": 6686,
+              "accepted": 4907
+            },
+            "copy": {
+              "offered": 0,
+              "accepted": 0
+            }
+          },
+          "mixed_graph_launches": 57,
+          "requests_failed": 0,
+          "arm": "adaptive",
+          "fixed_width": null,
+          "offered_drafts": 6686,
+          "accepted_drafts": 4907,
+          "speculative_rounds": 1244,
+          "accepted_per_round": 3.944533762057878,
+          "acceptance_rate": 0.7339216272808854,
+          "width_overrun": false
+        }
+      }
+    },
+    "fixed-0": {
+      "1": {
+        "0": {
+          "passed": false,
+          "transport_passed": true,
+          "errors": [],
+          "code_edit_output_tokens_per_second": {
+            "count": 8,
+            "median": 153.8029564220646,
+            "p99": 154.81925630181334,
+            "minimum": 134.33863264867807,
+            "maximum": 154.81925630181334
+          },
+          "code_edit_rounds_by_shape": [],
+          "rounds_by_shape": [],
+          "drafts_by_source": {
+            "mtp": {
+              "offered": 0,
+              "accepted": 0
+            },
+            "copy": {
+              "offered": 0,
+              "accepted": 0
+            }
+          },
+          "mixed_graph_launches": 21,
+          "requests_failed": 0,
+          "arm": "fixed-0",
+          "fixed_width": 1,
+          "offered_drafts": 0,
+          "accepted_drafts": 0,
+          "speculative_rounds": 0,
+          "accepted_per_round": null,
+          "acceptance_rate": null,
+          "width_overrun": false
+        }
+      },
+      "8": {
+        "0": {
+          "passed": false,
+          "transport_passed": true,
+          "errors": [],
+          "code_edit_output_tokens_per_second": {
+            "count": 1,
+            "median": 424.48285609692783,
+            "p99": 424.48285609692783,
+            "minimum": 424.48285609692783,
+            "maximum": 424.48285609692783
+          },
+          "code_edit_rounds_by_shape": [],
+          "rounds_by_shape": [],
+          "drafts_by_source": {
+            "mtp": {
+              "offered": 0,
+              "accepted": 0
+            },
+            "copy": {
+              "offered": 0,
+              "accepted": 0
+            }
+          },
+          "mixed_graph_launches": 47,
+          "requests_failed": 0,
+          "arm": "fixed-0",
+          "fixed_width": 1,
+          "offered_drafts": 0,
+          "accepted_drafts": 0,
+          "speculative_rounds": 0,
+          "accepted_per_round": null,
+          "acceptance_rate": null,
+          "width_overrun": false
+        }
+      }
+    },
+    "fixed-1": {
+      "1": {
+        "0": {
+          "passed": false,
+          "transport_passed": true,
+          "errors": [],
+          "code_edit_output_tokens_per_second": {
+            "count": 8,
+            "median": 216.54365814083042,
+            "p99": 219.9800163843277,
+            "minimum": 110.97568650428389,
+            "maximum": 219.9800163843277
+          },
+          "code_edit_rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 2,
+              "rounds": 2210,
+              "emitted_tokens": 3758
+            }
+          ],
+          "rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 2,
+              "rounds": 4302,
+              "gpu_nanoseconds": 38819769407,
+              "emitted_tokens": 7487,
+              "offered_drafts": 3553,
+              "accepted_drafts": 3211
+            }
+          ],
+          "drafts_by_source": {
+            "mtp": {
+              "offered": 3553,
+              "accepted": 3211
+            },
+            "copy": {
+              "offered": 0,
+              "accepted": 0
+            }
+          },
+          "mixed_graph_launches": 6,
+          "requests_failed": 0,
+          "arm": "fixed-1",
+          "fixed_width": 2,
+          "offered_drafts": 3553,
+          "accepted_drafts": 3211,
+          "speculative_rounds": 4302,
+          "accepted_per_round": 0.7463970246397025,
+          "acceptance_rate": 0.9037433155080213,
+          "width_overrun": false
+        }
+      },
+      "8": {
+        "0": {
+          "passed": false,
+          "transport_passed": true,
+          "errors": [],
+          "code_edit_output_tokens_per_second": {
+            "count": 1,
+            "median": 431.0002562994719,
+            "p99": 431.0002562994719,
+            "minimum": 431.0002562994719,
+            "maximum": 431.0002562994719
+          },
+          "code_edit_rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 2,
+              "rounds": 302,
+              "emitted_tokens": 302
+            },
+            {
+              "batch": 2,
+              "width": 2,
+              "rounds": 32,
+              "emitted_tokens": 95
+            },
+            {
+              "batch": 4,
+              "width": 2,
+              "rounds": 82,
+              "emitted_tokens": 517
+            },
+            {
+              "batch": 8,
+              "width": 2,
+              "rounds": 242,
+              "emitted_tokens": 2849
+            }
+          ],
+          "rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 2,
+              "rounds": 1222,
+              "gpu_nanoseconds": 11086040321,
+              "emitted_tokens": 2047,
+              "offered_drafts": 906,
+              "accepted_drafts": 841
+            },
+            {
+              "batch": 2,
+              "width": 2,
+              "rounds": 217,
+              "gpu_nanoseconds": 2329867520,
+              "emitted_tokens": 721,
+              "offered_drafts": 342,
+              "accepted_drafts": 290
+            },
+            {
+              "batch": 4,
+              "width": 2,
+              "rounds": 293,
+              "gpu_nanoseconds": 3763744031,
+              "emitted_tokens": 1909,
+              "offered_drafts": 949,
+              "accepted_drafts": 802
+            },
+            {
+              "batch": 8,
+              "width": 2,
+              "rounds": 242,
+              "gpu_nanoseconds": 3960118019,
+              "emitted_tokens": 2849,
+              "offered_drafts": 1317,
+              "accepted_drafts": 1290
+            }
+          ],
+          "drafts_by_source": {
+            "mtp": {
+              "offered": 3514,
+              "accepted": 3223
+            },
+            "copy": {
+              "offered": 0,
+              "accepted": 0
+            }
+          },
+          "mixed_graph_launches": 3,
+          "requests_failed": 0,
+          "arm": "fixed-1",
+          "fixed_width": 2,
+          "offered_drafts": 3514,
+          "accepted_drafts": 3223,
+          "speculative_rounds": 1974,
+          "accepted_per_round": 1.632725430597771,
+          "acceptance_rate": 0.9171883892999431,
+          "width_overrun": false
+        }
+      }
+    },
+    "fixed-2": {
+      "1": {
+        "0": {
+          "passed": false,
+          "transport_passed": true,
+          "errors": [],
+          "code_edit_output_tokens_per_second": {
+            "count": 8,
+            "median": 296.42734551309013,
+            "p99": 306.8906089129297,
+            "minimum": 103.57955654997231,
+            "maximum": 306.8906089129297
+          },
+          "code_edit_rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 3,
+              "rounds": 1812,
+              "emitted_tokens": 4088
+            }
+          ],
+          "rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 3,
+              "rounds": 3234,
+              "gpu_nanoseconds": 30931663104,
+              "emitted_tokens": 7431,
+              "offered_drafts": 4924,
+              "accepted_drafts": 4229
+            }
+          ],
+          "drafts_by_source": {
+            "mtp": {
+              "offered": 4924,
+              "accepted": 4229
+            },
+            "copy": {
+              "offered": 0,
+              "accepted": 0
+            }
+          },
+          "mixed_graph_launches": 3,
+          "requests_failed": 0,
+          "arm": "fixed-2",
+          "fixed_width": 3,
+          "offered_drafts": 4924,
+          "accepted_drafts": 4229,
+          "speculative_rounds": 3234,
+          "accepted_per_round": 1.3076685219542363,
+          "acceptance_rate": 0.8588545897644192,
+          "width_overrun": false
+        }
+      },
+      "8": {
+        "0": {
+          "passed": false,
+          "transport_passed": true,
+          "errors": [],
+          "code_edit_output_tokens_per_second": {
+            "count": 1,
+            "median": 430.3774230318594,
+            "p99": 430.3774230318594,
+            "minimum": 430.3774230318594,
+            "maximum": 430.3774230318594
+          },
+          "code_edit_rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 3,
+              "rounds": 309,
+              "emitted_tokens": 309
+            },
+            {
+              "batch": 2,
+              "width": 3,
+              "rounds": 140,
+              "emitted_tokens": 546
+            },
+            {
+              "batch": 4,
+              "width": 3,
+              "rounds": 37,
+              "emitted_tokens": 354
+            },
+            {
+              "batch": 8,
+              "width": 3,
+              "rounds": 137,
+              "emitted_tokens": 2421
+            }
+          ],
+          "rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 3,
+              "rounds": 913,
+              "gpu_nanoseconds": 8841262528,
+              "emitted_tokens": 1857,
+              "offered_drafts": 1162,
+              "accepted_drafts": 962
+            },
+            {
+              "batch": 2,
+              "width": 3,
+              "rounds": 242,
+              "gpu_nanoseconds": 2823473888,
+              "emitted_tokens": 997,
+              "offered_drafts": 619,
+              "accepted_drafts": 515
+            },
+            {
+              "batch": 4,
+              "width": 3,
+              "rounds": 219,
+              "gpu_nanoseconds": 3176991297,
+              "emitted_tokens": 1832,
+              "offered_drafts": 1378,
+              "accepted_drafts": 1036
+            },
+            {
+              "batch": 8,
+              "width": 3,
+              "rounds": 137,
+              "gpu_nanoseconds": 2631068375,
+              "emitted_tokens": 2421,
+              "offered_drafts": 1566,
+              "accepted_drafts": 1517
+            }
+          ],
+          "drafts_by_source": {
+            "mtp": {
+              "offered": 4725,
+              "accepted": 4030
+            },
+            "copy": {
+              "offered": 0,
+              "accepted": 0
+            }
+          },
+          "mixed_graph_launches": 3,
+          "requests_failed": 0,
+          "arm": "fixed-2",
+          "fixed_width": 3,
+          "offered_drafts": 4725,
+          "accepted_drafts": 4030,
+          "speculative_rounds": 1511,
+          "accepted_per_round": 2.6671078755790867,
+          "acceptance_rate": 0.852910052910053,
+          "width_overrun": false
+        }
+      }
+    },
+    "fixed-3": {
+      "1": {
+        "0": {
+          "passed": false,
+          "transport_passed": true,
+          "errors": [],
+          "code_edit_output_tokens_per_second": {
+            "count": 8,
+            "median": 360.63414438717086,
+            "p99": 374.9438974631784,
+            "minimum": 97.55158032473791,
+            "maximum": 374.9438974631784
+          },
+          "code_edit_rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 4,
+              "rounds": 1539,
+              "emitted_tokens": 4144
+            }
+          ],
+          "rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 4,
+              "rounds": 2765,
+              "gpu_nanoseconds": 28098204418,
+              "emitted_tokens": 7558,
+              "offered_drafts": 5969,
+              "accepted_drafts": 4820
+            }
+          ],
+          "drafts_by_source": {
+            "mtp": {
+              "offered": 5969,
+              "accepted": 4820
+            },
+            "copy": {
+              "offered": 0,
+              "accepted": 0
+            }
+          },
+          "mixed_graph_launches": 3,
+          "requests_failed": 0,
+          "arm": "fixed-3",
+          "fixed_width": 4,
+          "offered_drafts": 5969,
+          "accepted_drafts": 4820,
+          "speculative_rounds": 2765,
+          "accepted_per_round": 1.7432188065099457,
+          "acceptance_rate": 0.8075054447981236,
+          "width_overrun": false
+        }
+      },
+      "8": {
+        "0": {
+          "passed": false,
+          "transport_passed": true,
+          "errors": [],
+          "code_edit_output_tokens_per_second": {
+            "count": 1,
+            "median": 459.64131587424316,
+            "p99": 459.64131587424316,
+            "minimum": 459.64131587424316,
+            "maximum": 459.64131587424316
+          },
+          "code_edit_rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 4,
+              "rounds": 338,
+              "emitted_tokens": 338
+            },
+            {
+              "batch": 2,
+              "width": 4,
+              "rounds": 130,
+              "emitted_tokens": 649
+            },
+            {
+              "batch": 4,
+              "width": 4,
+              "rounds": 61,
+              "emitted_tokens": 729
+            },
+            {
+              "batch": 8,
+              "width": 4,
+              "rounds": 113,
+              "emitted_tokens": 2431
+            }
+          ],
+          "rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 4,
+              "rounds": 862,
+              "gpu_nanoseconds": 8843451296,
+              "emitted_tokens": 1966,
+              "offered_drafts": 1531,
+              "accepted_drafts": 1121
+            },
+            {
+              "batch": 2,
+              "width": 4,
+              "rounds": 241,
+              "gpu_nanoseconds": 2974510528,
+              "emitted_tokens": 1212,
+              "offered_drafts": 946,
+              "accepted_drafts": 731
+            },
+            {
+              "batch": 4,
+              "width": 4,
+              "rounds": 214,
+              "gpu_nanoseconds": 3326503254,
+              "emitted_tokens": 2090,
+              "offered_drafts": 1967,
+              "accepted_drafts": 1304
+            },
+            {
+              "batch": 8,
+              "width": 4,
+              "rounds": 113,
+              "gpu_nanoseconds": 2342304549,
+              "emitted_tokens": 2431,
+              "offered_drafts": 1773,
+              "accepted_drafts": 1728
+            }
+          ],
+          "drafts_by_source": {
+            "mtp": {
+              "offered": 6217,
+              "accepted": 4884
+            },
+            "copy": {
+              "offered": 0,
+              "accepted": 0
+            }
+          },
+          "mixed_graph_launches": 3,
+          "requests_failed": 0,
+          "arm": "fixed-3",
+          "fixed_width": 4,
+          "offered_drafts": 6217,
+          "accepted_drafts": 4884,
+          "speculative_rounds": 1430,
+          "accepted_per_round": 3.4153846153846152,
+          "acceptance_rate": 0.7855879041338266,
+          "width_overrun": false
+        }
+      }
+    },
+    "fixed-4": {
+      "1": {
+        "0": {
+          "passed": false,
+          "transport_passed": true,
+          "errors": [],
+          "code_edit_output_tokens_per_second": {
+            "count": 8,
+            "median": 420.24721966860966,
+            "p99": 431.6822671690779,
+            "minimum": 92.16401702059426,
+            "maximum": 431.6822671690779
+          },
+          "code_edit_rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 5,
+              "rounds": 1343,
+              "emitted_tokens": 4128
+            }
+          ],
+          "rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 5,
+              "rounds": 2496,
+              "gpu_nanoseconds": 26987728835,
+              "emitted_tokens": 7702,
+              "offered_drafts": 7123,
+              "accepted_drafts": 5236
+            }
+          ],
+          "drafts_by_source": {
+            "mtp": {
+              "offered": 7123,
+              "accepted": 5236
+            },
+            "copy": {
+              "offered": 0,
+              "accepted": 0
+            }
+          },
+          "mixed_graph_launches": 3,
+          "requests_failed": 0,
+          "arm": "fixed-4",
+          "fixed_width": 5,
+          "offered_drafts": 7123,
+          "accepted_drafts": 5236,
+          "speculative_rounds": 2496,
+          "accepted_per_round": 2.09775641025641,
+          "acceptance_rate": 0.7350835322195705,
+          "width_overrun": false
+        }
+      },
+      "8": {
+        "0": {
+          "passed": false,
+          "transport_passed": true,
+          "errors": [],
+          "code_edit_output_tokens_per_second": {
+            "count": 1,
+            "median": 435.8810597103336,
+            "p99": 435.8810597103336,
+            "minimum": 435.8810597103336,
+            "maximum": 435.8810597103336
+          },
+          "code_edit_rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 5,
+              "rounds": 457,
+              "emitted_tokens": 457
+            },
+            {
+              "batch": 2,
+              "width": 5,
+              "rounds": 73,
+              "emitted_tokens": 438
+            },
+            {
+              "batch": 4,
+              "width": 5,
+              "rounds": 71,
+              "emitted_tokens": 1107
+            },
+            {
+              "batch": 8,
+              "width": 5,
+              "rounds": 73,
+              "emitted_tokens": 2124
+            }
+          ],
+          "rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 5,
+              "rounds": 962,
+              "gpu_nanoseconds": 10459997440,
+              "emitted_tokens": 2264,
+              "offered_drafts": 1946,
+              "accepted_drafts": 1317
+            },
+            {
+              "batch": 2,
+              "width": 5,
+              "rounds": 163,
+              "gpu_nanoseconds": 2181826528,
+              "emitted_tokens": 944,
+              "offered_drafts": 885,
+              "accepted_drafts": 620
+            },
+            {
+              "batch": 4,
+              "width": 5,
+              "rounds": 211,
+              "gpu_nanoseconds": 3613385282,
+              "emitted_tokens": 2480,
+              "offered_drafts": 2590,
+              "accepted_drafts": 1705
+            },
+            {
+              "batch": 8,
+              "width": 5,
+              "rounds": 73,
+              "gpu_nanoseconds": 1705119712,
+              "emitted_tokens": 2124,
+              "offered_drafts": 1732,
+              "accepted_drafts": 1633
+            }
+          ],
+          "drafts_by_source": {
+            "mtp": {
+              "offered": 7153,
+              "accepted": 5275
+            },
+            "copy": {
+              "offered": 0,
+              "accepted": 0
+            }
+          },
+          "mixed_graph_launches": 4,
+          "requests_failed": 0,
+          "arm": "fixed-4",
+          "fixed_width": 5,
+          "offered_drafts": 7153,
+          "accepted_drafts": 5275,
+          "speculative_rounds": 1409,
+          "accepted_per_round": 3.743789921930447,
+          "acceptance_rate": 0.7374528169998602,
+          "width_overrun": false
+        }
+      }
+    },
+    "fixed-5": {
+      "1": {
+        "0": {
+          "passed": false,
+          "transport_passed": true,
+          "errors": [],
+          "code_edit_output_tokens_per_second": {
+            "count": 8,
+            "median": 459.66857035894077,
+            "p99": 487.2891561809364,
+            "minimum": 87.84604085618568,
+            "maximum": 487.2891561809364
+          },
+          "code_edit_rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 6,
+              "rounds": 1299,
+              "emitted_tokens": 4147
+            }
+          ],
+          "rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 6,
+              "rounds": 2371,
+              "gpu_nanoseconds": 26748484513,
+              "emitted_tokens": 7582,
+              "offered_drafts": 7947,
+              "accepted_drafts": 5242
+            }
+          ],
+          "drafts_by_source": {
+            "mtp": {
+              "offered": 7947,
+              "accepted": 5242
+            },
+            "copy": {
+              "offered": 0,
+              "accepted": 0
+            }
+          },
+          "mixed_graph_launches": 3,
+          "requests_failed": 0,
+          "arm": "fixed-5",
+          "fixed_width": 6,
+          "offered_drafts": 7947,
+          "accepted_drafts": 5242,
+          "speculative_rounds": 2371,
+          "accepted_per_round": 2.2108814846056517,
+          "acceptance_rate": 0.6596199823832893,
+          "width_overrun": false
+        }
+      },
+      "8": {
+        "0": {
+          "passed": false,
+          "transport_passed": true,
+          "errors": [],
+          "code_edit_output_tokens_per_second": {
+            "count": 1,
+            "median": 405.99464014229795,
+            "p99": 405.99464014229795,
+            "minimum": 405.99464014229795,
+            "maximum": 405.99464014229795
+          },
+          "code_edit_rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 6,
+              "rounds": 513,
+              "emitted_tokens": 513
+            },
+            {
+              "batch": 2,
+              "width": 6,
+              "rounds": 10,
+              "emitted_tokens": 48
+            },
+            {
+              "batch": 4,
+              "width": 6,
+              "rounds": 42,
+              "emitted_tokens": 720
+            },
+            {
+              "batch": 8,
+              "width": 6,
+              "rounds": 77,
+              "emitted_tokens": 2500
+            }
+          ],
+          "rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 6,
+              "rounds": 1023,
+              "gpu_nanoseconds": 11659786943,
+              "emitted_tokens": 2394,
+              "offered_drafts": 2406,
+              "accepted_drafts": 1390
+            },
+            {
+              "batch": 2,
+              "width": 6,
+              "rounds": 113,
+              "gpu_nanoseconds": 1602982815,
+              "emitted_tokens": 565,
+              "offered_drafts": 790,
+              "accepted_drafts": 340
+            },
+            {
+              "batch": 4,
+              "width": 6,
+              "rounds": 161,
+              "gpu_nanoseconds": 2943562484,
+              "emitted_tokens": 2003,
+              "offered_drafts": 2565,
+              "accepted_drafts": 1420
+            },
+            {
+              "batch": 8,
+              "width": 6,
+              "rounds": 77,
+              "gpu_nanoseconds": 1936367588,
+              "emitted_tokens": 2500,
+              "offered_drafts": 2120,
+              "accepted_drafts": 2002
+            }
+          ],
+          "drafts_by_source": {
+            "mtp": {
+              "offered": 7881,
+              "accepted": 5152
+            },
+            "copy": {
+              "offered": 0,
+              "accepted": 0
+            }
+          },
+          "mixed_graph_launches": 4,
+          "requests_failed": 0,
+          "arm": "fixed-5",
+          "fixed_width": 6,
+          "offered_drafts": 7881,
+          "accepted_drafts": 5152,
+          "speculative_rounds": 1374,
+          "accepted_per_round": 3.7496360989810773,
+          "acceptance_rate": 0.6537241466818932,
+          "width_overrun": false
+        }
+      }
+    },
+    "fixed-6": {
+      "1": {
+        "0": {
+          "passed": false,
+          "transport_passed": true,
+          "errors": [],
+          "code_edit_output_tokens_per_second": {
+            "count": 8,
+            "median": 506.1220320844286,
+            "p99": 537.9005754760847,
+            "minimum": 83.2685311922576,
+            "maximum": 537.9005754760847
+          },
+          "code_edit_rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 7,
+              "rounds": 1102,
+              "emitted_tokens": 3761
+            }
+          ],
+          "rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 7,
+              "rounds": 2226,
+              "gpu_nanoseconds": 26342065090,
+              "emitted_tokens": 7410,
+              "offered_drafts": 8597,
+              "accepted_drafts": 5215
+            }
+          ],
+          "drafts_by_source": {
+            "mtp": {
+              "offered": 8597,
+              "accepted": 5215
+            },
+            "copy": {
+              "offered": 0,
+              "accepted": 0
+            }
+          },
+          "mixed_graph_launches": 3,
+          "requests_failed": 0,
+          "arm": "fixed-6",
+          "fixed_width": 7,
+          "offered_drafts": 8597,
+          "accepted_drafts": 5215,
+          "speculative_rounds": 2226,
+          "accepted_per_round": 2.342767295597484,
+          "acceptance_rate": 0.606606955914854,
+          "width_overrun": false
+        }
+      },
+      "8": {
+        "0": {
+          "passed": false,
+          "transport_passed": true,
+          "errors": [],
+          "code_edit_output_tokens_per_second": {
+            "count": 1,
+            "median": 407.10206628602083,
+            "p99": 407.10206628602083,
+            "minimum": 407.10206628602083,
+            "maximum": 407.10206628602083
+          },
+          "code_edit_rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 7,
+              "rounds": 497,
+              "emitted_tokens": 497
+            },
+            {
+              "batch": 2,
+              "width": 7,
+              "rounds": 10,
+              "emitted_tokens": 79
+            },
+            {
+              "batch": 4,
+              "width": 7,
+              "rounds": 31,
+              "emitted_tokens": 626
+            },
+            {
+              "batch": 8,
+              "width": 7,
+              "rounds": 75,
+              "emitted_tokens": 2543
+            }
+          ],
+          "rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 7,
+              "rounds": 893,
+              "gpu_nanoseconds": 10685364096,
+              "emitted_tokens": 2062,
+              "offered_drafts": 2279,
+              "accepted_drafts": 1188
+            },
+            {
+              "batch": 2,
+              "width": 7,
+              "rounds": 109,
+              "gpu_nanoseconds": 1568644544,
+              "emitted_tokens": 669,
+              "offered_drafts": 1014,
+              "accepted_drafts": 454
+            },
+            {
+              "batch": 4,
+              "width": 7,
+              "rounds": 163,
+              "gpu_nanoseconds": 3155398786,
+              "emitted_tokens": 1976,
+              "offered_drafts": 2900,
+              "accepted_drafts": 1387
+            },
+            {
+              "batch": 8,
+              "width": 7,
+              "rounds": 75,
+              "gpu_nanoseconds": 1888425350,
+              "emitted_tokens": 2543,
+              "offered_drafts": 2226,
+              "accepted_drafts": 2099
+            }
+          ],
+          "drafts_by_source": {
+            "mtp": {
+              "offered": 8419,
+              "accepted": 5128
+            },
+            "copy": {
+              "offered": 0,
+              "accepted": 0
+            }
+          },
+          "mixed_graph_launches": 4,
+          "requests_failed": 0,
+          "arm": "fixed-6",
+          "fixed_width": 7,
+          "offered_drafts": 8419,
+          "accepted_drafts": 5128,
+          "speculative_rounds": 1240,
+          "accepted_per_round": 4.135483870967742,
+          "acceptance_rate": 0.6090984677515144,
+          "width_overrun": false
+        }
+      }
+    },
+    "fixed-7": {
+      "1": {
+        "0": {
+          "passed": false,
+          "transport_passed": true,
+          "errors": [],
+          "code_edit_output_tokens_per_second": {
+            "count": 8,
+            "median": 537.2862802411742,
+            "p99": 587.2549848176011,
+            "minimum": 80.22312266339574,
+            "maximum": 587.2549848176011
+          },
+          "code_edit_rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 8,
+              "rounds": 1090,
+              "emitted_tokens": 3785
+            }
+          ],
+          "rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 8,
+              "rounds": 2161,
+              "gpu_nanoseconds": 26584112383,
+              "emitted_tokens": 7405,
+              "offered_drafts": 9508,
+              "accepted_drafts": 5277
+            }
+          ],
+          "drafts_by_source": {
+            "mtp": {
+              "offered": 9508,
+              "accepted": 5277
+            },
+            "copy": {
+              "offered": 0,
+              "accepted": 0
+            }
+          },
+          "mixed_graph_launches": 3,
+          "requests_failed": 0,
+          "arm": "fixed-7",
+          "fixed_width": 8,
+          "offered_drafts": 9508,
+          "accepted_drafts": 5277,
+          "speculative_rounds": 2161,
+          "accepted_per_round": 2.4419250347061547,
+          "acceptance_rate": 0.5550063104753892,
+          "width_overrun": false
+        }
+      },
+      "8": {
+        "0": {
+          "passed": false,
+          "transport_passed": true,
+          "errors": [],
+          "code_edit_output_tokens_per_second": {
+            "count": 1,
+            "median": 351.7277040091817,
+            "p99": 351.7277040091817,
+            "minimum": 351.7277040091817,
+            "maximum": 351.7277040091817
+          },
+          "code_edit_rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 8,
+              "rounds": 567,
+              "emitted_tokens": 567
+            },
+            {
+              "batch": 2,
+              "width": 8,
+              "rounds": 15,
+              "emitted_tokens": 167
+            },
+            {
+              "batch": 4,
+              "width": 8,
+              "rounds": 40,
+              "emitted_tokens": 851
+            },
+            {
+              "batch": 8,
+              "width": 8,
+              "rounds": 48,
+              "emitted_tokens": 1936
+            }
+          ],
+          "rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 8,
+              "rounds": 944,
+              "gpu_nanoseconds": 11680323842,
+              "emitted_tokens": 2109,
+              "offered_drafts": 2273,
+              "accepted_drafts": 1186
+            },
+            {
+              "batch": 2,
+              "width": 8,
+              "rounds": 103,
+              "gpu_nanoseconds": 1568961980,
+              "emitted_tokens": 709,
+              "offered_drafts": 1064,
+              "accepted_drafts": 505
+            },
+            {
+              "batch": 4,
+              "width": 8,
+              "rounds": 173,
+              "gpu_nanoseconds": 3512158036,
+              "emitted_tokens": 2198,
+              "offered_drafts": 3607,
+              "accepted_drafts": 1578
+            },
+            {
+              "batch": 8,
+              "width": 8,
+              "rounds": 48,
+              "gpu_nanoseconds": 1321974755,
+              "emitted_tokens": 1936,
+              "offered_drafts": 1834,
+              "accepted_drafts": 1638
+            }
+          ],
+          "drafts_by_source": {
+            "mtp": {
+              "offered": 8778,
+              "accepted": 4907
+            },
+            "copy": {
+              "offered": 0,
+              "accepted": 0
+            }
+          },
+          "mixed_graph_launches": 3,
+          "requests_failed": 0,
+          "arm": "fixed-7",
+          "fixed_width": 8,
+          "offered_drafts": 8778,
+          "accepted_drafts": 4907,
+          "speculative_rounds": 1268,
+          "accepted_per_round": 3.8698738170347005,
+          "acceptance_rate": 0.5590111642743222,
+          "width_overrun": false
+        }
+      }
+    }
+  },
+  "trials": 18
+}
