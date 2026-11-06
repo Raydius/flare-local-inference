@@ -1,0 +1,57 @@
+{
+  "cells": [
+    {
+      "case": "passkey-3002-0.1",
+      "length": 200000,
+      "depth": 0.1,
+      "passkey": "87822",
+      "prompt_tokens": 199812,
+      "generated_tokens": 6,
+      "reply": "87822",
+      "passed": true,
+      "finish_reason": "stop",
+      "completed": true,
+      "client_error": null,
+      "request_seconds": 13.335148433,
+      "accepted_per_round": 4.0
+    },
+    {
+      "case": "passkey-3002-0.5",
+      "length": 200000,
+      "depth": 0.5,
+      "passkey": "33385",
+      "prompt_tokens": 199812,
+      "generated_tokens": 6,
+      "reply": "33385",
+      "passed": true,
+      "finish_reason": "stop",
+      "completed": true,
+      "client_error": null,
+      "request_seconds": 13.049065027,
+      "accepted_per_round": 2.0
+    },
+    {
+      "case": "passkey-3002-0.9",
+      "length": 200000,
+      "depth": 0.9,
+      "passkey": "15752",
+      "prompt_tokens": 199812,
+      "generated_tokens": 6,
+      "reply": "15752",
+      "passed": true,
+      "finish_reason": "stop",
+      "completed": true,
+      "client_error": null,
+      "request_seconds": 13.127798811,
+      "accepted_per_round": null
+    }
+  ],
+  "grid": {
+    "200000": {
+      "0.1": true,
+      "0.5": true,
+      "0.9": true
+    }
+  },
+  "all_passed": true
+}
