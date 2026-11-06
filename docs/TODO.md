@@ -11,6 +11,9 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
       `qualify/results/dflash2-served/summary.json`.
       Draft-count sweep (adaptive versus fixed 0-7, concurrency 1 and 8) recorded in
       `qualify/results/dflash2-draft-sweep/summary.json`.
+      History-drafts A/B at fixed-7 on the same image and package (2026-11-06,
+      `qualify/results/dflash2-history-drafts/`): off 497.7 / 346.4 tok/s, on 380.7 / 341.6 tok/s
+      (c1 / c8 code_edit medians; copies 52 % accepted on the on arm).
       Requalification runs (rebase 2026-11-02 adaptive, fold 2026-11-03 adaptive, rebase2 2026-11-04
       fixed-7; transport clean, rows carry the workload's manual-review cases) recorded in
       `qualify/results/dflash2-requalify/<run>/summary.json`.
