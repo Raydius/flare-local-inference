@@ -7,6 +7,8 @@
 import pytest
 
 from ignition.preparation.quantization import matches_pattern, modelopt_nvfp4_layers
+from ignition.recipes.gemma4.config import ModelConfig, _candidate_linear_names
+from tests.recipes.test_gemma4 import _dense_31b_raw
 
 NVFP4_ENTRY = {"quant_algo": "NVFP4", "group_size": 16}
 GLIMMER_LAYERS = 52
@@ -58,37 +60,6 @@ def _glimmer_candidates():
     return names
 
 
-def _gemma_dense_31b_raw():
-    # tests/recipes/test_gemma4.py::_dense_31b_raw(nvfp4=True)'s quantization block plus
-    # the input_activations spec the real ModelOpt checkpoints carry.
-    return {
-        "architectures": ["Gemma4ForConditionalGeneration"],
-        "quantization_config": {
-            "quant_method": "modelopt",
-            "quant_algo": "NVFP4",
-            "config_groups": {"group_0": _modelopt_group()},
-            "ignore": ["lm_head", "*embed_vision*", "*self_attn*", "*vision_tower*"],
-        },
-    }
-
-
-def _gemma_dense_31b_candidates():
-    # gemma4/config.py:_candidate_linear_names over the dense 31B geometry: lm_head, then
-    # q/o/gate/up/down per layer plus k_proj (attention_k_eq_v drops v_proj, no KV sharing).
-    names = ["lm_head"]
-    for index in range(60):
-        prefix = f"model.language_model.layers.{index}"
-        names.extend((
-            f"{prefix}.self_attn.q_proj",
-            f"{prefix}.self_attn.o_proj",
-            f"{prefix}.mlp.gate_proj",
-            f"{prefix}.mlp.up_proj",
-            f"{prefix}.mlp.down_proj",
-            f"{prefix}.self_attn.k_proj",
-        ))
-    return names
-
-
 def test_matches_pattern_glob_and_regex():
     assert matches_pattern("model.vision_tower.blocks.0.attn.qkv", "model.vision_tower*")
     assert not matches_pattern("model.language_model.layers.0.mlp.up_proj", "model.vision_tower*")
@@ -115,10 +86,11 @@ def test_glimmer_config_keeps_every_text_projection_and_drops_ignored_names():
     assert list(layers) == candidates[ignored:]
 
 
-def test_gemma_dense_config_matches_the_former_recipe_branch():
-    # Captured from gemma4/config.py:_parse_quantization before the branch was lifted:
-    # 180 entries, the three MLP projections of each of the 60 layers, all NVFP4 group 16.
-    layers = modelopt_nvfp4_layers(_gemma_dense_31b_raw(), _gemma_dense_31b_candidates())
+def test_gemma_dense_config_keeps_only_the_mlp_projections():
+    # The dense 31B NVFP4 checkpoint ignores lm_head, embeddings, attention, and vision: the three MLP
+    # projections of each of the 60 layers remain, all NVFP4 group 16.
+    raw = _dense_31b_raw(nvfp4=True)
+    layers = modelopt_nvfp4_layers(raw, _candidate_linear_names(ModelConfig.from_dict(raw)))
     expected = {
         f"model.language_model.layers.{index}.mlp.{proj}": NVFP4_ENTRY
         for index in range(60)

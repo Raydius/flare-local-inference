@@ -1305,10 +1305,10 @@ flare-cli/target/release/flare run /data/flare-runtime/muse-spark-tp8.safetensor
 The `muse-glimmer-30b-nvfp4` alias selects
 [`original-el8/Muse-Glimmer-30B-NVFP4`](https://huggingface.co/original-el8/Muse-Glimmer-30B-NVFP4)
 at revision `b47e1e9f77d9a86e18cda5e318c68c632a7fbe59`. Preparation uses one
-SM120 GPU, checkpoint NVFP4 text projections (q/k/v fused, the attention gate as
-its own projection, mlp gate/up fused; the ModelOpt `config_groups` metadata and
-the separate `model-inputscales.safetensors` shard are read through the shared
-parser and the checkpoint index), FP8 E4M3 KV storage, a 131072-token context,
+SM120 GPU, the checkpoint's NVFP4 text projections (q/k/v fused, the attention
+gate as its own projection, mlp gate/up fused; the ModelOpt `config_groups`
+metadata selects them and the `model-inputscales.safetensors` shard is read
+through the checkpoint index), FP8 E4M3 KV storage, a 131072-token context,
 four concurrent requests, and 4096-token prefill chunks. The 52 layers alternate
 39 sliding-window layers (2048 tokens, rope 500000) with 13 full-context layers
 without positional encoding; the sigmoid attention gate multiplies the raw
@@ -1316,11 +1316,11 @@ attended value, the four per-layer norms are centered RMS norms, and the head
 applies `output_multiplier` then 20·tanh(x/20) softcapping. The vision tower is
 prepared by default: up to four 32 MiB images per request through the
 `muse_glimmer` image profile (Glimmer's `smart_resize` grid at factor 28 under
-4096 merged tokens, antialiased Lanczos resampling, window-ordered patches with
+4096 merged tokens, antialiased Lanczos resampling, window-ordered patches in
 32×32-patch cells, four-tap bilinear position-table interpolation), 37 window and
-13 full vision layers, a 2×2 pixel shuffle, the adapter and projection, injected
-at `<|patch|>` positions between `<|image_start|>` and `<|image_end|>`. Video
-parts (`<|video|>`) are rejected. `--language-model-only` prepares text alone.
+13 full vision layers, a 2×2 pixel shuffle, and the adapter and projection,
+injected at `<|patch|>` positions between `<|image_start|>` and `<|image_end|>`.
+Video parts (`<|video|>`) are rejected; `--language-model-only` prepares text alone.
 
 DFlash drafting uses
 [`meta-models/Muse-Glimmer-30B-assistant`](https://huggingface.co/meta-models/Muse-Glimmer-30B-assistant)

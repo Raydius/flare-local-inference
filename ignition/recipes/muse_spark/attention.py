@@ -89,11 +89,11 @@ class PreparedAttention(torch.nn.Module):
             self.projection = prepare_projection(source, weights.qkv, scratch.projected,
                 session=session, name=name + ".qkv_gate", workspace=workspace)
         else:
-            tokens, flat = scratch.projected.shape[0], scratch.projected.view(-1)
-            split = tokens * sum(self.widths[:3])
-            self.projection = prepare_projection(source, weights.qkv, flat[:split].view(tokens, -1),
+            tokens, qkv_width, gate_width = scratch.projected.shape[0], sum(self.widths[:3]), self.widths[3]
+            qkv_region, gate_region = scratch.projected.view(-1).split((tokens * qkv_width, tokens * gate_width))
+            self.projection = prepare_projection(source, weights.qkv, qkv_region.view(tokens, qkv_width),
                 session=session, name=name + ".qkv", workspace=workspace)
-            self.gate_projection = prepare_projection(source, weights.gate, flat[split:].view(tokens, -1),
+            self.gate_projection = prepare_projection(source, weights.gate, gate_region.view(tokens, gate_width),
                 session=session, name=name + ".gate", workspace=workspace)
         self.output_projection = prepare_projection(scratch.gated.flatten(1), weights.output, scratch.partial,
             session=session, name=name + ".output", workspace=workspace)
@@ -161,10 +161,8 @@ class PreparedAttention(torch.nn.Module):
         s, m, a = self.scratch, self.metadata, self.geometry
         rows = hidden_states.reshape(-1, hidden_states.shape[-1])
         projected = self.projection(rows)
-        heads, kv_heads = s.query.shape[1], s.key.shape[1]
         if self.gate_projection is None:
-            q, k, v, gate = projected.split((heads * a.key_dim, kv_heads * a.key_dim,
-                                            kv_heads * a.value_dim, heads * a.value_dim), -1)
+            q, k, v, gate = projected.split(self.widths, -1)
         else:
             q, k, v = projected.split(self.widths[:3], -1)
             gate = self.gate_projection(rows)

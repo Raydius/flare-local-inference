@@ -12,7 +12,7 @@ from ignition.components.embedding import PreparedShardedEmbedding
 from ignition.components.mlp import MLPScratch, PreparedMLP
 from ignition.components.vocabulary import PreparedVocabularyProjection
 from ignition.recipes.muse_spark.attention import AttentionScratch, PreparedAttention
-from ignition.recipes.muse_spark.decoder import SoftcappedProjection
+from ignition.recipes.muse_spark.decoder import PreparedResume, SoftcappedProjection
 from .model import decoder_layer, norm
 
 
@@ -130,12 +130,3 @@ class PreparedDecoder:
     def scratch_tensors(self):
         return (self.head.gathered, self.auxiliary, *(layer.self_attn.scratch_tensors() for layer in self.layers))
 
-
-from ignition.components.paged_resume import PreparedResume as _PreparedResume
-
-
-class PreparedResume(_PreparedResume):
-    def __init__(self, weights, *args, **kwargs):
-        super().__init__(weights, *args, **kwargs)
-        c = weights.config.text
-        self.projection = SoftcappedProjection(self.projection, c["output_multiplier"], c["final_logit_softcapping"])

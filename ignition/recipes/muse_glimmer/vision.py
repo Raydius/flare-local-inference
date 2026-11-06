@@ -19,6 +19,7 @@ from dataclasses import dataclass
 import torch
 from b12x.preparation import PreparationSession
 from transformers.models.muse_glimmer.modeling_muse_glimmer import (
+    MuseGlimmerRMSNorm,
     MuseGlimmerVisionRotaryEmbedding,
     apply_rotary_pos_emb_vision,
 )
@@ -238,6 +239,7 @@ class PreparedVision:
                                                 session=session, name=f"{name}.projection")
         self.patch_rows = torch.arange(capacity, device=device)
         self.output_rows = torch.arange(capacity // 4, device=device)
+        self.perception_norm = MuseGlimmerRMSNorm(eps=PERCEPTION_NORM_EPS, with_scale=False)
 
     def __call__(self, pixels: torch.Tensor) -> torch.Tensor:
         s, m, module = self.scratch, self.metadata, self.module
@@ -262,7 +264,6 @@ class PreparedVision:
         activated = torch.nn.functional.gelu(self.adapter_fc1(s.merged))
         activated = torch.nn.functional.gelu(self.adapter_fc2(activated))
         projected = self.projection(activated).float()
-        normed = projected * torch.pow(projected.pow(2).mean(-1, keepdim=True) + PERCEPTION_NORM_EPS, -0.5)
-        s.output.copy_(normed)
+        s.output.copy_(self.perception_norm(projected))
         s.output.masked_fill_((self.output_rows >= m.num_patches // 4)[:, None], 0)
         return s.output
