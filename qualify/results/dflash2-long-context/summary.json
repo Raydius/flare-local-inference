@@ -1,0 +1,193 @@
+{
+  "past_native": {
+    "case": "long-services-4803",
+    "prompt_tokens": 319652,
+    "generated_tokens": 213,
+    "finish_reason": "stop",
+    "completed": true,
+    "client_error": null,
+    "request_seconds": 24.549054372,
+    "output_tokens_per_second": 8.676505284983284,
+    "retrieval": {
+      "passed": true,
+      "missing": {}
+    },
+    "expected_values": {
+      "service-0007": {
+        "timeout_ms": "1050",
+        "retry_limit": "3",
+        "owner": "team-07"
+      },
+      "service-2401": {
+        "timeout_ms": "1150",
+        "retry_limit": "1",
+        "owner": "team-04"
+      },
+      "service-4802": {
+        "timeout_ms": "950",
+        "retry_limit": "2",
+        "owner": "team-08"
+      }
+    },
+    "offered_drafts": 233,
+    "accepted_drafts": 144,
+    "speculative_rounds": 39,
+    "accepted_per_round": 3.6923076923076925,
+    "acceptance_rate": 0.6180257510729614,
+    "rounds_by_shape": [
+      {
+        "batch": 1,
+        "width": 1,
+        "rounds": 1,
+        "gpu_nanoseconds": 8042624,
+        "emitted_tokens": 1,
+        "offered_drafts": 0,
+        "accepted_drafts": 0
+      },
+      {
+        "batch": 1,
+        "width": 2,
+        "rounds": 1,
+        "gpu_nanoseconds": 10656000,
+        "emitted_tokens": 2,
+        "offered_drafts": 1,
+        "accepted_drafts": 1
+      },
+      {
+        "batch": 1,
+        "width": 3,
+        "rounds": 1,
+        "gpu_nanoseconds": 11302112,
+        "emitted_tokens": 3,
+        "offered_drafts": 2,
+        "accepted_drafts": 2
+      },
+      {
+        "batch": 1,
+        "width": 4,
+        "rounds": 1,
+        "gpu_nanoseconds": 11507712,
+        "emitted_tokens": 4,
+        "offered_drafts": 3,
+        "accepted_drafts": 3
+      },
+      {
+        "batch": 1,
+        "width": 5,
+        "rounds": 1,
+        "gpu_nanoseconds": 12420320,
+        "emitted_tokens": 5,
+        "offered_drafts": 4,
+        "accepted_drafts": 4
+      },
+      {
+        "batch": 1,
+        "width": 6,
+        "rounds": 3,
+        "gpu_nanoseconds": 39095008,
+        "emitted_tokens": 18,
+        "offered_drafts": 15,
+        "accepted_drafts": 15
+      },
+      {
+        "batch": 1,
+        "width": 7,
+        "rounds": 2,
+        "gpu_nanoseconds": 27333632,
+        "emitted_tokens": 13,
+        "offered_drafts": 12,
+        "accepted_drafts": 11
+      },
+      {
+        "batch": 1,
+        "width": 8,
+        "rounds": 29,
+        "gpu_nanoseconds": 397749120,
+        "emitted_tokens": 135,
+        "offered_drafts": 196,
+        "accepted_drafts": 108
+      }
+    ],
+    "drafts_by_source": {
+      "mtp": {
+        "offered": 233,
+        "accepted": 144
+      },
+      "copy": {
+        "offered": 0,
+        "accepted": 0
+      }
+    }
+  },
+  "sub_native": {
+    "case": "long-services-3002",
+    "prompt_tokens": 199819,
+    "generated_tokens": 263,
+    "finish_reason": "stop",
+    "completed": true,
+    "client_error": null,
+    "request_seconds": 14.940940116,
+    "output_tokens_per_second": 17.60264066103563,
+    "retrieval": {
+      "passed": true,
+      "missing": {}
+    },
+    "expected_values": {
+      "service-0007": {
+        "timeout_ms": "1050",
+        "retry_limit": "3",
+        "owner": "team-07"
+      },
+      "service-1501": {
+        "timeout_ms": "1000",
+        "retry_limit": "1",
+        "owner": "team-05"
+      },
+      "service-3001": {
+        "timeout_ms": "1250",
+        "retry_limit": "1",
+        "owner": "team-09"
+      }
+    },
+    "offered_drafts": 256,
+    "accepted_drafts": 179,
+    "speculative_rounds": 85,
+    "accepted_per_round": 2.1058823529411765,
+    "acceptance_rate": 0.69921875,
+    "rounds_by_shape": [
+      {
+        "batch": 1,
+        "width": 4,
+        "rounds": 84,
+        "gpu_nanoseconds": 933144608,
+        "emitted_tokens": 259,
+        "offered_drafts": 249,
+        "accepted_drafts": 177
+      },
+      {
+        "batch": 1,
+        "width": 8,
+        "rounds": 1,
+        "gpu_nanoseconds": 12880256,
+        "emitted_tokens": 3,
+        "offered_drafts": 7,
+        "accepted_drafts": 2
+      }
+    ],
+    "drafts_by_source": {
+      "mtp": {
+        "offered": 256,
+        "accepted": 179
+      },
+      "copy": {
+        "offered": 0,
+        "accepted": 0
+      }
+    }
+  },
+  "ratio": 1.7533304684142674,
+  "criterion": 0.9,
+  "retrieval_passed": true,
+  "past_native_exceeds_native_context": true,
+  "criterion_met": true
+}

@@ -11,6 +11,11 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
       `qualify/results/dflash2-served/summary.json`.
       Draft-count sweep (adaptive versus fixed 0-7, concurrency 1 and 8) recorded in
       `qualify/results/dflash2-draft-sweep/summary.json`.
+      Requalification runs (rebase 2026-11-02 adaptive, fold 2026-11-03 adaptive, rebase2 2026-11-04
+      fixed-7; transport clean, rows carry the workload's manual-review cases) recorded in
+      `qualify/results/dflash2-requalify/<run>/summary.json`.
+      Past-262k probe on the yarn4 entry (2026-11-03 second run) recorded in
+      `qualify/results/dflash2-long-context/summary.json`.
 
 - [ ] `ignition/recipes/qwen38_dflash/bootstrap.py` repeats ~256 of the ~390 lines of qwen38's
       `_prepare_model` (`ignition/recipes/qwen38/bootstrap.py:250`: transient wrapper, owner

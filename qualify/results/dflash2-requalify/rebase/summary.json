@@ -1,0 +1,451 @@
+{
+  "arms": {
+    "dflash2-adaptive": {
+      "1": {
+        "0": {
+          "passed": false,
+          "transport_passed": true,
+          "errors": [],
+          "code_edit_output_tokens_per_second": {
+            "count": 8,
+            "median": 329.07749241001005,
+            "p99": 418.39127536577803,
+            "minimum": 151.88202628011163,
+            "maximum": 418.39127536577803
+          },
+          "code_edit_rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 1,
+              "rounds": 570,
+              "emitted_tokens": 570
+            },
+            {
+              "batch": 1,
+              "width": 3,
+              "rounds": 427,
+              "emitted_tokens": 1104
+            },
+            {
+              "batch": 1,
+              "width": 4,
+              "rounds": 110,
+              "emitted_tokens": 382
+            },
+            {
+              "batch": 1,
+              "width": 7,
+              "rounds": 71,
+              "emitted_tokens": 331
+            },
+            {
+              "batch": 1,
+              "width": 8,
+              "rounds": 296,
+              "emitted_tokens": 1675
+            }
+          ],
+          "rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 1,
+              "rounds": 753,
+              "emitted_tokens": 753
+            },
+            {
+              "batch": 1,
+              "width": 2,
+              "rounds": 1,
+              "emitted_tokens": 2
+            },
+            {
+              "batch": 1,
+              "width": 3,
+              "rounds": 1221,
+              "emitted_tokens": 3017
+            },
+            {
+              "batch": 1,
+              "width": 4,
+              "rounds": 364,
+              "emitted_tokens": 1146
+            },
+            {
+              "batch": 1,
+              "width": 5,
+              "rounds": 5,
+              "emitted_tokens": 20
+            },
+            {
+              "batch": 1,
+              "width": 6,
+              "rounds": 42,
+              "emitted_tokens": 109
+            },
+            {
+              "batch": 1,
+              "width": 7,
+              "rounds": 72,
+              "emitted_tokens": 338
+            },
+            {
+              "batch": 1,
+              "width": 8,
+              "rounds": 391,
+              "emitted_tokens": 2029
+            }
+          ],
+          "drafts_by_source": {
+            "mtp": {
+              "offered": 4170,
+              "accepted": 2835
+            },
+            "copy": {
+              "offered": 2764,
+              "accepted": 1742
+            }
+          },
+          "mixed_graph_launches": 24,
+          "requests_failed": 0
+        }
+      },
+      "8": {
+        "0": {
+          "passed": false,
+          "transport_passed": true,
+          "errors": [],
+          "code_edit_output_tokens_per_second": {
+            "count": 1,
+            "median": 516.5057484177152,
+            "p99": 516.5057484177152,
+            "minimum": 516.5057484177152,
+            "maximum": 516.5057484177152
+          },
+          "code_edit_rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 1,
+              "rounds": 469,
+              "emitted_tokens": 469
+            },
+            {
+              "batch": 2,
+              "width": 1,
+              "rounds": 30,
+              "emitted_tokens": 60
+            },
+            {
+              "batch": 2,
+              "width": 5,
+              "rounds": 9,
+              "emitted_tokens": 42
+            },
+            {
+              "batch": 4,
+              "width": 1,
+              "rounds": 5,
+              "emitted_tokens": 16
+            },
+            {
+              "batch": 4,
+              "width": 2,
+              "rounds": 1,
+              "emitted_tokens": 5
+            },
+            {
+              "batch": 4,
+              "width": 3,
+              "rounds": 1,
+              "emitted_tokens": 10
+            },
+            {
+              "batch": 4,
+              "width": 4,
+              "rounds": 1,
+              "emitted_tokens": 7
+            },
+            {
+              "batch": 4,
+              "width": 5,
+              "rounds": 1,
+              "emitted_tokens": 15
+            },
+            {
+              "batch": 4,
+              "width": 6,
+              "rounds": 1,
+              "emitted_tokens": 17
+            },
+            {
+              "batch": 4,
+              "width": 7,
+              "rounds": 34,
+              "emitted_tokens": 379
+            },
+            {
+              "batch": 4,
+              "width": 8,
+              "rounds": 1,
+              "emitted_tokens": 23
+            },
+            {
+              "batch": 8,
+              "width": 1,
+              "rounds": 1,
+              "emitted_tokens": 8
+            },
+            {
+              "batch": 8,
+              "width": 2,
+              "rounds": 1,
+              "emitted_tokens": 15
+            },
+            {
+              "batch": 8,
+              "width": 3,
+              "rounds": 1,
+              "emitted_tokens": 19
+            },
+            {
+              "batch": 8,
+              "width": 4,
+              "rounds": 1,
+              "emitted_tokens": 25
+            },
+            {
+              "batch": 8,
+              "width": 5,
+              "rounds": 1,
+              "emitted_tokens": 32
+            },
+            {
+              "batch": 8,
+              "width": 6,
+              "rounds": 2,
+              "emitted_tokens": 70
+            },
+            {
+              "batch": 8,
+              "width": 7,
+              "rounds": 4,
+              "emitted_tokens": 155
+            },
+            {
+              "batch": 8,
+              "width": 8,
+              "rounds": 66,
+              "emitted_tokens": 2170
+            }
+          ],
+          "rounds_by_shape": [
+            {
+              "batch": 1,
+              "width": 1,
+              "rounds": 517,
+              "emitted_tokens": 517
+            },
+            {
+              "batch": 1,
+              "width": 2,
+              "rounds": 2,
+              "emitted_tokens": 4
+            },
+            {
+              "batch": 1,
+              "width": 3,
+              "rounds": 1,
+              "emitted_tokens": 3
+            },
+            {
+              "batch": 1,
+              "width": 4,
+              "rounds": 376,
+              "emitted_tokens": 1158
+            },
+            {
+              "batch": 1,
+              "width": 5,
+              "rounds": 1,
+              "emitted_tokens": 5
+            },
+            {
+              "batch": 1,
+              "width": 6,
+              "rounds": 83,
+              "emitted_tokens": 265
+            },
+            {
+              "batch": 1,
+              "width": 7,
+              "rounds": 1,
+              "emitted_tokens": 7
+            },
+            {
+              "batch": 1,
+              "width": 8,
+              "rounds": 7,
+              "emitted_tokens": 30
+            },
+            {
+              "batch": 2,
+              "width": 1,
+              "rounds": 52,
+              "emitted_tokens": 104
+            },
+            {
+              "batch": 2,
+              "width": 2,
+              "rounds": 13,
+              "emitted_tokens": 50
+            },
+            {
+              "batch": 2,
+              "width": 3,
+              "rounds": 1,
+              "emitted_tokens": 6
+            },
+            {
+              "batch": 2,
+              "width": 4,
+              "rounds": 31,
+              "emitted_tokens": 160
+            },
+            {
+              "batch": 2,
+              "width": 5,
+              "rounds": 44,
+              "emitted_tokens": 264
+            },
+            {
+              "batch": 2,
+              "width": 6,
+              "rounds": 12,
+              "emitted_tokens": 77
+            },
+            {
+              "batch": 2,
+              "width": 7,
+              "rounds": 1,
+              "emitted_tokens": 12
+            },
+            {
+              "batch": 2,
+              "width": 8,
+              "rounds": 3,
+              "emitted_tokens": 32
+            },
+            {
+              "batch": 4,
+              "width": 1,
+              "rounds": 19,
+              "emitted_tokens": 69
+            },
+            {
+              "batch": 4,
+              "width": 2,
+              "rounds": 1,
+              "emitted_tokens": 5
+            },
+            {
+              "batch": 4,
+              "width": 3,
+              "rounds": 22,
+              "emitted_tokens": 182
+            },
+            {
+              "batch": 4,
+              "width": 4,
+              "rounds": 109,
+              "emitted_tokens": 1158
+            },
+            {
+              "batch": 4,
+              "width": 5,
+              "rounds": 1,
+              "emitted_tokens": 15
+            },
+            {
+              "batch": 4,
+              "width": 6,
+              "rounds": 1,
+              "emitted_tokens": 17
+            },
+            {
+              "batch": 4,
+              "width": 7,
+              "rounds": 35,
+              "emitted_tokens": 395
+            },
+            {
+              "batch": 4,
+              "width": 8,
+              "rounds": 1,
+              "emitted_tokens": 23
+            },
+            {
+              "batch": 8,
+              "width": 1,
+              "rounds": 1,
+              "emitted_tokens": 8
+            },
+            {
+              "batch": 8,
+              "width": 2,
+              "rounds": 1,
+              "emitted_tokens": 15
+            },
+            {
+              "batch": 8,
+              "width": 3,
+              "rounds": 1,
+              "emitted_tokens": 19
+            },
+            {
+              "batch": 8,
+              "width": 4,
+              "rounds": 1,
+              "emitted_tokens": 25
+            },
+            {
+              "batch": 8,
+              "width": 5,
+              "rounds": 1,
+              "emitted_tokens": 32
+            },
+            {
+              "batch": 8,
+              "width": 6,
+              "rounds": 2,
+              "emitted_tokens": 70
+            },
+            {
+              "batch": 8,
+              "width": 7,
+              "rounds": 4,
+              "emitted_tokens": 155
+            },
+            {
+              "batch": 8,
+              "width": 8,
+              "rounds": 66,
+              "emitted_tokens": 2170
+            }
+          ],
+          "drafts_by_source": {
+            "mtp": {
+              "offered": 4759,
+              "accepted": 3141
+            },
+            "copy": {
+              "offered": 2447,
+              "accepted": 1390
+            }
+          },
+          "mixed_graph_launches": 68,
+          "requests_failed": 0
+        }
+      }
+    }
+  },
+  "trials": 2
+}
