@@ -158,21 +158,6 @@ def test_width_16_round_proposes_the_assistant_block():
             commit_emitted=commit.emitted_count.tolist(), commit_accepted=commit.accepted_count.tolist(),
             status=requests.status.tolist(), error_code=requests.error_code.tolist())
         print(acceptance, flush=True)
-        # Proposal position 0: the retained distribution (bound-logits fused kernels) against the same
-        # object's materialized scores and against the draft logits it was bound to.
-        first = operation.operations[1][0]
-        retained = operation.probabilities[0, 0].clone()
-        first.prepare_scores()
-        materialized = first.scores[0, 0].softmax(-1)
-        bound = operation.draft.scratch.logits.view(BLOCK, -1)[1].softmax(-1)
-        top = lambda p: [(int(i), round(float(v), 4)) for v, i in zip(*p.topk(5))]
-        print(dict(proposal0_retained_top5=top(retained), proposal0_materialized_top5=top(materialized),
-                   proposal0_bound_logits_top5=top(bound),
-                   histogram_at_retained_top5=requests.histogram[0][retained.topk(5).indices].tolist(),
-                   histogram_at_bound_top5=requests.histogram[0][bound.topk(5).indices].tolist(),
-                   retained_mass_on_bound_top20=float(retained[bound.topk(20).indices].sum()),
-                   source_logits_shape=tuple(first.source_logits.shape), source_logits_stride=first.source_logits.stride(),
-                   candidate_kernels=first._candidate_kernels is not None), flush=True)
         assert not requests.error_code.count_nonzero(), requests.error_code.tolist()
         emitted = int(operation.operations[-1].emitted_count[0])
         assert 1 <= emitted <= BLOCK

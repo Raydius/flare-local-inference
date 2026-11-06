@@ -27,11 +27,8 @@ import torch
 from ignition.recipes.muse_glimmer.vision import (
     PERCEPTION_NORM_EPS, PreparedVision, VisionMetadata, VisionScratch, VisionWeights, window_capacity,
 )
+from tests.recipes.muse_glimmer.test_reference_cuda import CHECKPOINT, CUDA, SNAPSHOT, device as _device
 
-CUDA = pytest.mark.skipif(os.environ.get("FLARE_RUN_CUDA_TESTS") != "1",
-                          reason="requires explicit GPU assignment and FLARE_RUN_CUDA_TESTS=1")
-SNAPSHOT = os.environ.get("FLARE_MUSE_GLIMMER_SNAPSHOT")
-CHECKPOINT = pytest.mark.skipif(not SNAPSHOT, reason="FLARE_MUSE_GLIMMER_SNAPSHOT names no checkpoint")
 EVALUATION_IMAGES = ("color-bars.png", "glimmer-sign.png", "green-triangles.png", "shapes-left-right.png")
 RAGGED = (980, 532)  # width, height -> a 70x38 patch grid: 32x32, 32x6, 6x32 and 6x6 cells
 
@@ -50,15 +47,6 @@ def test_vision_buffer_geometry():
     assert metadata.num_patches.item() == 0
     with pytest.raises(ValueError):
         VisionScratch.allocate(1023, torch.device("cpu"))
-
-
-def _device():
-    if not os.environ.get("CUDA_VISIBLE_DEVICES"):
-        pytest.fail("assign a CUDA device explicitly")
-    device = torch.device("cuda", 0)
-    torch.cuda.set_device(device)
-    torch.backends.cuda.matmul.allow_tf32 = False
-    return device
 
 
 def _vision_config(**overrides):
@@ -261,7 +249,7 @@ def snapshot():
 
 
 class _ShardTensors:
-    """``load_tensors`` over the one shard holding the vision tower; the direct loader is 1.7/1.8's."""
+    """``load_tensors`` over the one shard holding the vision tower, in place of ``DirectWeightLoader``."""
 
     def __init__(self, snapshot, device):
         from safetensors import safe_open
