@@ -130,11 +130,11 @@ For the pinned Qwen3.8-Flash-Next-DFlash2 draft, one block through the shared co
 - **THEN** the test runs on random features against the same E4M3-rounded reference and records that bound separately, skipping no assertion silently
 
 ### Requirement: The folded package serves the measured baselines
-A package exported from the folded recipe SHALL serve the frozen speculation workload through `flare run` with clean transport and no failed requests, and its code_edit output throughput SHALL be compared against the pre-fold package's 329.1 tokens per second at concurrency 1 and 516.5 at concurrency 8 (`qualify/results/dflash2-served/summary.json`, vault DFlash2 Recipe Progress §12), with the drafter's offered and accepted token counts recorded beside them.
+A package exported from the folded recipe SHALL serve the frozen speculation workload through `flare run` with clean transport and no failed requests, and its code_edit output throughput SHALL be compared against the pre-fold package's 329.1 tokens per second at concurrency 1 and 516.5 at concurrency 8 (`qualify/results/dflash2-requalify/rebase/summary.json`, the rebase entry gb202-tp1-202611021657; vault DFlash2 Recipe Progress §12), with the drafter's offered and accepted token counts recorded beside them.
 
 #### Scenario: Requalification
 - **WHEN** `qualify.dflash2_served` runs trials `0:1:dflash2-adaptive` and `0:8:dflash2-adaptive` against the new entry
-- **THEN** both trials report `transport_passed` with zero failed requests, and the medians and acceptance counts are recorded against the baselines; a median more than 5 % below its baseline is reported as a finding, never absorbed
+- **THEN** both trials report `transport_passed` with zero failed requests, and the medians and acceptance counts are recorded against the baselines in `qualify/results/dflash2-requalify/fold/summary.json`; a median more than 5 % below its baseline is reported as a finding, never absorbed
 
 ### Requirement: The recipe declares a YaRN x4 checkpoint
 The `qwen38_dflash` recipe SHALL declare `qwen3.8-flash-dflash2-yarn4`: the same pinned target revision, draft revision, and declared byte counts as `qwen3.8-flash-dflash2`, with a serving context of 1,048,576 tokens through frequency-only rope interpolation of factor 4 anchored at the 262,144-token native context, exactly as the qwen38 recipe declares `qwen3.8-flash-yarn4`. `qwen3.8-flash-dflash2` SHALL stay the first declaration, so bare repository and directory resolution keep naming it. The scaling SHALL apply to the target's rotary tables and the package identity as it does for qwen38; the draft's rotary and 2048-position ring SHALL take positions beyond 262,144 unchanged.
@@ -160,7 +160,7 @@ A package exported from `qwen3.8-flash-dflash2-yarn4` SHALL serve a retrieval pr
 
 #### Scenario: Acceptance buckets
 - **WHEN** the probe finishes both prompts
-- **THEN** `summary.json` holds the two prompts' token counts, retrieval results, draft counters, and accepted-per-round side by side, and the ratio past-native over sub-native is printed with the 10 % criterion
+- **THEN** `qualify/results/dflash2-long-context/summary.json` holds the two prompts' token counts, retrieval results, draft counters, and accepted-per-round side by side, and the ratio past-native over sub-native is printed with the 10 % criterion
 
 #### Scenario: Frozen workload untouched
 - **WHEN** the frozen speculation workload is validated after the change
