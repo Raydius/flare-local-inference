@@ -468,18 +468,27 @@ fn step(
     Ok(staging)
 }
 
-fn bracketed(config: &ModelConfig, handle: RequestHandle, images: &ProcessedImages, image: usize, destination_feature_offset: usize) -> Result<UploadBatch> {
+/// Validates a 2×2-merged single-frame image against the contract and the request handle;
+/// returns its geometry, its packed patch range, and the deepest vision capacity.
+fn bracketed_extent<'a>(config: &ModelConfig, handle: RequestHandle, images: &'a ProcessedImages, image: usize, error: &'static str) -> Result<(&'a super::ImageGeometry, usize, usize, usize)> {
     let geometry = images.geometry.get(image).ok_or("missing scheduled image")?;
     let start: usize = images.geometry[..image].iter().map(|g| g.patches).sum();
     let end = start + geometry.patches;
+    let capacities = &config.contract.vision.patch_capacities;
     let [t, h, w] = geometry.grid_thw;
     if t != 1 || h <= 0 || w <= 0 || h%2 != 0 || w%2 != 0
         || (h as usize).checked_mul(w as usize) != Some(geometry.patches)
         || geometry.tokens != geometry.patches/4 || config.contract.vision.patches_per_feature != 4
-        || geometry.patches > *config.contract.vision.patch_capacities.last().ok_or("missing vision capacities")?
+        || geometry.patches > *capacities.last().ok_or("missing vision capacities")?
         || handle.slot as usize >= config.limits.max_active || handle.generation == 0 || handle.generation > i64::MAX as u64 {
-        return Err("invalid temporal patch-merge image extent".into());
+        return Err(error.into());
     }
+    Ok((geometry, start, end, capacities[capacities.len() - 1]))
+}
+
+fn bracketed(config: &ModelConfig, handle: RequestHandle, images: &ProcessedImages, image: usize, destination_feature_offset: usize) -> Result<UploadBatch> {
+    let (geometry, start, end, _) =
+        bracketed_extent(config, handle, images, image, "invalid temporal patch-merge image extent")?;
     let mut staging = UploadBatch::default();
     staging.put("vision_pixel_values", 0, images.pixel_values.get(start*1176..end*1176).ok_or("truncated vision pixels")?.iter().copied().flat_map(f32::to_le_bytes));
     staging.i64("vision_position_ids", 0, images.position_ids.get(start..end).ok_or("truncated vision positions")?.iter().flatten().copied());
@@ -494,18 +503,8 @@ fn bracketed(config: &ModelConfig, handle: RequestHandle, images: &ProcessedImag
 /// window segments padded to the bound width by repeating the patch count, and the
 /// per-image reverse index (raster patch → packed row), each rebased to this image.
 fn muse_glimmer(config: &ModelConfig, handle: RequestHandle, images: &ProcessedImages, image: usize, destination_feature_offset: usize) -> Result<UploadBatch> {
-    let geometry = images.geometry.get(image).ok_or("missing scheduled image")?;
-    let start: usize = images.geometry[..image].iter().map(|g| g.patches).sum();
-    let end = start + geometry.patches;
-    let capacity = *config.contract.vision.patch_capacities.last().ok_or("missing vision capacities")?;
-    let [t, h, w] = geometry.grid_thw;
-    if t != 1 || h <= 0 || w <= 0 || h%2 != 0 || w%2 != 0
-        || (h as usize).checked_mul(w as usize) != Some(geometry.patches)
-        || geometry.tokens != geometry.patches/4 || config.contract.vision.patches_per_feature != 4
-        || geometry.patches > capacity
-        || handle.slot as usize >= config.limits.max_active || handle.generation == 0 || handle.generation > i64::MAX as u64 {
-        return Err("invalid Muse Glimmer image extent".into());
-    }
+    let (geometry, start, end, capacity) =
+        bracketed_extent(config, handle, images, image, "invalid Muse Glimmer image extent")?;
     let window_start: usize = images.geometry[..image].iter().map(super::muse_glimmer::windows).sum();
     let windows = super::muse_glimmer::windows(geometry);
     let cu_window = images

@@ -55,13 +55,14 @@ RECIPE = Recipe(name="muse_glimmer", served_model_name="Muse-Glimmer-30B",
     checkpoints=(Checkpoint(alias="muse-glimmer-30b-nvfp4", repository="original-el8/Muse-Glimmer-30B-NVFP4",
         revision="b47e1e9f77d9a86e18cda5e318c68c632a7fbe59", architecture="MuseGlimmerForConditionalGeneration",
         # `stored_bytes` is the index `total_size`, which covers the separate input-scale shard.
-        # `device_bytes` is the export inventory's resident weights (28,885.60 MiB: text, vision tower and drafter).
-        stored_bytes=23_380_728_424, device_bytes=30_288_746_906,
+        # `device_bytes` holds every stored text and vision tensor (23,380,399,360 payload bytes) plus the drafter;
+        # the export inventory's 28,885.60 MiB of resident weights exceeds that by the expanded block scales.
+        stored_bytes=23_380_728_424, device_bytes=28_492_369_664, expansion_bytes=1_796_377_242,
         draft_bytes=5_111_970_304),),
     context=131072, page_tokens=128, concurrency=4, max_concurrency=4, max_draft_tokens=15, prefill_chunk=4096,
     # The packed round catalog is bounded by `graph_budget` (64 rounds: 29 + 21 + 14 across batches 4, 2, 1); the
     # rebuild manifest requires it declared.
-    speculation=Speculation(draft_tokens=15, token_capacity=64, packed_verification=True, graph_budget=64),  # 64 packed rows: the catalog's widest round
+    speculation=Speculation(draft_tokens=15, token_capacity=64, packed_verification=True, graph_budget=64),
     max_images=4, image_bytes=32 << 20, language_model_only=True,
     verification_rows=0,
     # 39 FP8 sliding rings of 2048 × 2 × 128 per key/value, 13 paged full layers at 128-token pages, and with

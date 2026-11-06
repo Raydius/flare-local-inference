@@ -279,21 +279,25 @@ class PreparedDraft:
         self.layers = []
         for index, layer in enumerate(weights.draft.layers):
             prefix = f"{name}.layer{index}"
-            # A projector-less layer carries no convolutions: attention and MLP read the normed rows directly.
-            conv = {kind: None if getattr(layer, kind) is None else PreparedGroupedConvolution(
-                s.normalized, getattr(layer, kind), block_size=s.block_size, group_size=16, session=session,
-                name=prefix + "." + kind, buffers=s.convolution, token_capacity=s.convolution["before"].shape[0])
-                for kind in ("attention_conv", "mlp_conv")}
-            sources = {kind: s.normalized if conv[kind] is None else conv[kind].before for kind in conv}
-            attention = DraftAttention(index, layer, sources["attention_conv"], c, weights.shard, s, metadata, pool,
+            def convolution(kind):
+                # A projector-less layer carries no convolutions: its attention and MLP read the normed rows directly.
+                if getattr(layer, kind) is None:
+                    return None, s.normalized
+                conv = PreparedGroupedConvolution(s.normalized, getattr(layer, kind), block_size=s.block_size,
+                    group_size=16, session=session, name=prefix + "." + kind, buffers=s.convolution,
+                    token_capacity=s.convolution["before"].shape[0])
+                return conv, conv.before
+            attention_conv, attention_source = convolution("attention_conv")
+            mlp_conv, mlp_source = convolution("mlp_conv")
+            attention = DraftAttention(index, layer, attention_source, c, weights.shard, s, metadata, pool,
                 runtime=runtime, coordinator=coordinator, session=session, name=prefix + ".attention",
                 workspace=workspace, buffers=stages)
-            mlp = PreparedMLP(sources["mlp_conv"], layer.mlp, s.mlp.gate_up, s.mlp.intermediate, s.mlp.output,
+            mlp = PreparedMLP(mlp_source, layer.mlp, s.mlp.gate_up, s.mlp.intermediate, s.mlp.output,
                 session=session, name=prefix + ".mlp", workspace=workspace)
             reduction = PreparedAllReduce(s.mlp.output, s.output, runtime=runtime, coordinator=coordinator,
                 session=session, name=prefix + ".mlp.reduce")
-            self.layers.append((_norm(layer.input_norm, c.text["rms_norm_eps"]), conv["attention_conv"], attention,
-                _norm(layer.post_attention_norm, c.text["rms_norm_eps"]), conv["mlp_conv"], mlp, reduction))
+            self.layers.append((_norm(layer.input_norm, c.text["rms_norm_eps"]), attention_conv, attention,
+                _norm(layer.post_attention_norm, c.text["rms_norm_eps"]), mlp_conv, mlp, reduction))
         self.norm = _norm(weights.draft.norm, c.text["rms_norm_eps"])
         self.head = PreparedVocabularyProjection(s.hidden, head, s.local_logits, s.gathered_logits,
             runtime=vocabulary_runtime, coordinator=coordinator, session=session, name=name + ".head",

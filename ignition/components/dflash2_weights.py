@@ -106,9 +106,8 @@ def validate_metadata(manifest, config, projector="dflash2"):
     projection_name, hidden_norm_name = _PROJECTION_NAMES[projector]
     expected = {projection_name + ".weight": (h, h * len(config.target_layers)),
                 hidden_norm_name + ".weight": (h,), "norm.weight": (h,)}
-    d = None
-    if projector == "dflash2":
-        d = c["dflash_config"]
+    d = c["dflash_config"] if projector == "dflash2" else None
+    if d is not None:
         expected.update({"candidate_selector.hidden_projection.weight": (d["selector_rank"], h),
             "candidate_selector.predecessor_codebook": (c["vocab_size"], d["selector_rank"]),
             "candidate_selector.successor_codebook": (c["vocab_size"], d["selector_rank"])})
@@ -119,7 +118,9 @@ def validate_metadata(manifest, config, projector="dflash2"):
                 "self_attn.k_norm": (head,), "input_layernorm": (h,), "post_attention_layernorm": (h,),
                 "mlp.gate_proj": (i, h), "mlp.up_proj": (i, h), "mlp.down_proj": (h, i)}.items():
             expected[p + name + ".weight"] = shape
-        for name in ("attention_conv", "mlp_conv") if d is not None else ():
+        if d is None:
+            continue
+        for name in ("attention_conv", "mlp_conv"):
             expected[p + name + ".base_kernel"] = (2, d["conv_kernel_size"], h)
             expected[p + name + ".kernel_projection.weight"] = (2 * d["conv_kernel_size"] * (h // d["conv_group_size"]), h)
     if set(manifest.tensors) != set(expected):

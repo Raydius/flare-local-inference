@@ -76,7 +76,7 @@ struct Axis {
     precision: u32,
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy)]
 enum Filter {
     Cubic,
     Linear,

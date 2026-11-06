@@ -5,16 +5,13 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
-from typing import TYPE_CHECKING
+from dataclasses import dataclass
 import json
 from pathlib import Path
 
 from ignition.preparation.quantization import modelopt_nvfp4_layers
 from ignition.recipes.muse_spark.config import AttentionGeometry
-
-if TYPE_CHECKING:
-    from .draft_config import DraftConfig
+from .draft_config import DraftConfig
 
 PREFIX = "model.language_model"
 # The eight NVFP4 projections of every decoder layer, in checkpoint naming.
@@ -33,12 +30,8 @@ class ModelConfig:
     draft: DraftConfig | None = None
 
     @classmethod
-    def load(cls, snapshot, *, draft_snapshot=None):
-        config = cls.from_dict(json.loads((Path(snapshot) / "config.json").read_text()))
-        if draft_snapshot is not None:
-            from .draft_config import DraftConfig
-            config = replace(config, draft=DraftConfig.load(draft_snapshot, config))
-        return config
+    def load(cls, snapshot):
+        return cls.from_dict(json.loads((Path(snapshot) / "config.json").read_text()))
 
     @classmethod
     def from_dict(cls, config):

@@ -3,18 +3,18 @@
 
 """Muse Glimmer projector-less DFlash composition and single-GPU speculative preparation."""
 
-from dataclasses import dataclass
 from functools import partial
 
 import torch
 
 from ignition.components.dflash2 import DraftScratch, PreparedContext, PreparedDraft as _PreparedDraft
 from ignition.components.speculation import SpeculativeRngState
+from ignition.recipes.muse_spark.dflash import DraftForwards
 from ignition.recipes.muse_spark.pool import PAGE_TOKENS
 
 
 class PreparedDraft(_PreparedDraft):
-    """The assistant's block rows through the target's raw mask embedding and softcapped head.
+    """The assistant's block rows through the target's raw mask embedding and bare ``lm_head``.
 
     The assistant carries no convolutions and no selector (``DraftConfig`` admits no
     ``dflash_config``), so the shared draft runs ``norm -> attention -> add; post-norm
@@ -28,14 +28,6 @@ class PreparedDraft(_PreparedDraft):
     def __init__(self, weights, *args, **kwargs):
         super().__init__(weights, *args, embedding=weights.embedding, head=weights.head,
             output_multiplier=1., final_logit_softcapping=None, **kwargs)
-
-
-@dataclass(frozen=True)
-class DraftForwards:
-    decoder: object
-    context: object
-    draft: object
-    markov: object = None
 
 
 def _target_decoder(weights, tables, scratch, metadata, pool, **kwargs):
