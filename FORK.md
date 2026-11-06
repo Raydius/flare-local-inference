@@ -114,22 +114,20 @@ base/current (tag → an upstream commit)
 
 ## Build a local image
 
-The repo `Dockerfile` builds only the `flare` binary (Rust) into `debian:trixie-slim`.
-Build from the committed tip, not the working tree:
+Serving images are `local/flare-ignition:<sha8>`, built by the console's recipe from a
+committed ref, never the working tree:
 
 ```bash
-tip=patch/NN-<top>; sha=$(git rev-parse --short=8 "$tip")
-git archive "$tip" | docker build -t "local/flare:$sha" \
-  --label org.opencontainers.image.revision="$(git rev-parse "$tip")" -
+~/LocalApps/vllm-env/build/flare-ignition/build.sh deploy
 ```
 
-Then in the console: duplicate a Flare profile into a dated one, set its Docker image to
-`local/flare:<sha>`, record the image in `~/LocalApps/vllm-env/build/README.md`, and log the
-outcome in `docs/models/qwen3-flash-next.md`'s Tuning-findings table.
+The script archives the ref with its Dockerfile, tags the image with the commit's first eight
+hex digits, and labels it `org.opencontainers.image.revision`. Always pass `deploy`: the
+script's own default ref is `patch/07-rope-parameters`, which lacks the DFlash2 work.
 
-**Control image:** `local/flare:e7b8c016` is `base/current` built unpatched — the
-comparison point for every patched build. Its `/usr/local/bin/flare` is byte-identical to the pulled
-image's (checked 2026-10-20), so the local build path reproduces upstream exactly.
+Then in the console: duplicate a Flare profile into a dated one, set its Docker image to
+`local/flare-ignition:<sha>`, record the image in `~/LocalApps/vllm-env/build/README.md`, and
+log the outcome in `docs/models/qwen3-flash-next.md`'s Tuning-findings table.
 
 ## Tests
 
