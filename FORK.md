@@ -122,8 +122,9 @@ committed ref, never the working tree:
 ```
 
 The script archives the ref with its Dockerfile, tags the image with the commit's first eight
-hex digits, and labels it `org.opencontainers.image.revision`. Always pass `deploy`: the
-script's own default ref is `patch/07-rope-parameters`, which lacks the DFlash2 work.
+hex digits, and labels it `org.opencontainers.image.revision`. With no ref it builds
+`deploy` (since vllm-env `931be1f`; it used to build `patch/07-rope-parameters`, which lacks the
+DFlash2 work).
 
 Then in the console: duplicate a Flare profile into a dated one, set its Docker image to
 `local/flare-ignition:<sha>`, record the image in `~/LocalApps/vllm-env/build/README.md`, and
