@@ -52,9 +52,9 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
 - [ ] Qualify qwen3.8-flash-yarn4 long-context serving: prepare and export the rope-scaled
       package, measure the extended score-workspace chunking and graph bytes, and validate
       needle/passkey retrieval, image requests, and speculation past the native 262,144-token
-      context against native-quality baselines. GPU execution is blocked in this environment by
-      the 8 MiB locked-memory limit for b12x's `io_uring` bounce buffers and by fully occupied
-      GPUs. Passkey retrieval measured 2026-11-05 (`qualify/long_context_passkey.py`, results in
+      context against native-quality baselines. Both yarn4 packages were prepared, exported
+      (2026-11-04 and 2026-11-05) and served in the Ignition container on the RTX PRO 6000.
+      Passkey retrieval measured 2026-11-05 (`qualify/long_context_passkey.py`, results in
       `qualify/results/yarn4-passkey/`): the `qwen3.8-flash-yarn4` MTP package exported from
       `pr/rope-scaling` and the DFlash2 yarn4 package each pass 12/12 cells (200k, 320k, 520k and
       1,000k prompt tokens × needle depths 0.1, 0.5, 0.9) and the native 262k MTP package passes its
