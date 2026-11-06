@@ -104,29 +104,32 @@ def _draft_folder(tmp_path, *names):
     return folder
 
 
-def test_a_draft_folder_replaces_the_pinned_download(monkeypatch, tmp_path):
+@pytest.mark.parametrize("name,field", [("qwen38_dflash", "draft_checkpoint"), ("muse_glimmer", "draft_snapshot")])
+def test_a_draft_folder_replaces_the_pinned_download(monkeypatch, tmp_path, name, field):
     import huggingface_hub
 
     monkeypatch.setenv("HOME", str(tmp_path))
     folder = _draft_folder(tmp_path, "config.json", "model.safetensors")
-    recipe, plan = _dflash_plan(tmp_path, folder)
+    recipe, plan = _dflash_plan(tmp_path, folder, name=name)
     assert plan.draft_model == folder
 
     def download(*args, **options):
         raise AssertionError("a draft folder must not be downloaded")
 
     monkeypatch.setattr(huggingface_hub, "snapshot_download", download)
-    monkeypatch.setitem(sys.modules, "ignition.recipes.qwen38_dflash.bootstrap", SimpleNamespace(
-        PreparationConfig=lambda **options: SimpleNamespace(**options),
-        prepare_model=lambda snapshot, config, **options: config))
+    prepare = lambda snapshot, config, **options: config
+    monkeypatch.setitem(sys.modules, f"ignition.recipes.{name}.bootstrap", SimpleNamespace(
+        PreparationConfig=lambda **options: SimpleNamespace(**options), prepare_model=prepare, prepare=prepare))
     config = recipe.prepare(tmp_path / "target", plan, compile_forwards=True, kernel_cache=None, progress=None)
-    assert config.draft_checkpoint == folder
+    assert getattr(config, field) == folder
 
 
 @pytest.mark.parametrize("name,files,speculation,message", [
     ("qwen38", ("config.json", "model.safetensors"), True, "qwen3.8-flash loads no external draft"),
     ("qwen38_dflash", ("config.json",), True, "lacks model.safetensors"),
     ("qwen38_dflash", ("config.json", "model.safetensors"), False, "requires speculation"),
+    ("muse_glimmer", ("config.json",), True, "lacks model.safetensors"),
+    ("muse_glimmer", ("config.json", "model.safetensors"), False, "requires speculation"),
 ])
 def test_a_draft_folder_is_validated(monkeypatch, tmp_path, name, files, speculation, message):
     from ignition.errors import UsageError
