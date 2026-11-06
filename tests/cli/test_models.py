@@ -319,6 +319,15 @@ def test_rope_parameters_refuse_recipes_without_rope_scaling():
         rope_scaled(resolve("glm-5.3-flash"), {"factor": 2})
 
 
+def test_rope_parameters_reach_bench_and_are_refused_without_rope_scaling(tmp_path, capsys):
+    from ignition.cli import main
+
+    config = tmp_path / "config.toml"
+    config.write_text("")
+    assert main(["bench", "qwen3.8-27b", "--config", str(config), "--rope-parameters", '{"factor": 4}']) == 2
+    assert "declares no rope scaling" in capsys.readouterr().err
+
+
 def test_rope_parameters_flag_takes_a_json_object():
     from ignition.cli import _parser
 
