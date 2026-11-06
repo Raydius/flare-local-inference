@@ -44,7 +44,9 @@ def usage(prepared):
     return tuple(RankUsage(rank["pages"], rank["free_device_bytes"]) for rank in report.get("ranks", (report,)))
 
 
-_GRAPH_BYTES = 4 << 30  # measured in task 3.1
+# Export VRAM inventory (gb202-tp1-202611061529): graph scratch pools 1,901.14 MiB + capture pool 1,126.00 MiB +
+# disposable vision arena 837.56 MiB + other owned tensors 459.43 MiB + graph I/O 79.45 MiB.
+_GRAPH_BYTES = 4_617_488_302
 
 RECIPE = Recipe(name="muse_glimmer", served_model_name="Muse-Glimmer-30B",
     # Sampling defaults carried from Muse Spark; the model card gives none.
@@ -53,13 +55,16 @@ RECIPE = Recipe(name="muse_glimmer", served_model_name="Muse-Glimmer-30B",
     checkpoints=(Checkpoint(alias="muse-glimmer-30b-nvfp4", repository="original-el8/Muse-Glimmer-30B-NVFP4",
         revision="b47e1e9f77d9a86e18cda5e318c68c632a7fbe59", architecture="MuseGlimmerForConditionalGeneration",
         # `stored_bytes` is the index `total_size`, which covers the separate input-scale shard.
-        stored_bytes=23_380_728_424, device_bytes=23_380_728_424,  # device_bytes measured in task 3.1
+        # `device_bytes` is the export inventory's resident weights (28,885.60 MiB: text, vision tower and drafter).
+        stored_bytes=23_380_728_424, device_bytes=30_288_746_906,
         draft_bytes=5_111_970_304),),
     context=131072, page_tokens=128, concurrency=4, max_concurrency=4, max_draft_tokens=15, prefill_chunk=4096,
-    speculation=Speculation(draft_tokens=15, token_capacity=64, packed_verification=True),  # token_capacity measured in task 3.1
+    # The packed round catalog is bounded by `graph_budget` (64 rounds: 29 + 21 + 14 across batches 4, 2, 1); the
+    # rebuild manifest requires it declared.
+    speculation=Speculation(draft_tokens=15, token_capacity=64, packed_verification=True, graph_budget=64),  # 64 packed rows: the catalog's widest round
     max_images=4, image_bytes=32 << 20, language_model_only=True,
     verification_rows=0,
     # 39 FP8 sliding rings of 2048 × 2 × 128 per key/value, 13 paged full layers at 128-token pages, and with
     # drafting five FP8 draft rings of 2048 × 8 × 128: `continuation_layout` / `page_bytes` at TP1.
-    ranks=MappingProxyType({1: RankCosts(62_914_560, 851_968, _GRAPH_BYTES)}),  # measured in task 3.1
-    plain_ranks=MappingProxyType({1: RankCosts(41_943_040, 851_968, _GRAPH_BYTES)}))  # measured in task 3.1
+    ranks=MappingProxyType({1: RankCosts(62_914_560, 851_968, _GRAPH_BYTES)}),
+    plain_ranks=MappingProxyType({1: RankCosts(41_943_040, 851_968, _GRAPH_BYTES)}))
