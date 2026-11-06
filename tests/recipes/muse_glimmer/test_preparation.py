@@ -4,6 +4,7 @@
 """Muse Glimmer preparation bounds and the width-16 speculative catalog."""
 
 import pytest
+import torch
 
 from ignition.recipes.muse_glimmer.bootstrap import PreparationConfig
 from ignition.recipes.muse_glimmer.recipe import RECIPE
@@ -83,3 +84,46 @@ def test_recipe_prepare_runs_in_process_on_one_gpu(monkeypatch, tmp_path):
                        kernel_cache=None, progress=None)
     with pytest.raises(ValueError, match="exactly one GPU"):
         RECIPE.prepare(tmp_path, plan, compile_forwards=True, kernel_cache=None, progress=None, ranks=object())
+
+
+def _stub_decoder(vision_state):
+    """A ``PreparedDecoder`` whose text parts are identities; only the vision hook is under test."""
+    import inspect
+    from types import SimpleNamespace
+
+    from ignition.recipes.muse_glimmer.decoder import PreparedDecoder
+
+    assert inspect.signature(PreparedDecoder.__init__).parameters["vision_state"].default is None
+    decoder = object.__new__(PreparedDecoder)
+    decoder.embedding = lambda: torch.full((4, 8), 3.)
+    decoder.embedding_norm = lambda hidden: hidden * .5
+    decoder.layers, decoder.target_layers, decoder.scoring = [], (), None
+    decoder.metadata = SimpleNamespace(sample_indices=torch.tensor([0, 3]))
+    decoder.norm = lambda hidden: hidden
+    decoder.scratch = SimpleNamespace(hidden=torch.zeros(2, 8))
+    decoder.head = lambda hidden: hidden.clone()
+    decoder.output_multiplier, decoder.softcap = 1., 30.
+    decoder.vision_state = vision_state
+    return decoder
+
+
+def test_prefill_decoder_injects_image_features_after_the_embedding_norm():
+    class Vision:
+        calls = []
+
+        def inject(self, metadata, embedding):
+            self.calls.append((metadata, embedding.clone()))
+            embedding[0].fill_(7.)
+
+    vision = Vision()
+    decoder = _stub_decoder(vision)
+    decoder()
+    (metadata, normed), = vision.calls
+    assert metadata is decoder.metadata and torch.equal(normed, torch.full((4, 8), 1.5))
+    assert torch.equal(decoder.scratch.hidden[0], torch.full((8,), 7.))
+
+
+def test_text_only_decoder_skips_the_vision_hook():
+    decoder = _stub_decoder(None)
+    decoder()
+    assert torch.equal(decoder.scratch.hidden, torch.full((2, 8), 1.5))
