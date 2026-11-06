@@ -9,6 +9,8 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
       is still single-GPU (`ignition/recipes/qwen38_dflash/recipe.py` rejects `world_size != 1`).
       Served comparison against the MTP package recorded in
       `qualify/results/dflash2-served/summary.json`.
+      Draft-count sweep (adaptive versus fixed 0-7, concurrency 1 and 8) recorded in
+      `qualify/results/dflash2-draft-sweep/summary.json`.
 
 - [ ] `ignition/recipes/qwen38_dflash/bootstrap.py` repeats ~256 of the ~390 lines of qwen38's
       `_prepare_model` (`ignition/recipes/qwen38/bootstrap.py:250`: transient wrapper, owner
