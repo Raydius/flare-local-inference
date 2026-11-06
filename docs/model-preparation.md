@@ -1093,6 +1093,63 @@ the canonical control-sequence escaping.
 flare/target/release/flare run /data/flare-runtime/muse-spark-tp8.safetensors --gpus 0,1,2,3,4,5,6,7
 ```
 
+## Muse Glimmer 30B
+
+The `muse-glimmer-30b-nvfp4` alias selects
+[`original-el8/Muse-Glimmer-30B-NVFP4`](https://huggingface.co/original-el8/Muse-Glimmer-30B-NVFP4)
+at revision `b47e1e9f77d9a86e18cda5e318c68c632a7fbe59`. Preparation uses one
+SM120 GPU, checkpoint NVFP4 text projections (q/k/v fused, the attention gate as
+its own projection, mlp gate/up fused; the ModelOpt `config_groups` metadata and
+the separate `model-inputscales.safetensors` shard are read through the shared
+parser and the checkpoint index), FP8 E4M3 KV storage, a 131072-token context,
+four concurrent requests, and 4096-token prefill chunks. The 52 layers alternate
+39 sliding-window layers (2048 tokens, rope 500000) with 13 full-context layers
+without positional encoding; the sigmoid attention gate multiplies the raw
+attended value, the four per-layer norms are centered RMS norms, and the head
+applies `output_multiplier` then 20·tanh(x/20) softcapping. The vision tower is
+prepared by default: up to four 32 MiB images per request through the
+`muse_glimmer` image profile (Glimmer's `smart_resize` grid at factor 28 under
+4096 merged tokens, antialiased Lanczos resampling, window-ordered patches with
+32×32-patch cells, four-tap bilinear position-table interpolation), 37 window and
+13 full vision layers, a 2×2 pixel shuffle, the adapter and projection, injected
+at `<|patch|>` positions between `<|image_start|>` and `<|image_end|>`. Video
+parts (`<|video|>`) are rejected. `--language-model-only` prepares text alone.
+
+DFlash drafting uses
+[`meta-models/Muse-Glimmer-30B-assistant`](https://huggingface.co/meta-models/Muse-Glimmer-30B-assistant)
+at revision `c676cce91658f9568aaf264a416211e2782735b7`. Preparation downloads
+its configuration and weights into the configured Hugging Face hub cache. The
+five-layer BF16 draft is the original DFlash form: sixteen-token blocks with
+fifteen proposed tokens, context projected from target layers 1, 13, 25, 37, and
+49 through `encoder.fc` and `output_norm_enc`, 2048-token sliding attention, mask
+token 201818, and no grouped convolution or candidate selector. Target and draft
+histories use unit-scale FP8 E4M3 storage. The default packed catalog holds 64
+speculative rounds across batches one, two, and four with up to 64 packed target
+rows; `--mtp-draft-tokens N` selects zero through fifteen proposals, and
+`--no-mtp` skips the draft download, weights, state, and speculative graphs.
+
+Draft weights occupy 5,111,970,304 bytes. Each continuation row occupies
+62,914,560 bytes with draft history or 41,943,040 bytes with `--no-mtp`; each
+128-token paged KV block occupies 851,968 bytes. The export inventory on an RTX
+PRO 6000 reports 28,885.60 MiB of resident weights (text, vision tower, and
+drafter) and 4,617,488,302 bytes of graph scratch, capture pool, vision arena,
+owned tensors, and graph I/O, which the recipe declares as its rank-one costs.
+
+Sampling defaults carry over from Muse Spark, since the model card recommends
+none: temperature 1.0, top-p 1.0, and top-k disabled. The chat template's
+`reasoning_strength`, `knowledge_cutoff`, and `current_date` keep their template
+defaults and are set through `chat_template_kwargs`.
+
+Ignition applies `ignition/recipes/muse_glimmer/assets/chat_template.patch.json`
+to the downloaded checkpoint template; the frontend otherwise matches Muse
+Spark's recipient headers, ATEM tools, and end markers.
+
+```sh
+.venv/bin/ignition export muse-glimmer-30b-nvfp4 --gpus 0 --prompt-logprobs
+.venv/bin/ignition convert CACHE_ENTRY --form packed --output /data/flare-runtime/muse-glimmer-tp1.safetensors
+flare/target/release/flare run /data/flare-runtime/muse-glimmer-tp1.safetensors --gpus 0
+```
+
 ## Storage and graph capacities
 
 Gemma 4 and Muse Spark default to four concurrent requests. Gemma 4's speculative

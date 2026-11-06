@@ -125,24 +125,6 @@ class PreparationConfig:
         return max((width for _, width, _ in self.speculative_round_shapes), default=1)
 
 
-def _vision_decoder(vision_state, *args, **kwargs):
-    """A prefill decoder whose ``<|patch|>`` rows take published features after the embedding norm.
-
-    The canonical model scatters image embeddings into the normed ``inputs_embeds``
-    (``MuseGlimmerModel.forward``), so the injection follows the scale-less norm.
-    """
-    decoder = PreparedDecoder(*args, **kwargs)
-    norm = decoder.embedding_norm
-
-    def normed_with_features(hidden):
-        hidden = norm(hidden)
-        vision_state.inject(decoder.metadata, hidden)
-        return hidden
-
-    decoder.embedding_norm = normed_with_features
-    return decoder
-
-
 @torch.no_grad()
 @with_autotune_effort
 def prepare(snapshot, config, *, progress=None, package_storage):
@@ -271,11 +253,11 @@ def prepare(snapshot, config, *, progress=None, package_storage):
                     private = private_buffers.cursor()
                     m = metadata[name] = Metadata.allocate(capacity, rows, blocks, device, buffers=private)
                     scratch = (prefill_storage if mode == "prefill" else decode_storage).rows(capacity, rows)
-                    build = PreparedDecoder if not vision or mode != "prefill" else \
-                        (lambda *args, **kwargs: _vision_decoder(vision_state, *args, **kwargs))
-                    decoder = build(mode_weights, scratch, m, pool, mode=mode, runtime=None, embedding_runtime=None,
-                        vocabulary_runtime=None, coordinator=None, session=session, name=name, workspace=arena,
-                        buffers=private, scoring=scoring if kind == "scored_prefill" else None)
+                    decoder = PreparedDecoder(mode_weights, scratch, m, pool, mode=mode, runtime=None,
+                        embedding_runtime=None, vocabulary_runtime=None, coordinator=None, session=session,
+                        name=name, workspace=arena, buffers=private,
+                        scoring=scoring if kind == "scored_prefill" else None,
+                        vision_state=vision_state if vision and mode == "prefill" else None)
                     batch = PreparedBatch(inputs, requests, m, mode=mode, shard=shard, pool=pool, buffers=private,
                         validate_prefill=vision_state.validate_prefill if vision and mode == "prefill" else None)
                     forward = PreparedGeneration(decoder, batch, completion, frame, sequence,
