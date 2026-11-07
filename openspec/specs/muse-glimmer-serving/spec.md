@@ -26,7 +26,7 @@ Serves Muse Glimmer 30B NVFP4 on one GPU through its own `muse_glimmer_nvfp4` re
 - **THEN** preparation fails before loading draft weights with an error naming the unsupported DFlash2 geometry
 
 ### Requirement: Text projections load from the checkpoint's ModelOpt NVFP4 metadata
-Preparation SHALL read the `quantization_config` `config_groups`/`ignore` form (4-bit, group 16 weights and input activations) through the shared parser, mark every `model.language_model.layers.*.{self_attn.{q,k,v,gate,o}_proj, mlp.{gate,up,down}_proj}` NVFP4 and leave `lm_head`, `embed_tokens`, norms and `model.vision_*` BF16; q/k/v load as one fused NVFP4 group, the attention gate as its own projection, mlp gate/up as one fused group; input scales stored in `model-inputscales.safetensors` resolve through the index.
+Preparation SHALL read the `quantization_config` `config_groups`/`ignore` form (4-bit, group 16 weights) through the shared parser, after the recipe itself has confirmed the checkpoint declares 4-bit group-16 input activations; mark every `model.language_model.layers.*.{self_attn.{q,k,v,gate,o}_proj, mlp.{gate,up,down}_proj}` NVFP4 and leave `lm_head`, `embed_tokens`, norms and `model.vision_*` BF16; q/k/v load as one fused NVFP4 group, the attention gate as its own projection, mlp gate/up as one fused group; input scales stored in `model-inputscales.safetensors` resolve through the index.
 
 #### Scenario: Fused groups honor calibration
 - **WHEN** layer weights load
@@ -35,6 +35,14 @@ Preparation SHALL read the `quantization_config` `config_groups`/`ignore` form (
 #### Scenario: Gemma 4 unchanged
 - **WHEN** Gemma 4 NVFP4 configuration is parsed through the lifted parser
 - **THEN** the resulting layer map equals the map the private Gemma parser produced
+
+#### Scenario: Gemma 4 weights-only configuration parses
+- **WHEN** a ModelOpt NVFP4 `config_groups.group_0` declares 4-bit group-16 `weights` and no `input_activations`
+- **THEN** the shared parser returns the layer map, as the private Gemma 4 parser did
+
+#### Scenario: Glimmer refuses a checkpoint without W4A4 input activations
+- **WHEN** a Muse Glimmer config's `config_groups.group_0.input_activations` is absent, not 4-bit, or not group 16
+- **THEN** the recipe's config loader raises `ValueError` naming the input activations before any layer map is built
 
 ### Requirement: The decoder matches the canonical forward
 The prepared decoder SHALL compute each layer as `input_layernorm → attention → post_attention_layernorm → residual add → pre_feedforward_layernorm → SwiGLU → post_feedforward_layernorm → residual add` with centered (1 + w) RMSNorms, attention with scale-less q/k RMSNorm, query × `qk_scale_factor`, rope 500000 on sliding layers and no positional encoding on full layers, the sigmoid gate applied to the raw attended value (no output norm), FP8 E4M3 sliding rings of 2048 and 128-token paged full-layer histories, the normed embedding, and logits `20·tanh(logits × output_multiplier / 20)`.
