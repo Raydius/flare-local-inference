@@ -27,7 +27,7 @@ from qualify.speculative_workload import arms, json_bytes, request_groups, valid
 
 VOCABULARY = 248320
 EOS = {248046, 248044}
-_ROUND = re.compile(r'^flare_speculative_(rounds|gpu_nanoseconds|emitted_tokens|offered_drafts|accepted_drafts)_total\{batch="([1248])",width="([1-8])"\}$')
+_ROUND = re.compile(r'^flare_speculative_(rounds|gpu_nanoseconds|emitted_tokens|offered_drafts|accepted_drafts)_total\{batch="([1248])",width="([0-9]+)"\}$')
 
 
 def read_sse(response, raw, *, elapsed_ns, limit=32 << 20):

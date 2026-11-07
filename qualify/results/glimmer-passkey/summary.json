@@ -13,7 +13,7 @@
       "completed": true,
       "client_error": null,
       "request_seconds": 567.269315518,
-      "accepted_per_round": 0.0
+      "accepted_per_round": 2.787878787878788
     },
     {
       "case": "passkey-17687-0.5",
@@ -28,7 +28,7 @@
       "completed": true,
       "client_error": null,
       "request_seconds": 555.07060263,
-      "accepted_per_round": 0.0
+      "accepted_per_round": 2.09375
     },
     {
       "case": "passkey-17687-0.9",
@@ -43,7 +43,7 @@
       "completed": true,
       "client_error": null,
       "request_seconds": 556.566993656,
-      "accepted_per_round": 0.0
+      "accepted_per_round": 1.6842105263157894
     },
     {
       "case": "passkey-9197-0.1",
@@ -58,7 +58,7 @@
       "completed": true,
       "client_error": null,
       "request_seconds": 173.857407282,
-      "accepted_per_round": null
+      "accepted_per_round": 3.5217391304347827
     },
     {
       "case": "passkey-9197-0.5",
@@ -73,7 +73,7 @@
       "completed": true,
       "client_error": null,
       "request_seconds": 174.199065106,
-      "accepted_per_round": null
+      "accepted_per_round": 3.65
     },
     {
       "case": "passkey-9197-0.9",
@@ -88,7 +88,7 @@
       "completed": true,
       "client_error": null,
       "request_seconds": 174.580185503,
-      "accepted_per_round": null
+      "accepted_per_round": 2.8823529411764706
     },
     {
       "case": "passkey-5660-0.1",
@@ -103,7 +103,7 @@
       "completed": true,
       "client_error": null,
       "request_seconds": 77.543799259,
-      "accepted_per_round": null
+      "accepted_per_round": 3.3333333333333335
     },
     {
       "case": "passkey-5660-0.5",
@@ -118,7 +118,7 @@
       "completed": true,
       "client_error": null,
       "request_seconds": 77.55145178,
-      "accepted_per_round": null
+      "accepted_per_round": 4.352941176470588
     },
     {
       "case": "passkey-5660-0.9",
@@ -133,7 +133,7 @@
       "completed": true,
       "client_error": null,
       "request_seconds": 77.831857848,
-      "accepted_per_round": null
+      "accepted_per_round": 3.111111111111111
     },
     {
       "case": "passkey-3537-0.1",
@@ -148,7 +148,7 @@
       "completed": true,
       "client_error": null,
       "request_seconds": 37.456270138,
-      "accepted_per_round": null
+      "accepted_per_round": 3.7058823529411766
     },
     {
       "case": "passkey-3537-0.5",
@@ -163,7 +163,7 @@
       "completed": true,
       "client_error": null,
       "request_seconds": 37.596521038,
-      "accepted_per_round": null
+      "accepted_per_round": 4.285714285714286
     },
     {
       "case": "passkey-3537-0.9",
@@ -178,7 +178,7 @@
       "completed": true,
       "client_error": null,
       "request_seconds": 37.762237332,
-      "accepted_per_round": null
+      "accepted_per_round": 3.5357142857142856
     },
     {
       "case": "passkey-1769-0.1",
@@ -193,7 +193,7 @@
       "completed": true,
       "client_error": null,
       "request_seconds": 14.282899832,
-      "accepted_per_round": null
+      "accepted_per_round": 5.0625
     },
     {
       "case": "passkey-1769-0.5",
@@ -208,7 +208,7 @@
       "completed": true,
       "client_error": null,
       "request_seconds": 14.335776784,
-      "accepted_per_round": null
+      "accepted_per_round": 4.117647058823529
     },
     {
       "case": "passkey-1769-0.9",
@@ -223,7 +223,7 @@
       "completed": true,
       "client_error": null,
       "request_seconds": 14.45635348,
-      "accepted_per_round": null
+      "accepted_per_round": 3.8260869565217392
     }
   ],
   "grid": {
