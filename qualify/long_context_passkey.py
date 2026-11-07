@@ -98,12 +98,11 @@ def summary(cells):
 def _cells(args, base_url, *, measure):
     cells = []
     for length in sorted(args.lengths, reverse=True):
-        records = records_for(length, getattr(args, "tokens_per_record", TOKENS_PER_RECORD))
+        records = records_for(length, args.tokens_per_record)
         for depth in sorted(args.depths):
             passkey = passkey_for(args.seed, length, depth, records)
             case = prompt(records, depth, passkey, model=args.model_id, seed=args.seed,
-                          template_kwargs=getattr(args, "template_kwargs", None),
-                          max_tokens=getattr(args, "max_tokens", 32))
+                          template_kwargs=args.template_kwargs, max_tokens=args.max_tokens)
             folder = args.output / f"{length}-{depth}"
             observation, delta = measure(base_url, case, folder, timeout=args.timeout, model_id=args.model_id)
             row = cell(observation, delta, length=length, depth=depth, passkey=passkey)
@@ -115,12 +114,11 @@ def _cells(args, base_url, *, measure):
 
 def run(args, *, popen=subprocess.Popen, stop=subprocess.run, ready=healthy, measure=measure):
     args.output.mkdir(parents=True, exist_ok=True)
-    served = getattr(args, "base_url", None)
-    if served:
+    if args.base_url:
         # An instance somebody else serves (the console's): no container of our own, nothing stopped at the end.
-        if not ready(served):
-            raise RuntimeError(f"{served} is not healthy")
-        cells = _cells(args, served, measure=measure)
+        if not ready(args.base_url):
+            raise RuntimeError(f"{args.base_url} is not healthy")
+        cells = _cells(args, args.base_url, measure=measure)
     else:
         base_url = f"http://127.0.0.1:{args.port}"
         command = container_command(args.image, args.package, name="long-context-passkey", uid=os.getuid(), gid=os.getgid(),

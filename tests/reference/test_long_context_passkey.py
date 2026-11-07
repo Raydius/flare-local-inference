@@ -103,7 +103,8 @@ def run_with_fakes(tmp_path, lengths, max_context_tokens, reply):
     args = SimpleNamespace(image="img", package=tmp_path / "pk/models/d/e/model.safetensors",
                            publisher_keys=tmp_path / "keys.json", trust_store=tmp_path / "trust.toml",
                            output=tmp_path / "out", model_id="ckpt", max_context_tokens=max_context_tokens,
-                           lengths=lengths, depths=(0.5, 0.1, 0.9), seed=48_300, port=8111, timeout=1, ready_timeout=1)
+                           lengths=lengths, depths=(0.5, 0.1, 0.9), seed=48_300, port=8111, timeout=1, ready_timeout=1,
+                           base_url=None, tokens_per_record=pk.TOKENS_PER_RECORD, template_kwargs=None, max_tokens=32)
     result = pk.run(args, popen=popen, stop=lambda command, **_: stopped.append(command), ready=lambda url: True, measure=measure)
     return result, started, sent, stopped, args
 
@@ -164,7 +165,7 @@ def test_run_threads_the_glimmer_arm_into_every_cell(tmp_path):
                            publisher_keys=tmp_path / "keys.json", trust_store=tmp_path / "trust.toml",
                            output=tmp_path / "out", model_id="Muse-Glimmer-30B", max_context_tokens=None,
                            lengths=(1_000_000,), depths=(0.5,), seed=48_300, port=8111, timeout=1, ready_timeout=1,
-                           tokens_per_record=56.54, template_kwargs={"reasoning_strength": "low"}, max_tokens=256)
+                           base_url=None, tokens_per_record=56.54, template_kwargs={"reasoning_strength": "low"}, max_tokens=256)
     result = pk.run(args, popen=lambda command, **_: Process(command, stdout=None, stderr=None),
                     stop=lambda command, **_: None, ready=lambda url: True, measure=measure)
     assert result["all_passed"] and cases[0]["id"] == "passkey-17687-0.5"
@@ -183,7 +184,8 @@ def test_run_against_a_served_url_starts_and_stops_nothing(tmp_path):
 
     args = SimpleNamespace(base_url="http://127.0.0.1:8100", image=None, package=None, publisher_keys=None, trust_store=None,
                            output=tmp_path / "out", model_id="Muse-Glimmer-30B", max_context_tokens=None,
-                           lengths=(200_000,), depths=(0.1, 0.9), seed=48_300, port=8111, timeout=1, ready_timeout=1)
+                           lengths=(200_000,), depths=(0.1, 0.9), seed=48_300, port=8111, timeout=1, ready_timeout=1,
+                           tokens_per_record=pk.TOKENS_PER_RECORD, template_kwargs=None, max_tokens=32)
     result = pk.run(args, popen=lambda command, **_: started.append(command), stop=lambda command, **_: started.append(command),
                     ready=lambda url: url == "http://127.0.0.1:8100", measure=measure)
     assert started == [] and urls == ["http://127.0.0.1:8100"] * 2 and result["all_passed"]
