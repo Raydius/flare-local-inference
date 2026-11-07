@@ -1,0 +1,4 @@
+# Tasks
+
+- [x] 1. Rewrite both README.md patch tables as per-patch lists, carrying every cell's text unchanged. Verify: `grep -c '^| ' README.md` (0) and a Playwright render of the GFM output at 1280 px showing the PR #212 link on patch/07 with no horizontal overflow (`scrollWidth <= clientWidth` for every block in the patch sections). Done-when: no table remains, the word set of the two sections equals the old tables' cell text, and the render shows each status line in view.
+  evidence: README.md:26 patch/07 entry now has its own "Still needed:" line with the PR #212 link; `grep -c "^| " README.md` = 0; word-multiset check of both sections vs the old cells: nothing missing except dates now followed by a comma; GFM render (gh api markdown) in a 838 px column at 1280 px via playwright-cli: 0 tables, 0 overflowing blocks, PR #212 link at x 507-568.
