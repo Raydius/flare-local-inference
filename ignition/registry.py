@@ -29,7 +29,6 @@ _ACTIVE_RECIPES: contextvars.ContextVar[tuple[Recipe, ...]] = contextvars.Contex
 def current_recipes() -> tuple[Recipe, ...]:
     """Return the recipes active in the current CLI invocation context, or an empty tuple."""
     return _ACTIVE_RECIPES.get()
-    from .muse_glimmer.recipe import RECIPE as muse_glimmer
 
 
 @contextmanager
