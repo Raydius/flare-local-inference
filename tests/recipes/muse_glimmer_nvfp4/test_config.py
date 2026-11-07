@@ -11,9 +11,9 @@ from pathlib import Path
 import pytest
 
 from ignition.components.parallel import TensorParallelShard
-from ignition.recipes.muse_glimmer.config import ModelConfig
-from ignition.recipes.muse_glimmer.draft_config import DraftConfig
-from ignition.recipes.muse_glimmer.recipe import RECIPE
+from ignition.recipes.muse_glimmer_nvfp4.config import ModelConfig
+from ignition.recipes.muse_glimmer_nvfp4.draft_config import DraftConfig
+from ignition.recipes.muse_glimmer_nvfp4.recipe import RECIPE
 from ignition.recipes.muse_spark.pool import continuation_layout, page_bytes
 
 # original-el8/Muse-Glimmer-30B-NVFP4 @ b47e1e9f config.json, trimmed to the fields the config reads.

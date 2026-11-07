@@ -15,7 +15,7 @@ from ignition.cli.preparation import Host, derive
 from ignition.recipes import ResolvedModel, recipes
 
 
-@pytest.mark.parametrize("name,embedded", [("nemotron_h", False), ("kimi3", False), ("kimi3", True), ("muse_spark", False), ("qwen38_dense", False), ("muse_glimmer", False)])
+@pytest.mark.parametrize("name,embedded", [("nemotron_h", False), ("kimi3", False), ("kimi3", True), ("muse_spark", False), ("qwen38_dense", False), ("muse_glimmer_nvfp4", False)])
 @pytest.mark.parametrize("custom_cache", [False, True])
 @pytest.mark.parametrize("drafting", [False, True])
 def test_draft_preparation_selects_local_or_hub_snapshot(monkeypatch, tmp_path, name, custom_cache, drafting, embedded):
@@ -70,7 +70,7 @@ def test_draft_preparation_selects_local_or_hub_snapshot(monkeypatch, tmp_path, 
         snapshot = target / "dspark"
         snapshot.mkdir(parents=True)
     config = recipe.prepare(target, plan, compile_forwards=True, kernel_cache=None, progress=None)
-    if name in ("muse_spark", "qwen38_dense", "muse_glimmer"):
+    if name in ("muse_spark", "qwen38_dense", "muse_glimmer_nvfp4"):
         if name == "qwen38_dense":
             assert config.mtp is drafting
         else:
@@ -80,7 +80,7 @@ def test_draft_preparation_selects_local_or_hub_snapshot(monkeypatch, tmp_path, 
             assert config.speculative_widths == plan.speculation.widths
             assert config.speculative_fixed_width == plan.speculation.fixed_width
             assert config.speculative_token_capacity == {"qwen38_dense": 128, "muse_spark": 32,
-                                                         "muse_glimmer": recipe.speculation.token_capacity}[name]
+                                                         "muse_glimmer_nvfp4": recipe.speculation.token_capacity}[name]
             assert config.speculative_graph_budget == 64
     else:
         assert config.draft_checkpoint == (str(snapshot) if drafting else None)
@@ -104,7 +104,7 @@ def _draft_folder(tmp_path, *names):
     return folder
 
 
-@pytest.mark.parametrize("name,field", [("qwen38_dflash", "draft_checkpoint"), ("muse_glimmer", "draft_snapshot")])
+@pytest.mark.parametrize("name,field", [("qwen38_dflash", "draft_checkpoint"), ("muse_glimmer_nvfp4", "draft_snapshot")])
 def test_a_draft_folder_replaces_the_pinned_download(monkeypatch, tmp_path, name, field):
     import huggingface_hub
 
@@ -128,8 +128,8 @@ def test_a_draft_folder_replaces_the_pinned_download(monkeypatch, tmp_path, name
     ("qwen38", ("config.json", "model.safetensors"), True, "qwen3.8-flash loads no external draft"),
     ("qwen38_dflash", ("config.json",), True, "lacks model.safetensors"),
     ("qwen38_dflash", ("config.json", "model.safetensors"), False, "requires speculation"),
-    ("muse_glimmer", ("config.json",), True, "lacks model.safetensors"),
-    ("muse_glimmer", ("config.json", "model.safetensors"), False, "requires speculation"),
+    ("muse_glimmer_nvfp4", ("config.json",), True, "lacks model.safetensors"),
+    ("muse_glimmer_nvfp4", ("config.json", "model.safetensors"), False, "requires speculation"),
 ])
 def test_a_draft_folder_is_validated(monkeypatch, tmp_path, name, files, speculation, message):
     from ignition.errors import UsageError

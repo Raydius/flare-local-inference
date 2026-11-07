@@ -52,7 +52,7 @@ def usage(prepared):
 # disposable vision arena 837.56 MiB + other owned tensors 459.43 MiB + graph I/O 79.45 MiB.
 _GRAPH_BYTES = 4_617_488_302
 
-RECIPE = Recipe(name="muse_glimmer", served_model_name="Muse-Glimmer-30B",
+RECIPE = Recipe(name="muse_glimmer_nvfp4", served_model_name="Muse-Glimmer-30B",
     # Sampling defaults carried from Muse Spark; the model card gives none.
     sampling_defaults=SamplingDefaults(temperature=1., top_p=1., top_k=-1),
     prepare=prepare, usage=usage,

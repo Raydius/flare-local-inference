@@ -6,8 +6,8 @@
 import pytest
 import torch
 
-from ignition.recipes.muse_glimmer.bootstrap import PreparationConfig
-from ignition.recipes.muse_glimmer.recipe import RECIPE
+from ignition.recipes.muse_glimmer_nvfp4.bootstrap import PreparationConfig
+from ignition.recipes.muse_glimmer_nvfp4.recipe import RECIPE
 
 
 def test_defaults_are_the_single_gpu_text_only_declaration():
@@ -66,7 +66,7 @@ def test_recipe_prepare_runs_in_process_on_one_gpu(monkeypatch, tmp_path):
     from types import SimpleNamespace
 
     captured = {}
-    monkeypatch.setitem(sys.modules, "ignition.recipes.muse_glimmer.bootstrap", SimpleNamespace(
+    monkeypatch.setitem(sys.modules, "ignition.recipes.muse_glimmer_nvfp4.bootstrap", SimpleNamespace(
         PreparationConfig=lambda **options: SimpleNamespace(**options),
         prepare=lambda snapshot, config, **options: captured.update(config=config, **options) or config))
     plan = SimpleNamespace(world_size=1, speculation=None, prompt_logprobs=False, compile_workers=None,
@@ -91,7 +91,7 @@ def _stub_decoder(vision_state):
     import inspect
     from types import SimpleNamespace
 
-    from ignition.recipes.muse_glimmer.decoder import PreparedDecoder
+    from ignition.recipes.muse_glimmer_nvfp4.decoder import PreparedDecoder
 
     assert inspect.signature(PreparedDecoder.__init__).parameters["vision_state"].default is None
     decoder = object.__new__(PreparedDecoder)

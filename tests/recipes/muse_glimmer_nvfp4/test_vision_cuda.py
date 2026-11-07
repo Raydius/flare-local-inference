@@ -24,10 +24,10 @@ from types import SimpleNamespace
 import pytest
 import torch
 
-from ignition.recipes.muse_glimmer.vision import (
+from ignition.recipes.muse_glimmer_nvfp4.vision import (
     PERCEPTION_NORM_EPS, PreparedVision, VisionMetadata, VisionScratch, VisionWeights, window_capacity,
 )
-from tests.recipes.muse_glimmer.test_reference_cuda import CHECKPOINT, CUDA, SNAPSHOT, device as _device
+from tests.recipes.muse_glimmer_nvfp4.test_reference_cuda import CHECKPOINT, CUDA, SNAPSHOT, device as _device
 
 EVALUATION_IMAGES = ("color-bars.png", "glimmer-sign.png", "green-triangles.png", "shapes-left-right.png")
 RAGGED = (980, 532)  # width, height -> a 70x38 patch grid: 32x32, 32x6, 6x32 and 6x6 cells
