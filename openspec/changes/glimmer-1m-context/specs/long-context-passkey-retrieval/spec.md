@@ -26,7 +26,7 @@
 
 ### Requirement: Serving order and packages
 
-The probe SHALL serve one package per run through `dflash2_served.container_command` with history drafts off and the requested `--max-context-tokens`, and SHALL send cells longest length first, depths in ascending order within a length, so no cell's prompt is a prefix of an earlier one; a run against a native-context package SHALL take only lengths below that package's native context, and a run against a package whose declared context exceeds its checkpoint's native context (the rope-scaled Qwen yarn4 packages, the 1048576-token Muse Glimmer package) SHALL include at least one length below the native context as the baseline row.
+The probe SHALL serve one package per run through `dflash2_served.container_command` with history drafts off and the requested `--max-context-tokens`, or with `--base-url` measure an instance served elsewhere (the console's) that it neither starts nor stops, refusing an unhealthy URL before any cell; it SHALL send cells longest length first, depths in ascending order within a length, so no cell's prompt is a prefix of an earlier one; a run against a native-context package SHALL take only lengths below that package's native context, and a run against a package whose declared context exceeds its checkpoint's native context (the rope-scaled Qwen yarn4 packages, the 1048576-token Muse Glimmer package) SHALL include at least one length below the native context as the baseline row.
 
 #### Scenario: Longest first
 
@@ -40,5 +40,5 @@ The probe SHALL serve one package per run through `dflash2_served.container_comm
 
 #### Scenario: Muse Glimmer arm
 
-- **WHEN** the 1048576-token Muse Glimmer package is run with `--lengths 100000,200000,320000,520000,1000000 --tokens-per-record 56.54 --template-kwargs '{"reasoning_strength": "low"}' --max-tokens 256`
-- **THEN** fifteen cells run longest first, each records `prompt_tokens`, `passed`, `request_seconds` and `accepted_per_round`, the 100000 row is the below-native baseline, and `summary.json` lands under `qualify/results/glimmer-passkey/`
+- **WHEN** the console serves the 1048576-token Muse Glimmer package and the probe runs with `--base-url http://127.0.0.1:8100 --lengths 100000,200000,320000,520000,1000000 --tokens-per-record 56.54 --template-kwargs '{"reasoning_strength": "low"}' --max-tokens 256`
+- **THEN** no container is started or stopped, fifteen cells run longest first, each records `prompt_tokens`, `passed`, `request_seconds` and `accepted_per_round`, the 100000 row is the below-native baseline, and `summary.json` lands under `qualify/results/glimmer-passkey/`
