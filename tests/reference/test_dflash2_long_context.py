@@ -114,3 +114,11 @@ def test_run_serves_once_without_history_drafts_and_sends_past_native_first(tmp_
                                            port=8111, history_drafts=False, max_context_tokens=1_048_576)
     assert stopped == [["docker", "stop", "-t", "120", "dflash2-long-context"]]
     assert result["criterion_met"] is True and (tmp_path / "out/summary.json").is_file()
+
+
+def test_draft_counts_reads_width_16_rounds():
+    counts = lc.draft_counts({'flare_speculative_rounds_total{batch="1",width="16"}': 27,
+                              'flare_speculative_offered_drafts_total{batch="1",width="16"}': 130,
+                              'flare_speculative_accepted_drafts_total{batch="1",width="16"}': 67})
+    assert counts["accepted_per_round"] == 67 / 27 and counts["acceptance_rate"] == 67 / 130
+    assert [row["width"] for row in counts["rounds_by_shape"]] == [16]
