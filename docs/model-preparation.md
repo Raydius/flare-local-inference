@@ -1119,19 +1119,21 @@ injected at `<|patch|>` positions between `<|image_start|>` and `<|image_end|>`.
 Video parts (`<|video|>`) are rejected; `--language-model-only` prepares text alone.
 
 DFlash drafting uses
-[`meta-models/Muse-Glimmer-30B-assistant`](https://huggingface.co/meta-models/Muse-Glimmer-30B-assistant)
-at revision `c676cce91658f9568aaf264a416211e2782735b7`. Preparation downloads
+[`z-lab/Muse-Glimmer-30B-DFlash2`](https://huggingface.co/z-lab/Muse-Glimmer-30B-DFlash2)
+at revision `b54ffdd11fa9cfe2af370012e5763d492c904128`. Preparation downloads
 its configuration and weights into the configured Hugging Face hub cache. The
-five-layer BF16 draft is the original DFlash form: sixteen-token blocks with
-fifteen proposed tokens, context projected from target layers 1, 13, 25, 37, and
-49 through `encoder.fc` and `output_norm_enc`, 2048-token sliding attention, mask
-token 201818, and no grouped convolution or candidate selector. Target and draft
-histories use unit-scale FP8 E4M3 storage. The default packed catalog holds 64
-speculative rounds across batches one, two, and four with up to 64 packed target
-rows; `--mtp-draft-tokens N` selects zero through fifteen proposals, and
+five-layer BF16 DFlash2 draft, fine-tuned from the first-party drafter, runs
+sixteen-token blocks with fifteen proposed tokens: context projected from target
+layers 1, 13, 25, 37, and 49 through `fc` and `hidden_norm`, 2048-token sliding
+attention, mask token 201818, two-tap grouped convolutions (kernel 2, group 16)
+before each attention and MLP, a rank-256 top-16 candidate selector, and the
+target's output multiplier and softcap applied to the draft head. Target and
+draft histories use unit-scale FP8 E4M3 storage. The default packed catalog holds
+64 speculative rounds across batches one, two, and four with up to 64 packed
+target rows; `--mtp-draft-tokens N` selects zero through fifteen proposals, and
 `--no-mtp` skips the draft download, weights, state, and speculative graphs.
 
-Draft weights occupy 5,111,970,304 bytes. Each continuation row occupies
+Draft weights occupy 5,544,328,424 bytes. Each continuation row occupies
 62,914,560 bytes with draft history or 41,943,040 bytes with `--no-mtp`; each
 128-token paged KV block occupies 851,968 bytes. The export inventory on an RTX
 PRO 6000 reports 28,885.60 MiB of resident weights (text, vision tower, and

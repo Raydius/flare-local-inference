@@ -47,7 +47,7 @@ from .frontend import prepare_frontend, runtime_assets
 from .weights import ModelWeights, vision_model
 
 CONTEXT = 131072
-MAX_WIDTH = 16  # the assistant's block: 15 drafts and the pending token
+MAX_WIDTH = 16  # the DFlash2 drafter's block: 15 drafts and the pending token
 
 
 @dataclass(frozen=True)
@@ -84,7 +84,7 @@ class PreparationConfig:
         if type(self.device) is not int or self.device < 0:
             raise ValueError("Muse Glimmer preparation names one CUDA device index")
         if not self.speculative_widths or max(self.speculative_widths) > MAX_WIDTH:
-            raise ValueError("Muse Glimmer assistant drafts at most fifteen tokens")
+            raise ValueError("Muse Glimmer DFlash2 drafts at most fifteen tokens")
         if self.speculative_fixed_width is not None and self.speculative_fixed_width not in self.speculative_widths:
             raise ValueError("fixed verification width must belong to the captured widths")
         request_capacity(self.max_active)

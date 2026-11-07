@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-"""Muse Glimmer 30B single-GPU NVFP4 text preparation with a projector-less DFlash drafter."""
+"""Muse Glimmer 30B single-GPU NVFP4 text preparation with the z-lab DFlash2 drafter."""
 
 from pathlib import Path
 from types import MappingProxyType
@@ -17,7 +17,7 @@ def prepare(snapshot, plan, *, compile_forwards, kernel_cache, progress, retain_
         raise ValueError("Muse Glimmer preparation runs on exactly one GPU")
     drafting = {}
     if plan.speculation is not None:
-        # An external draft folder (`ignition export --draft-model`) replaces the pinned assistant download.
+        # An external draft folder (`ignition export --draft-model`) replaces the pinned DFlash2 drafter download.
         draft = plan.draft_model
         if draft is None:
             from huggingface_hub import snapshot_download
@@ -62,7 +62,7 @@ RECIPE = Recipe(name="muse_glimmer_nvfp4", served_model_name="Muse-Glimmer-30B",
         # `device_bytes` holds every stored text and vision tensor (23,380,399,360 payload bytes) plus the drafter;
         # the export inventory's 28,885.60 MiB of resident weights exceeds that by the expanded block scales.
         stored_bytes=23_380_728_424, device_bytes=28_492_369_664, expansion_bytes=1_796_377_242,
-        draft_bytes=5_111_970_304),),
+        draft_bytes=5_544_328_424),),
     context=131072, page_tokens=128, concurrency=4, max_concurrency=4, max_draft_tokens=15, prefill_chunk=4096,
     # The packed round catalog is bounded by `graph_budget` (64 rounds: 29 + 21 + 14 across batches 4, 2, 1); the
     # rebuild manifest requires it declared.

@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-"""Muse Glimmer projector-less DFlash composition and single-GPU speculative preparation."""
+"""Muse Glimmer DFlash2 composition and single-GPU speculative preparation."""
 
 from functools import partial
 
@@ -14,20 +14,20 @@ from ignition.recipes.muse_spark.pool import PAGE_TOKENS
 
 
 class PreparedDraft(_PreparedDraft):
-    """The assistant's block rows through the target's raw mask embedding and bare ``lm_head``.
+    """The DFlash2 round over the target's raw mask embedding and ``lm_head``.
 
-    The assistant carries no convolutions and no selector (``DraftConfig`` admits no
-    ``dflash_config``), so the shared draft runs ``norm -> attention -> add; post-norm
-    -> MLP -> add`` and sets ``selector = None`` for the round driver. Proposal logits
-    are the bare ``lm_head`` readout, as Transformers' DFlash candidate generator reads
-    them: the target's ``output_multiplier`` and softcap would flatten the proposal
-    distribution (top probability ~4e-4) and stochastic verification would reject
-    every draft.
+    Each draft layer runs a two-tap grouped convolution before its attention and
+    another before its MLP; the rank-256 top-16 candidate selector traces the block
+    once the layers are done. The draft head applies the target's ``output_multiplier``
+    and ``final_logit_softcapping`` from ``dflash_config``, so proposal logits sit on
+    the target's own scale.
     """
 
     def __init__(self, weights, *args, **kwargs):
+        options = weights.config.draft.text["dflash_config"]
         super().__init__(weights, *args, embedding=weights.embedding, head=weights.head,
-            output_multiplier=1., final_logit_softcapping=None, **kwargs)
+            output_multiplier=options["output_multiplier"],
+            final_logit_softcapping=options["final_logit_softcapping"], **kwargs)
 
 
 def _target_decoder(weights, tables, scratch, metadata, pool, **kwargs):
