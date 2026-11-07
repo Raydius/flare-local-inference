@@ -4,6 +4,8 @@ import os
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 from qualify import dflash2_served as ds
 from qualify import long_context_passkey as pk
 from qualify.speculative_workload import _catalog
@@ -169,3 +171,22 @@ def test_run_threads_the_glimmer_arm_into_every_cell(tmp_path):
     request = cases[0]["request"]
     assert request["chat_template_kwargs"] == {"reasoning_strength": "low", "add_generation_prompt": True}
     assert request["max_tokens"] == 256 and request["model"] == "Muse-Glimmer-30B"
+
+
+def test_run_against_a_served_url_starts_and_stops_nothing(tmp_path):
+    started, urls = [], []
+
+    def measure(base_url, case, folder, *, timeout, model_id):
+        urls.append(base_url)
+        passkey = case["request"]["messages"][1]["content"].split("The pass key is ")[1].split(".")[0]
+        return observation(f"{passkey}.", 1), delta(100, 300, 180)
+
+    args = SimpleNamespace(base_url="http://127.0.0.1:8100", image=None, package=None, publisher_keys=None, trust_store=None,
+                           output=tmp_path / "out", model_id="Muse-Glimmer-30B", max_context_tokens=None,
+                           lengths=(200_000,), depths=(0.1, 0.9), seed=48_300, port=8111, timeout=1, ready_timeout=1)
+    result = pk.run(args, popen=lambda command, **_: started.append(command), stop=lambda command, **_: started.append(command),
+                    ready=lambda url: url == "http://127.0.0.1:8100", measure=measure)
+    assert started == [] and urls == ["http://127.0.0.1:8100"] * 2 and result["all_passed"]
+    args.base_url = "http://127.0.0.1:9"
+    with pytest.raises(RuntimeError):
+        pk.run(args, popen=lambda *a, **k: None, stop=lambda *a, **k: None, ready=lambda url: False, measure=measure)
