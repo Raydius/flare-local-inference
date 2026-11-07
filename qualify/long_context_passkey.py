@@ -1,6 +1,7 @@
 """Passkey retrieval at chosen depths of prompts below and beyond a package's native context.
 
-One serving container per run (`flare run PACKAGE`, history drafts off). Each cell of a
+One serving container per run (`flare run PACKAGE`, history drafts off), or with `--base-url` an
+instance served elsewhere (the console's), which the probe neither starts nor stops. Each cell of a
 lengths × depths grid sends the frozen workload's service catalog, sized to the target prompt
 tokens, with one passkey sentence spliced between catalog lines at the depth fraction, and asks
 for the pass key under `top_k=1` (the runtime refuses `temperature=0`). A cell passes when the
@@ -94,28 +95,40 @@ def summary(cells):
     return {"cells": cells, "grid": grid, "all_passed": bool(cells) and all(row["passed"] for row in cells)}
 
 
-def run(args, *, popen=subprocess.Popen, stop=subprocess.run, ready=healthy, measure=measure):
-    base_url = f"http://127.0.0.1:{args.port}"
-    args.output.mkdir(parents=True, exist_ok=True)
-    command = container_command(args.image, args.package, name="long-context-passkey", uid=os.getuid(), gid=os.getgid(),
-                                home=Path.home(), publisher_keys=args.publisher_keys, trust_store=args.trust_store,
-                                port=args.port, history_drafts=False, max_context_tokens=args.max_context_tokens)
+def _cells(args, base_url, *, measure):
     cells = []
-    with Server(command, "long-context-passkey", base_url, args.output / "server.log",
-                popen=popen, stop=stop, ready=ready, ready_timeout=args.ready_timeout):
-        for length in sorted(args.lengths, reverse=True):
-            records = records_for(length, getattr(args, "tokens_per_record", TOKENS_PER_RECORD))
-            for depth in sorted(args.depths):
-                passkey = passkey_for(args.seed, length, depth, records)
-                case = prompt(records, depth, passkey, model=args.model_id, seed=args.seed,
-                              template_kwargs=getattr(args, "template_kwargs", None),
-                              max_tokens=getattr(args, "max_tokens", 32))
-                folder = args.output / f"{length}-{depth}"
-                observation, delta = measure(base_url, case, folder, timeout=args.timeout, model_id=args.model_id)
-                row = cell(observation, delta, length=length, depth=depth, passkey=passkey)
-                cells.append(row)
-                print(json.dumps({k: row[k] for k in ("length", "depth", "prompt_tokens", "passed", "completed",
-                                                      "request_seconds", "accepted_per_round")}), flush=True)
+    for length in sorted(args.lengths, reverse=True):
+        records = records_for(length, getattr(args, "tokens_per_record", TOKENS_PER_RECORD))
+        for depth in sorted(args.depths):
+            passkey = passkey_for(args.seed, length, depth, records)
+            case = prompt(records, depth, passkey, model=args.model_id, seed=args.seed,
+                          template_kwargs=getattr(args, "template_kwargs", None),
+                          max_tokens=getattr(args, "max_tokens", 32))
+            folder = args.output / f"{length}-{depth}"
+            observation, delta = measure(base_url, case, folder, timeout=args.timeout, model_id=args.model_id)
+            row = cell(observation, delta, length=length, depth=depth, passkey=passkey)
+            cells.append(row)
+            print(json.dumps({k: row[k] for k in ("length", "depth", "prompt_tokens", "passed", "completed",
+                                                  "request_seconds", "accepted_per_round")}), flush=True)
+    return cells
+
+
+def run(args, *, popen=subprocess.Popen, stop=subprocess.run, ready=healthy, measure=measure):
+    args.output.mkdir(parents=True, exist_ok=True)
+    served = getattr(args, "base_url", None)
+    if served:
+        # An instance somebody else serves (the console's): no container of our own, nothing stopped at the end.
+        if not ready(served):
+            raise RuntimeError(f"{served} is not healthy")
+        cells = _cells(args, served, measure=measure)
+    else:
+        base_url = f"http://127.0.0.1:{args.port}"
+        command = container_command(args.image, args.package, name="long-context-passkey", uid=os.getuid(), gid=os.getgid(),
+                                    home=Path.home(), publisher_keys=args.publisher_keys, trust_store=args.trust_store,
+                                    port=args.port, history_drafts=False, max_context_tokens=args.max_context_tokens)
+        with Server(command, "long-context-passkey", base_url, args.output / "server.log",
+                    popen=popen, stop=stop, ready=ready, ready_timeout=args.ready_timeout):
+            cells = _cells(args, base_url, measure=measure)
     result = summary(cells)
     write_json(args.output / "summary.json", result)
     print(json.dumps({"grid": result["grid"], "all_passed": result["all_passed"],
@@ -129,10 +142,12 @@ def _numbers(kind):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--image", required=True, help="serving image tag, such as local/flare-ignition:2ca523b2")
-    parser.add_argument("--package", type=Path, required=True, help="package model.safetensors")
-    parser.add_argument("--publisher-keys", type=Path, required=True, help="publisher profile JSON that signed the package")
-    parser.add_argument("--trust-store", type=Path, required=True, help="trust store approving that signer")
+    parser.add_argument("--base-url", default=None,
+                        help="an already-served instance (the console's, such as http://127.0.0.1:8100); no container is started")
+    parser.add_argument("--image", help="serving image tag, such as local/flare-ignition:2ca523b2 (without --base-url)")
+    parser.add_argument("--package", type=Path, help="package model.safetensors (without --base-url)")
+    parser.add_argument("--publisher-keys", type=Path, help="publisher profile JSON that signed the package (without --base-url)")
+    parser.add_argument("--trust-store", type=Path, help="trust store approving that signer (without --base-url)")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--model-id", default="ckpt", help="model id the package's responses carry")
     parser.add_argument("--max-context-tokens", type=int, default=None,
@@ -149,6 +164,8 @@ def main():
     parser.add_argument("--timeout", type=float, default=900, help="per-request deadline in seconds")
     parser.add_argument("--ready-timeout", type=float, default=900, help="seconds to wait for /health")
     args = parser.parse_args()
+    if not args.base_url and not (args.image and args.package and args.publisher_keys and args.trust_store):
+        parser.error("--base-url, or --image, --package, --publisher-keys and --trust-store")
     result = run(args)
     raise SystemExit(0 if result["all_passed"] else 1)
 
