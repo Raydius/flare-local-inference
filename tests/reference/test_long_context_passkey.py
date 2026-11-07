@@ -133,3 +133,39 @@ def test_native_baseline_run_takes_one_length_and_fails_on_a_miss(tmp_path):
     result, started, sent, stopped, args = run_with_fakes(tmp_path, (200_000,), 262_144, lambda passkey: "no idea")
     assert len(sent) == 3 and list(result["grid"]) == ["200000"] and result["grid"]["200000"] == {"0.1": False, "0.5": False, "0.9": False}
     assert result["all_passed"] is False and started[0][started[0].index("--max-context-tokens") + 1] == "262144"
+
+
+def test_prompt_defaults_keep_the_qwen_request_and_accept_the_glimmer_overrides():
+    default = pk.prompt(100, 0.5, "48213", model="ckpt")["request"]
+    assert default["chat_template_kwargs"] == {"enable_thinking": False, "add_generation_prompt": True}
+    assert default["max_tokens"] == 32
+    glimmer = pk.prompt(100, 0.5, "48213", model="Muse-Glimmer-30B",
+                        template_kwargs={"reasoning_strength": "low"}, max_tokens=256)["request"]
+    assert glimmer["chat_template_kwargs"] == {"reasoning_strength": "low", "add_generation_prompt": True}
+    assert glimmer["max_tokens"] == 256 and glimmer["top_k"] == 1
+
+
+def test_records_for_takes_the_served_tokenizer_rate():
+    assert pk.records_for(1_000_000) == round(1_000_000 / pk.TOKENS_PER_RECORD)
+    assert pk.records_for(1_000_000, 56.54) == round(1_000_000 / 56.54) == 17687
+
+
+def test_run_threads_the_glimmer_arm_into_every_cell(tmp_path):
+    cases = []
+
+    def measure(base_url, case, folder, *, timeout, model_id):
+        cases.append(case)
+        passkey = case["request"]["messages"][1]["content"].split("The pass key is ")[1].split(".")[0]
+        return observation(f"{passkey}.", 1), delta(100, 300, 180)
+
+    args = SimpleNamespace(image="img", package=tmp_path / "pk/models/d/e/model.safetensors",
+                           publisher_keys=tmp_path / "keys.json", trust_store=tmp_path / "trust.toml",
+                           output=tmp_path / "out", model_id="Muse-Glimmer-30B", max_context_tokens=None,
+                           lengths=(1_000_000,), depths=(0.5,), seed=48_300, port=8111, timeout=1, ready_timeout=1,
+                           tokens_per_record=56.54, template_kwargs={"reasoning_strength": "low"}, max_tokens=256)
+    result = pk.run(args, popen=lambda command, **_: Process(command, stdout=None, stderr=None),
+                    stop=lambda command, **_: None, ready=lambda url: True, measure=measure)
+    assert result["all_passed"] and cases[0]["id"] == "passkey-17687-0.5"
+    request = cases[0]["request"]
+    assert request["chat_template_kwargs"] == {"reasoning_strength": "low", "add_generation_prompt": True}
+    assert request["max_tokens"] == 256 and request["model"] == "Muse-Glimmer-30B"
