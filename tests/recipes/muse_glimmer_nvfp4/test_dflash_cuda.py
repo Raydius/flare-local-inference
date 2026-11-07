@@ -30,7 +30,7 @@ import pytest
 import torch
 import torch.nn.functional as F
 
-from tests.recipes.muse_glimmer.test_reference_cuda import (
+from tests.recipes.muse_glimmer_nvfp4.test_reference_cuda import (
     CHECKPOINT, CUDA, SNAPSHOT, WINDOW, device, prefill, relative_l2, traced_prompt,
 )
 
@@ -54,9 +54,9 @@ def test_width_16_round_proposes_the_assistant_block():
     from ignition.components.sampling import DeviceRequestState, RequestAdmission
     from ignition.preparation.checkpoint import inspect_indexed_checkpoint
     from ignition.preparation.scratch import GraphBufferPool, ScratchArena
-    from ignition.recipes.muse_glimmer.decoder import PreparedDecoder, Scratch
-    from ignition.recipes.muse_glimmer.dflash import SpeculativePreparation
-    from ignition.recipes.muse_glimmer.weights import ModelWeights
+    from ignition.recipes.muse_glimmer_nvfp4.decoder import PreparedDecoder, Scratch
+    from ignition.recipes.muse_glimmer_nvfp4.dflash import SpeculativePreparation
+    from ignition.recipes.muse_glimmer_nvfp4.weights import ModelWeights
     from ignition.recipes.muse_spark.pool import PAGE_TOKENS, ContinuationPool
     from ignition.reference.muse_glimmer import Fp8History
     from transformers.models.muse_glimmer_assistant import MuseGlimmerAssistantModel
