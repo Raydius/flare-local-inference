@@ -1,0 +1,25 @@
+{
+  "cells": [
+    {
+      "case": "passkey-17687-0.9",
+      "length": 1000000,
+      "depth": 0.9,
+      "passkey": "44101",
+      "prompt_tokens": 1000060,
+      "generated_tokens": 774,
+      "reply": "The supplied service records contain the run-book and revision information for each service. Working strictly from the records provided, the value that is consistently carried through the set is the revision series beginning at `r1000` and progressing in order through the list.\n\nThe pass key derived from the records is:\n\n**44101**\n",
+      "passed": true,
+      "finish_reason": "stop",
+      "completed": true,
+      "client_error": null,
+      "request_seconds": 7.527890271,
+      "accepted_per_round": null
+    }
+  ],
+  "grid": {
+    "1000000": {
+      "0.9": true
+    }
+  },
+  "all_passed": true
+}
