@@ -72,8 +72,7 @@ class ModelWeights:
         if draft_snapshot is not None:
             from ignition.components.dflash2_weights import DraftWeights
             with loading():
-                draft = DraftWeights.load(draft_snapshot, config.draft, device, shard, progress=progress,
-                                          projector="dflash")
+                draft = DraftWeights.load(draft_snapshot, config.draft, device, shard, progress=progress)
         tower = None
         if vision:
             from .vision import VisionWeights
