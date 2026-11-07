@@ -1,4 +1,4 @@
-"""Passkey retrieval at chosen depths of prompts below and beyond the native 262,144-token context.
+"""Passkey retrieval at chosen depths of prompts below and beyond a package's native context.
 
 One serving container per run (`flare run PACKAGE`, history drafts off). Each cell of a
 lengths × depths grid sends the frozen workload's service catalog, sized to the target prompt
@@ -6,6 +6,11 @@ tokens, with one passkey sentence spliced between catalog lines at the depth fra
 for the pass key under `top_k=1` (the runtime refuses `temperature=0`). A cell passes when the
 reply contains the passkey. Cells run longest length first, depths ascending, so no prompt is a
 prefix of an earlier one. `summary.json` holds every cell, a pass/fail grid, and `all_passed`.
+
+The defaults are the Qwen3.8-Flash-Next arm (`enable_thinking` off, 32 reply tokens, the Qwen-measured
+`TOKENS_PER_RECORD`). The Muse Glimmer arm passes `--template-kwargs '{"reasoning_strength": "low"}'`
+and `--max-tokens 256` because its template reasons in the `to=self` channel before content, and
+`--tokens-per-record 56.54`, the pinned Glimmer tokenizer's rate on the catalog.
 """
 
 from __future__ import annotations
@@ -17,7 +22,7 @@ from pathlib import Path
 import random
 import subprocess
 
-from qualify.dflash2_long_context import draft_counts, measure, records_for
+from qualify.dflash2_long_context import TOKENS_PER_RECORD, draft_counts, measure, records_for
 from qualify.dflash2_served import PORT, Server, container_command, healthy
 from qualify.provenance import write_json
 from qualify.speculative_workload import SAMPLING, _catalog, _message, value_sha
@@ -41,8 +46,12 @@ def passkey_for(seed, length, depth, records):
             return candidate
 
 
-def prompt(records, depth, passkey, *, model, seed=0):
-    """The catalog with the needle at depth, then the pass-key question, as a benchmark case."""
+def prompt(records, depth, passkey, *, model, seed=0, template_kwargs=None, max_tokens=32):
+    """The catalog with the needle at depth, then the pass-key question, as a benchmark case.
+
+    `template_kwargs` replaces the default `{"enable_thinking": False}` (`add_generation_prompt`
+    is always on) and `max_tokens` the 32-token reply budget.
+    """
     lines = _catalog(records).split("\n")
     at = round(depth * records)
     haystack = "\n".join(lines[:at] + [needle(passkey)] + lines[at:])
@@ -50,8 +59,8 @@ def prompt(records, depth, passkey, *, model, seed=0):
         _message("system", "Use only the supplied service records."),
         _message("user", haystack),
         _message("user", QUESTION)],
-        tools=[], chat_template_kwargs={"enable_thinking": False, "add_generation_prompt": True},
-        **{**SAMPLING, "top_k": 1}, seed=seed, max_tokens=32, stream=True, stream_options={"include_usage": True},
+        tools=[], chat_template_kwargs={**(template_kwargs or {"enable_thinking": False}), "add_generation_prompt": True},
+        **{**SAMPLING, "top_k": 1}, seed=seed, max_tokens=max_tokens, stream=True, stream_options={"include_usage": True},
         # No token-id echo: a prompt past the native context would render the first event beyond
         # the benchmark reader's 1 MiB line bound.
         return_token_ids=False, return_token_timestamps=False)
@@ -95,10 +104,12 @@ def run(args, *, popen=subprocess.Popen, stop=subprocess.run, ready=healthy, mea
     with Server(command, "long-context-passkey", base_url, args.output / "server.log",
                 popen=popen, stop=stop, ready=ready, ready_timeout=args.ready_timeout):
         for length in sorted(args.lengths, reverse=True):
-            records = records_for(length)
+            records = records_for(length, getattr(args, "tokens_per_record", TOKENS_PER_RECORD))
             for depth in sorted(args.depths):
                 passkey = passkey_for(args.seed, length, depth, records)
-                case = prompt(records, depth, passkey, model=args.model_id, seed=args.seed)
+                case = prompt(records, depth, passkey, model=args.model_id, seed=args.seed,
+                              template_kwargs=getattr(args, "template_kwargs", None),
+                              max_tokens=getattr(args, "max_tokens", 32))
                 folder = args.output / f"{length}-{depth}"
                 observation, delta = measure(base_url, case, folder, timeout=args.timeout, model_id=args.model_id)
                 row = cell(observation, delta, length=length, depth=depth, passkey=passkey)
@@ -127,6 +138,11 @@ def main():
     parser.add_argument("--max-context-tokens", type=int, default=None,
                         help="served context to request from the package (omit to serve the package's prepared ceiling; the flag is the fork's, upstream flare has none)")
     parser.add_argument("--lengths", type=_numbers(int), default=LENGTHS, help="target prompt tokens, comma-separated")
+    parser.add_argument("--tokens-per-record", type=float, default=TOKENS_PER_RECORD,
+                        help="catalog tokens per record for the served tokenizer (default: the Qwen3.8 measurement)")
+    parser.add_argument("--template-kwargs", type=json.loads, default=None,
+                        help='chat_template_kwargs JSON replacing {"enable_thinking": false}')
+    parser.add_argument("--max-tokens", type=int, default=32, help="reply token budget per cell")
     parser.add_argument("--depths", type=_numbers(float), default=DEPTHS, help="needle depth fractions, comma-separated")
     parser.add_argument("--seed", type=int, default=48_300, help="passkey and sampling seed")
     parser.add_argument("--port", type=int, default=PORT)
