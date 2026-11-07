@@ -1158,7 +1158,7 @@ flare/target/release/flare run /data/flare-runtime/muse-glimmer-tp1.safetensors 
 # against the console-served instance (no container of its own); --image/--package/--publisher-keys/--trust-store serve one instead
 .venv/bin/python -m qualify.long_context_passkey --base-url http://127.0.0.1:8100 --output qualify/results/glimmer-passkey --model-id Muse-Glimmer-30B \
     --lengths 100000,200000,320000,520000,1000000 --tokens-per-record 56.54 \
-    --template-kwargs '{"reasoning_strength": "low"}' --max-tokens 256 --timeout 1800 --ready-timeout 1800
+    --template-kwargs '{"reasoning_strength": "low"}' --max-tokens 256 --timeout 1800
 ```
 
 ## Storage and graph capacities
