@@ -171,12 +171,12 @@ def prepare(snapshot, config, *, progress=None, package_storage):
         identity = hashlib.sha256(json.dumps(dict(config=weights.config.text, headers=headers,
             draft=None if weights.config.draft is None else weights.config.draft.text,
             draft_headers=draft_headers, kv_dtype="float8_e4m3fn",
-            contract="muse-glimmer.text.v1"), sort_keys=True).encode()).hexdigest()
+            contract="muse-glimmer-nvfp4.text.v1"), sort_keys=True).encode()).hexdigest()
         session = RecordedPreparationSession(compile_workers=config.compile_workers,
             collective_tuning=config.collective_tuning, collective_ladder=config.collective_ladder,
             autotune_effort=config.autotune_effort, tuning_replica=config.tuning_replica,
             native_dense_activations=config.native_dense_activations, lock_gpu_clocks=config.lock_gpu_clocks,
-            device=device, checkpoint=identity, workload_schema="muse_glimmer", numerical_policy="default",
+            device=device, checkpoint=identity, workload_schema="muse_glimmer_nvfp4", numerical_policy="default",
             coordinator=None, headroom_bytes=config.headroom_bytes, benchmark_storage=package_storage)
         session.__enter__()
         arena = ScratchArena(device, overlap=config.stream_overlap)
