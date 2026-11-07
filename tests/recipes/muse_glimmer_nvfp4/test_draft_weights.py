@@ -15,6 +15,7 @@ from ignition.components.dflash2_weights import DraftWeights, validate_metadata
 from ignition.components.parallel import TensorParallelShard
 from ignition.preparation.checkpoint import inspect_indexed_checkpoint
 from ignition.preparation.scratch import GraphBufferPool
+from ignition.reference.qwen38_dflash2 import DFlash2Reference
 
 # z-lab/Muse-Glimmer-30B-DFlash2: hidden 6656, intermediate 19968, 32/8 heads x 128, five sliding layers
 # tapping target layers [1, 13, 25, 37, 49], block 16, mask token 201818, two-tap group-16 convolutions,
@@ -59,27 +60,9 @@ class StubDraftConfig:
         shard.partition(self.text["intermediate_size"], alignment=128)
 
 
-def expected_shapes(c):
-    """The DFlash2 state_dict: projection + norm, final norm, three selector tensors, and 15 tensors per layer."""
-    h, i, head, d = c["hidden_size"], c["intermediate_size"], c["head_dim"], c["dflash_config"]
-    q, kv, rank = c["num_attention_heads"] * head, c["num_key_value_heads"] * head, d["selector_rank"]
-    kernel = 2 * d["conv_kernel_size"] * (h // d["conv_group_size"])
-    shapes = {"fc.weight": (h, h * len(d["target_layer_ids"])), "hidden_norm.weight": (h,), "norm.weight": (h,),
-              "candidate_selector.hidden_projection.weight": (rank, h),
-              "candidate_selector.predecessor_codebook": (c["vocab_size"], rank),
-              "candidate_selector.successor_codebook": (c["vocab_size"], rank)}
-    for layer in range(c["num_hidden_layers"]):
-        p = f"layers.{layer}."
-        shapes.update({p + "self_attn.q_proj.weight": (q, h), p + "self_attn.k_proj.weight": (kv, h),
-            p + "self_attn.v_proj.weight": (kv, h), p + "self_attn.o_proj.weight": (h, q),
-            p + "self_attn.q_norm.weight": (head,), p + "self_attn.k_norm.weight": (head,),
-            p + "input_layernorm.weight": (h,), p + "post_attention_layernorm.weight": (h,),
-            p + "mlp.gate_proj.weight": (i, h), p + "mlp.up_proj.weight": (i, h), p + "mlp.down_proj.weight": (h, i),
-            p + "attention_conv.base_kernel": (2, d["conv_kernel_size"], h),
-            p + "attention_conv.kernel_projection.weight": (kernel, h),
-            p + "mlp_conv.base_kernel": (2, d["conv_kernel_size"], h),
-            p + "mlp_conv.kernel_projection.weight": (kernel, h)})
-    return shapes
+# The DFlash2 tensor set (projection + norm, final norm, three selector tensors, 15 per layer) is the
+# published checkpoint shape the fork's reference already derives from a config.
+expected_shapes = DFlash2Reference.expected_shapes
 
 
 def fabricate(path, c, *, dtype=torch.bfloat16, random=False):
