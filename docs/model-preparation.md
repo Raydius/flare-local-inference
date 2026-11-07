@@ -1104,7 +1104,9 @@ recipe upstream. Preparation uses one
 SM120 GPU, the checkpoint's NVFP4 text projections (q/k/v fused, the attention
 gate as its own projection, mlp gate/up fused; the ModelOpt `config_groups`
 metadata selects them and the `model-inputscales.safetensors` shard is read
-through the checkpoint index), FP8 E4M3 KV storage, a 131072-token context,
+through the checkpoint index), FP8 E4M3 KV storage, a 1,048,576-token declared context (native 131,072; no
+rope scaling — the sliding layers are bounded at 2048 and the full layers carry
+no positional encoding; `--max-context-tokens` serves a smaller window),
 four concurrent requests, and 4096-token prefill chunks. The 52 layers alternate
 39 sliding-window layers (2048 tokens, rope 500000) with 13 full-context layers
 without positional encoding; the sigmoid attention gate multiplies the raw
@@ -1153,6 +1155,10 @@ Spark's recipient headers, ATEM tools, and end markers.
 .venv/bin/ignition export muse-glimmer-30b-nvfp4 --gpus 0 --prompt-logprobs
 .venv/bin/ignition convert CACHE_ENTRY --form packed --output /data/flare-runtime/muse-glimmer-tp1.safetensors
 flare/target/release/flare run /data/flare-runtime/muse-glimmer-tp1.safetensors --gpus 0
+.venv/bin/python -m qualify.long_context_passkey --image local/flare-ignition:<sha8> --package CACHE_ENTRY/model.safetensors \
+    --publisher-keys PROFILE.json --trust-store TRUST.json --output qualify/results/glimmer-passkey --model-id Muse-Glimmer-30B \
+    --lengths 100000,200000,320000,520000,1000000 --tokens-per-record 56.54 \
+    --template-kwargs '{"reasoning_strength": "low"}' --max-tokens 256 --timeout 1800 --ready-timeout 1800
 ```
 
 ## Storage and graph capacities

@@ -30,9 +30,9 @@ TOKENS_PER_RECORD = 51_172 / 768
 CRITERION = 0.9
 
 
-def records_for(tokens):
-    """The catalog size whose prompt renders to about `tokens` prompt tokens."""
-    return max(3, round(tokens / TOKENS_PER_RECORD))
+def records_for(tokens, tokens_per_record=TOKENS_PER_RECORD):
+    """The catalog size whose prompt renders to about `tokens` prompt tokens at `tokens_per_record`."""
+    return max(3, round(tokens / tokens_per_record))
 
 
 def record_ids(records):
