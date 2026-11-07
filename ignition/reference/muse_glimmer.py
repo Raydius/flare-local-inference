@@ -29,7 +29,7 @@ from pathlib import Path
 import torch
 
 from ignition.preparation.checkpoint import inspect_indexed_checkpoint
-from ignition.recipes.muse_glimmer.config import PREFIX, PROJECTIONS
+from ignition.recipes.muse_glimmer_nvfp4.config import PREFIX, PROJECTIONS
 from ignition.reference.muse_spark import CheckpointReader
 from ignition.reference.qwen38_quant import Nvfp4Projection, nvfp4_linear_reference
 

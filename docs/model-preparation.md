@@ -1304,7 +1304,10 @@ flare-cli/target/release/flare run /data/flare-runtime/muse-spark-tp8.safetensor
 
 The `muse-glimmer-30b-nvfp4` alias selects
 [`original-el8/Muse-Glimmer-30B-NVFP4`](https://huggingface.co/original-el8/Muse-Glimmer-30B-NVFP4)
-at revision `b47e1e9f77d9a86e18cda5e318c68c632a7fbe59`. Preparation uses one
+at revision `b47e1e9f77d9a86e18cda5e318c68c632a7fbe59`. The recipe is
+`muse_glimmer_nvfp4`; the name states the checkpoint's uniform NVFP4 (W4A4)
+design, as distinct from the mixed-precision `nvidia/Muse-Glimmer-30B-NVFP4`
+recipe upstream. Preparation uses one
 SM120 GPU, the checkpoint's NVFP4 text projections (q/k/v fused, the attention
 gate as its own projection, mlp gate/up fused; the ModelOpt `config_groups`
 metadata selects them and the `model-inputscales.safetensors` shard is read
@@ -1347,7 +1350,7 @@ none: temperature 1.0, top-p 1.0, and top-k disabled. The chat template's
 `reasoning_strength`, `knowledge_cutoff`, and `current_date` keep their template
 defaults and are set through `chat_template_kwargs`.
 
-Ignition applies `ignition/recipes/muse_glimmer/assets/chat_template.patch.json`
+Ignition applies `ignition/recipes/muse_glimmer_nvfp4/assets/chat_template.patch.json`
 to the downloaded checkpoint template; the frontend otherwise matches Muse
 Spark's recipient headers, ATEM tools, and end markers.
 
