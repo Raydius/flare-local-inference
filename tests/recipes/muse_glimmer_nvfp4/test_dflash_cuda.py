@@ -51,7 +51,8 @@ def rms(x, weight, eps):
     return weight * (y * (y.square().mean(-1, keepdim=True) + eps).rsqrt()).to(x.dtype)
 
 
-def rotary(x, positions, theta, dim):
+def rotary(x, positions, theta):
+    dim = x.shape[-1]
     inverse = theta ** (-torch.arange(0, dim, 2, device=x.device).float() / dim)
     angle = positions.float()[:, None] * inverse
     angle = torch.cat((angle, angle), -1)
@@ -90,7 +91,7 @@ def reference(weights, taps, block_ids, positions, context_positions):
     history = []
     for index, layer in enumerate(d.layers):
         key = rotary(rms(kv[:, index, :kv_heads * dim].reshape(-1, kv_heads, dim), layer.key_norm, eps),
-                     context_positions, theta, dim)
+                     context_positions, theta)
         history.append((fp8(key).bfloat16(), fp8(kv[:, index, kv_heads * dim:].reshape(-1, kv_heads, dim)).bfloat16()))
     # transformers.masking_utils.sliding_window_bidirectional_overlay: |q - k| <= sliding_window.
     all_positions = torch.cat((context_positions, positions))
@@ -98,8 +99,8 @@ def reference(weights, taps, block_ids, positions, context_positions):
 
     def attention(x, layer, cached):
         q, k, v = F.linear(x, layer.qkv).split((heads * dim, kv_heads * dim, kv_heads * dim), -1)
-        q = rotary(rms(q.reshape(-1, heads, dim), layer.query_norm, eps), positions, theta, dim)
-        k = fp8(rotary(rms(k.reshape(-1, kv_heads, dim), layer.key_norm, eps), positions, theta, dim)).bfloat16()
+        q = rotary(rms(q.reshape(-1, heads, dim), layer.query_norm, eps), positions, theta)
+        k = fp8(rotary(rms(k.reshape(-1, kv_heads, dim), layer.key_norm, eps), positions, theta)).bfloat16()
         v = fp8(v.reshape(-1, kv_heads, dim)).bfloat16()
         k = torch.cat((cached[0], k)).repeat_interleave(heads // kv_heads, 1)
         v = torch.cat((cached[1], v)).repeat_interleave(heads // kv_heads, 1)
