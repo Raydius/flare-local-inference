@@ -19,7 +19,7 @@ from ignition.components.prompt_logprobs import (
 )
 from ignition.components.sampling import AdmissionBuffers
 from ignition.preparation import inspect_qwen38_checkpoint
-from ignition.preparation import runtime_package_pb2 as contract_proto
+from ignition.preparation import runtime_core_pb2 as contract_proto
 from ignition.preparation.capture import capture_forwards
 from ignition.preparation.checkpoint import inspect_indexed_checkpoint
 from ignition.preparation.contract import history_region
@@ -86,11 +86,11 @@ class PreparationConfig(_QwenPreparationConfig):
         return self.draft_checkpoint is not None
 
 
-def _identity(manifest, draft, layout, rope_scaling=None):
+def _identity(manifest, draft, layout, config):
     """Helios seeds prefix-cache digests from this: the target identity plus what this recipe adds to a row."""
     sources = {path.name: hashlib.sha256(path.read_bytes()).hexdigest()
                for path in sorted(Path(__file__).parent.glob("*.py"))}
-    value = {"target": _qwen_identity(manifest, 1, rope_scaling), "recipe": RECIPE.name, "sources": sources,
+    value = {"target": _qwen_identity(manifest, 1, config=config), "recipe": RECIPE.name, "sources": sources,
              "draft": None if draft is None else {"revision": DRAFT_REVISION,
                                                   "headers": [shard.header_sha256 for shard in draft.shards]},
              "row_bytes": layout.row_bytes}
@@ -99,12 +99,12 @@ def _identity(manifest, draft, layout, rope_scaling=None):
 
 @torch.no_grad()
 def prepare_model(snapshot: Path, config: PreparationConfig | None = None, *, progress=None,
-                  compile_decoder: bool = True, package_storage=None) -> PreparedModel:
+                  compile_decoder: bool = True, core_storage=None) -> PreparedModel:
     config = PreparationConfig() if config is None else config
     transient = contextlib.ExitStack()
     try:
         prepared = _prepare_model(snapshot, config, progress=progress, compile_decoder=compile_decoder,
-                                  package_storage=package_storage, transient=transient)
+                                  core_storage=core_storage, transient=transient)
     except BaseException as error:
         try:
             transient.close()
@@ -118,7 +118,7 @@ def prepare_model(snapshot: Path, config: PreparationConfig | None = None, *, pr
 
 @with_autotune_effort
 def _prepare_model(snapshot: Path, config: PreparationConfig, *, transient, progress=None,
-                   compile_decoder: bool = True, package_storage=None) -> PreparedModel:
+                   compile_decoder: bool = True, core_storage=None) -> PreparedModel:
     from transformers.models.qwen4_exp.modeling_qwen4_exp import Qwen4ExpVisionModel
 
     from ignition.recipes.qwen38.vision_state import (
@@ -145,8 +145,8 @@ def _prepare_model(snapshot: Path, config: PreparationConfig, *, transient, prog
             draft_config = DraftConfig.load(config.draft_checkpoint)
     # Loading, construction and tuning free most of what they allocate; a transient package pool returns
     # that memory to the device once tuning completes, before compiled forwards are bound.
-    if package_storage is not None:
-        transient.enter_context(package_storage.transient())
+    if core_storage is not None:
+        transient.enter_context(core_storage.transient())
     weights = ModelWeights.load(manifest, device, progress=progress, shard=shard)
     if torch.cuda.get_device_properties(device).is_integrated:
         from ignition.preparation.host_memory import release_page_cache
@@ -155,7 +155,7 @@ def _prepare_model(snapshot: Path, config: PreparationConfig, *, transient, prog
     draft_weights = None
     if drafting:
         draft_weights = DraftWeights.load(config.draft_checkpoint, draft_config, device, shard, progress=progress)
-    host_storage = {} if package_storage is None else {"host_allocator": package_storage.host_allocate}
+    host_storage = {} if core_storage is None else {"host_allocator": core_storage.host_allocate}
     table = PLETable.load(manifest, device, tokens=config.token_capacity, progress=progress, **host_storage)
     sample_rows = max(batch * width for batch, width in config.speculative_shapes) if drafting else config.request_capacity
     sample_rows += bool(config.mixed_shapes)
@@ -168,7 +168,7 @@ def _prepare_model(snapshot: Path, config: PreparationConfig, *, transient, prog
         device=device, checkpoint=REVISION, coordinator=None,
         namespace={"config": manifest.metadata_sha256["config.json"], "headers": manifest.headers_sha256, "world_size": 1,
                    "shard_hyperconnections": False},
-        headroom_bytes=config.headroom_bytes, benchmark_storage=package_storage)
+        headroom_bytes=config.headroom_bytes, benchmark_storage=core_storage)
     session.__enter__()
     graphs = {}
     try:
@@ -181,8 +181,8 @@ def _prepare_model(snapshot: Path, config: PreparationConfig, *, transient, prog
             state_rows = snapshots + slots
             state = HybridStatePool.allocate(state_rows + 1, device,
                 speculative_tokens=speculative_tokens, world_size=1, mtp=False,
-                draft_windows=DRAFT_WINDOWS if drafting else None, storage=package_storage,
-                backed_slots=(min(state_rows + 1, config.preparation_state_rows) if package_storage is not None else None))
+                draft_windows=DRAFT_WINDOWS if drafting else None, storage=core_storage,
+                backed_slots=(min(state_rows + 1, config.preparation_state_rows) if core_storage is not None else None))
             if state.layout != layout:
                 raise ValueError("the allocated hybrid row differs from the configured layout")
             register_benchmark_state(
@@ -369,14 +369,14 @@ def _prepare_model(snapshot: Path, config: PreparationConfig, *, transient, prog
             tuning = session.tune(show_progress=progress is not None, console=stage.console)
         report(f"selected prepared kernels: {tuning['selection_counts']}")
         stream = torch.cuda.Stream(device=device)
-        graph_pool = torch.cuda.graph_pool_handle() if package_storage is None else package_storage.graph_pool.id
+        graph_pool = torch.cuda.graph_pool_handle() if core_storage is None else core_storage.graph_pool.id
         compiled_functions = {}
         def capture_catalog(*, compile_decoder, materialize=None, label="Prepare serving graphs"):
             captured, compiled = capture_forwards(functions, signatures, session=session, device=device,
                 stream=stream, pool=graph_pool, compile_decoder=compile_decoder, materialize=materialize,
                 progress=progress, label=label, cache_root=config.kernel_cache,
                 collective=None, coordinator=None, retain_graphs=config.retain_graphs,
-                warmup_storage=package_storage)
+                warmup_storage=core_storage)
             graphs.update(captured)
             compiled_functions.clear()
             compiled_functions.update(compiled)
@@ -396,7 +396,7 @@ def _prepare_model(snapshot: Path, config: PreparationConfig, *, transient, prog
 
             mode = deferred_mode()
             with compile_only_launches():
-                rebind_cache({index: value.resize_pages_for_preparation(planned_pages if package_storage is not None else page_capacity, metadata_mode=mode)
+                rebind_cache({index: value.resize_pages_for_preparation(planned_pages if core_storage is not None else page_capacity, metadata_mode=mode)
                               for index, value in cache.items()})
 
         final_cache = None
@@ -406,8 +406,8 @@ def _prepare_model(snapshot: Path, config: PreparationConfig, *, transient, prog
                 free = device_memory_info(device)[0]
                 if page_capacity * page_bytes + config.headroom_bytes > free:
                     raise MemoryError("insufficient memory for preparation KV pages and configured headroom")
-                if package_storage is not None:
-                    final_cache = {index: value.resize_pages_for_preparation(planned_pages, storage=package_storage,
+                if core_storage is not None:
+                    final_cache = {index: value.resize_pages_for_preparation(planned_pages, storage=core_storage,
                         prefix=f"kv-{index}-", backed_pages=page_capacity) for index, value in cache.items()}
                 else:
                     final_cache = {index: value.resize_pages_for_preparation(page_capacity)
@@ -452,7 +452,7 @@ def _prepare_model(snapshot: Path, config: PreparationConfig, *, transient, prog
             for layer, value in (final_cache or cache).items()
             for name in ("main_k_cache", "main_v_cache", "compressed_k_cache")]
         buffers["request_pending_token"] = requests.pending_token
-        server_config = {"model_id": MODEL_ID, "identity": _identity(manifest, draft_manifest, layout, config.rope_scaling),
+        server_config = {"model_id": MODEL_ID, "identity": _identity(manifest, draft_manifest, layout, config),
             "max_sequence_tokens": config.context, "prefill_chunk_size": config.prefill_chunk_size,
             "pages": page_capacity, "state_rows": state_rows, "snapshots": snapshots, "page_tokens": 64,
             "frontend": prepare_frontend(manifest.snapshot, eos_token_ids=[248046, 248044], image_profile="qwen"),

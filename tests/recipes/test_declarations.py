@@ -441,7 +441,7 @@ def test_nemotron_speculative_graphs_bind_copy_inputs_only_when_declared():
 
     from ignition.components.parallel_draft import allocate_copy_buffers
     from ignition.components.state import StateLayout
-    from ignition.preparation import runtime_package_pb2 as p
+    from ignition.preparation import runtime_core_pb2 as p
     from ignition.preparation.execution import GraphSignature
     from ignition.recipes.nemotron_h.contract import prepare
 
@@ -576,8 +576,8 @@ def test_dflash_adapter_fetches_the_pinned_draft_into_the_bootstrap(monkeypatch,
         def __init__(self, **kwargs):
             self.kwargs = kwargs
 
-    def prepare_model(snapshot, config, *, progress, compile_decoder, package_storage=None):
-        seen.update(snapshot=snapshot, config=config, compile_decoder=compile_decoder)
+    def prepare_model(snapshot, config, *, progress, compile_decoder, core_storage=None):
+        seen.update(snapshot=snapshot, config=config, compile_decoder=compile_decoder, core_storage=core_storage)
         return "prepared"
 
     bootstrap.PreparationConfig, bootstrap.prepare_model = PreparationConfig, prepare_model
@@ -585,8 +585,11 @@ def test_dflash_adapter_fetches_the_pinned_draft_into_the_bootstrap(monkeypatch,
 
     plan = fitted(DFLASH, 1, reserve_bytes=2 << 30)
     assert plan.world_size == 1 and plan.speculation == DFLASH.recipe.speculation
+    storage = object()
+    # Serving and benchmarking call prepare(..., core_storage=...); the recipe forwards it to its bootstrap.
     assert DFLASH.recipe.prepare(tmp_path, plan, compile_forwards=True, kernel_cache=tmp_path / "kernels",
-                                 progress=None) == "prepared"
+                                 progress=None, core_storage=storage) == "prepared"
+    assert seen["core_storage"] is storage
     assert fetched == [(DRAFT_REPOSITORY, dict(revision=DRAFT_REVISION, cache_dir=plan.hub_cache,
                                                allow_patterns=("config.json", "model.safetensors")))]
     assert DRAFT_REVISION == "a22a1744e85c17364dcc54a6a420af7135d4c7f6"

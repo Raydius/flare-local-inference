@@ -88,7 +88,7 @@ def test_speculative_graphs_bind_copy_inputs_only_when_declared():
     """History copies opt in by listing the round owner's buffers on the speculative signature."""
     from ignition.components.parallel_draft import allocate_copy_buffers
     from ignition.components.state import StateLayout
-    from ignition.preparation import runtime_package_pb2 as p
+    from ignition.preparation import runtime_core_pb2 as p
     from ignition.preparation.execution import GraphSignature
     from ignition.recipes.mimo_v2.contract import prepare
 

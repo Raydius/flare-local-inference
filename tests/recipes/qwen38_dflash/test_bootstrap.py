@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import pytest
 import torch
 
-from ignition.preparation import runtime_package_pb2 as p
+from ignition.preparation import runtime_core_pb2 as p
 from ignition.preparation.execution import GraphSignature
 from ignition.recipes.qwen38.bootstrap import PreparationConfig as QwenPreparationConfig, _identity as qwen_identity
 from ignition.recipes.qwen38.contract import prepare as prepare_contract
@@ -74,15 +74,16 @@ def test_identity_differs_from_qwen38_and_tracks_the_draft():
     manifest = SimpleNamespace(headers_sha256="headers", metadata_sha256={"config.json": "config"})
     draft = SimpleNamespace(shards=(SimpleNamespace(header_sha256="draft-a"), SimpleNamespace(header_sha256="draft-b")))
     plain, speculative = state_layout(False), state_layout(True)
+    native, scaled = PreparationConfig(), PreparationConfig(context=1_048_576, rope_scaling=RopeScaling(4., 262144))
     identities = {
         "qwen": qwen_identity(manifest),
-        "plain": _identity(manifest, None, plain),
-        "draft": _identity(manifest, draft, speculative),
-        "other-draft": _identity(manifest, SimpleNamespace(shards=(SimpleNamespace(header_sha256="x"),)), speculative),
-        "scaled": _identity(manifest, draft, speculative, rope_scaling=RopeScaling(4., 262144)),
+        "plain": _identity(manifest, None, plain, native),
+        "draft": _identity(manifest, draft, speculative, native),
+        "other-draft": _identity(manifest, SimpleNamespace(shards=(SimpleNamespace(header_sha256="x"),)), speculative, native),
+        "scaled": _identity(manifest, draft, speculative, scaled),
     }
     assert len(set(identities.values())) == len(identities)
-    assert _identity(manifest, draft, speculative) == identities["draft"]
+    assert _identity(manifest, draft, speculative, native) == identities["draft"]
 
 
 def test_contract_declares_copy_inputs_and_lag_zero_without_draft_page_tables():
