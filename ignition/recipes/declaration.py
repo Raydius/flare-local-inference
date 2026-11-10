@@ -218,6 +218,8 @@ class SpeculativeMethod:
 
     ranks: Mapping[int, RankCosts]
     draft_bytes: int | None = None
+    # Files of the method's external draft, which a `--draft-model` folder supplies in place of the pinned download.
+    draft_files: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

@@ -126,7 +126,8 @@ def derive(configuration: Configuration, model: ResolvedModel, host: Host, *, gp
 
 def _check_draft_model(model: ResolvedModel, folder: Path, speculation: Speculation | None) -> None:
     """Reject a draft folder the recipe cannot load in place of its pinned external draft."""
-    files = model.recipe.draft_files
+    method = None if speculation is None else model.recipe.speculative_methods.get(speculation.method)
+    files = model.recipe.draft_files if method is None else method.draft_files
     if not files:
         raise UsageError(f"--draft-model: {model.checkpoint.alias} loads no external draft")
     if speculation is None:

@@ -159,3 +159,48 @@ def test_multi_host_export_rejects_a_draft_folder(monkeypatch, tmp_path):
     args = _parser().parse_args(["export", str(tmp_path), "--ranks", "2", "--draft-model", str(tmp_path)])
     with pytest.raises(UsageError, match="--draft-model applies to single-host export"):
         export(args)
+
+
+def test_qwen38_dflash2_loads_a_draft_folder_or_the_pinned_download(monkeypatch, tmp_path):
+    """qwen38 reads `--draft-model` only for DFlash2 proposals; its MTP module is part of the target."""
+    from dataclasses import replace
+
+    import huggingface_hub
+
+    from ignition.errors import UsageError
+    from ignition.recipes.qwen38 import draft_config
+
+    monkeypatch.setenv("HOME", str(tmp_path))
+    folder = _draft_folder(tmp_path, "config.json", "model.safetensors")
+    configuration = Configuration(tmp_path / "config.toml", {}, exists=True)
+    recipe = next(recipe for recipe in recipes() if recipe.name == "qwen38")
+    model = ResolvedModel(recipe, recipe.checkpoints[0])
+    host = Host((planning.Gpu(0, "Blackwell", "GPU-0", 256 << 30, 250 << 30, (12, 0)),), None)
+
+    def plan(method, draft_model):
+        return derive(configuration, model, host, gpus="0", concurrency=Setting(4, "test"),
+                      speculation=replace(recipe.speculation, method=method), draft_model=draft_model)
+
+    pinned = tmp_path / "pinned"
+    downloads = []
+
+    def download(repository, **options):
+        downloads.append((repository, options["revision"], options["allow_patterns"]))
+        return str(pinned)
+
+    monkeypatch.setattr(huggingface_hub, "snapshot_download", download)
+    prepare = lambda snapshot, config, **options: config
+    monkeypatch.setitem(sys.modules, "ignition.recipes.qwen38.bootstrap", SimpleNamespace(
+        PreparationConfig=lambda **options: SimpleNamespace(**options), prepare_model=prepare, prepare_rank=prepare))
+
+    def prepared(plan):
+        return recipe.prepare(tmp_path / "target", plan, compile_forwards=True, kernel_cache=None, progress=None)
+
+    assert prepared(plan("dflash2", folder)).draft_snapshot == folder and not downloads
+    assert prepared(plan("dflash2", None)).draft_snapshot == pinned
+    assert downloads == [(draft_config.REPOSITORY, draft_config.REVISION, ("config.json", "model.safetensors"))]
+    with pytest.raises(UsageError, match="qwen3.8-flash loads no external draft"):
+        plan("mtp", folder)
+    (folder / "model.safetensors").unlink()
+    with pytest.raises(UsageError, match="lacks model.safetensors"):
+        plan("dflash2", folder)
