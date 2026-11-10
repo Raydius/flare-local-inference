@@ -19,6 +19,9 @@ _TARGET_PAGE_LAYERS = 12
 # the CUDA context. They serve every speculation setting.
 _GRAPH_BYTES = {1: 7168 << 20, 2: 8000 << 20, 4: 8576 << 20}
 
+# The DFlash2 draft's files: the pinned download's, or a `--draft-model` folder's.
+_DRAFT_FILES = ("config.json", "model.safetensors")
+
 # The pinned checkpoint's stored tensors, shared by every qualified variant.
 _CHECKPOINT = dict(repository=MODEL_ID, revision=REVISION, architecture=ARCHITECTURE,
     stored_bytes=102_329_644_144,
@@ -56,11 +59,14 @@ def prepare(snapshot, plan, *, compile_forwards, kernel_cache, progress, retain_
         "speculative_widths": speculation.widths, "speculative_token_capacity": plan.speculative_token_capacity,
         "speculative_fixed_width": speculation.fixed_width}
     if speculation is not None and speculation.method == "dflash2":
-        from huggingface_hub import snapshot_download
-        from .draft_config import REPOSITORY, REVISION
+        draft = plan.draft_model
+        if draft is None:
+            from huggingface_hub import snapshot_download
+            from .draft_config import REPOSITORY, REVISION
 
-        drafting["draft_snapshot"] = Path(snapshot_download(REPOSITORY, revision=REVISION,
-            cache_dir=plan.hub_cache, allow_patterns=("config.json", "model.safetensors")))
+            draft = snapshot_download(REPOSITORY, revision=REVISION, cache_dir=plan.hub_cache,
+                                      allow_patterns=_DRAFT_FILES)
+        drafting["draft_snapshot"] = Path(draft)
     config = PreparationConfig(mtp_only=plan.speculation is not None and plan.speculation.mtp_only,
         collective_tuning=plan.collective_tuning, collective_ladder=plan.collective_ladder, prompt_logprobs=plan.prompt_logprobs,
         compile_workers=plan.compile_workers, autotune_effort=plan.autotune_effort, tuning_replica=plan.tuning_replica,
@@ -129,7 +135,7 @@ RECIPE = Recipe(
             1: _costs(142_821_120, 69_632, _GRAPH_BYTES[1] + (1 << 30), speculating=False),
             2: _costs(71_632_640, 36_864, _GRAPH_BYTES[2] + (1 << 30), speculating=False),
             4: _costs(36_235_008, 36_864, _GRAPH_BYTES[4] + (1 << 30), speculating=False),
-        }), draft_bytes=WEIGHT_BYTES),
+        }), draft_bytes=WEIGHT_BYTES, draft_files=_DRAFT_FILES),
     }),
     online_mxfp8=True, draft_head_quantizations=("mxfp8", "nvfp4"),
     max_images=4, image_bytes=32 << 20, mixed_prefill=True,
