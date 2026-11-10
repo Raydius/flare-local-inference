@@ -18,7 +18,8 @@ from pathlib import Path
 
 import torch
 
-from ignition.components.capacity import batch_capacities, image_capacity, prefill_capacities, request_capacity
+from ignition.components.capacity import (batch_capacities, image_capacity, prefill_capacities, request_capacity,
+    serving_modes)
 from ignition.components.completion import CompletionOutputs, VECTOR_TOKENS_FIELD
 from ignition.components.paged_batch import BatchInputs, Metadata, PreparedBatch
 from ignition.components.paged_generation import PreparedGeneration
@@ -80,8 +81,12 @@ class PreparationConfig:
     speculative_fixed_width: int | None = None
     speculative_token_capacity: int | None = None
     speculative_graph_budget: int = 64
+    mtp_only: bool = False
 
     def __post_init__(self):
+        if self.mtp_only and (not self.dflash
+                or max(self.speculative_widths, default=1) <= 1 or self.speculative_fixed_width == 1):
+            raise ValueError("--mtp-only requires enabled learned speculation with positive draft depth")
         if type(self.device) is not int or self.device < 0:
             raise ValueError("Muse Glimmer preparation names one CUDA device index")
         if not self.speculative_widths or max(self.speculative_widths) > MAX_WIDTH:
@@ -243,7 +248,7 @@ def prepare(snapshot, config, *, progress=None, core_storage):
                 add(name, forward, "vision", 1, capacity, (*vision_inputs.buffers(), "vision_feature_slot"))
         forward_inputs = (*inputs.buffers(), "sampling_grammar_mask")
         prefill_inputs = (*forward_inputs, *(vision_prefill.buffers() if vision else ()))
-        modes = (True, False) if config.dflash else (False,)
+        modes = serving_modes(config.dflash, config.mtp_only)
         for enabled in modes:
             suffix = "-no-mtp" if config.dflash and not enabled else ""
             mode_weights = weights if enabled else replace(weights, draft=None)

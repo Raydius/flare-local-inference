@@ -106,9 +106,9 @@ def test_recipe_adapters_preserve_mtp_only_and_validate_direct_configs(monkeypat
     assert original.__dataclass_fields__["mtp_only"].default is False
     if not mtp_only:
         return
-    source = (dict(draft_checkpoint=None) if name in ("kimi3", "gemma4", "nemotron_h")
+    source = (dict(draft_checkpoint=None) if name in ("kimi3", "gemma4", "nemotron_h", "qwen38_dflash")
               else dict(dspark=False) if name in ("deepseek4", "deepseek41", "minimax_m3")
-              else dict(dflash=False) if name in ("mimo_v2", "muse_spark") else dict(mtp=False))
+              else dict(dflash=False) if name in ("mimo_v2", "muse_spark", "muse_glimmer_nvfp4") else dict(mtp=False))
     for invalid in (source, dict(speculative_widths=(1,), speculative_fixed_width=None),
                     dict(speculative_fixed_width=1)):
         with pytest.raises(ValueError, match="--mtp-only requires enabled learned speculation with positive draft depth"):

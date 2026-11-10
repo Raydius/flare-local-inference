@@ -59,7 +59,8 @@ def prepare(snapshot, plan, *, compile_forwards, kernel_cache, progress, retain_
                                       allow_patterns=plan.recipe.draft_files)
         drafting = dict(draft_checkpoint=Path(draft), speculative_widths=speculation.widths,
             speculative_token_capacity=plan.speculative_token_capacity, speculative_fixed_width=speculation.fixed_width)
-    config = PreparationConfig(collective_tuning=plan.collective_tuning, collective_ladder=plan.collective_ladder,
+    config = PreparationConfig(mtp_only=speculation is not None and speculation.mtp_only,
+        collective_tuning=plan.collective_tuning, collective_ladder=plan.collective_ladder,
         prompt_logprobs=plan.prompt_logprobs,
         compile_workers=plan.compile_workers, autotune_effort=plan.autotune_effort, tuning_replica=plan.tuning_replica,
         native_dense_activations=plan.native_dense_activations,

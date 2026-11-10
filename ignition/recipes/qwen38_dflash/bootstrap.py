@@ -10,7 +10,7 @@ from pathlib import Path
 
 import torch
 
-from ignition.components.capacity import speculative_token_capacity
+from ignition.components.capacity import serving_modes, speculative_token_capacity
 from ignition.components.completion import CompletionOutputs, VECTOR_TOKENS_FIELD
 from ignition.components.dflash2_weights import DraftWeights
 from ignition.components.parallel import TensorParallelShard
@@ -236,10 +236,11 @@ def _prepare_model(snapshot: Path, config: PreparationConfig, *, transient, prog
                 buffers.update(speculation.buffers())
         scoring = PromptScoring.allocate(config, device, buffers, frame=frame, group=None, ipc=None,
             runtime=None, coordinator=None)
-        serving_modes = (True, False) if drafting else (False,)
-        graph_count = (4 + len(serving_modes) * (prefill_graph_count(config.prefill_capacities, scoring)
+        graph_modes = serving_modes(drafting, config.mtp_only)
+        graph_count = (4 + len(graph_modes) * (prefill_graph_count(config.prefill_capacities, scoring)
                                               + 4 * len(config.batch_capacities))
-                       + len(config.batch_capacities) + (len(config.speculative_shapes) if drafting else 0)
+                       + (len(config.batch_capacities) if False in graph_modes else 0)
+                       + (len(config.speculative_shapes) if drafting else 0)
                        + len(config.mixed_shapes))
         with phase(progress, "Construct graph catalog", total=graph_count) as stage:
             def add(name, function, kind, batch, tokens, fields, *, enabled=None, prefill_capacity=0):
@@ -268,7 +269,7 @@ def _prepare_model(snapshot: Path, config: PreparationConfig, *, transient, prog
                 owners.extend((handoff, encoder))
 
             forward_fields = (*inputs.buffers(), "sampling_grammar_mask")
-            for enabled in serving_modes:
+            for enabled in graph_modes:
                 suffix = "-no-mtp" if drafting and not enabled else ""
                 modes = prefill_modes(config.prefill_capacities,
                     () if enabled else reversed(config.batch_capacities), scoring)
@@ -342,7 +343,7 @@ def _prepare_model(snapshot: Path, config: PreparationConfig, *, transient, prog
 
             state_fields = tuple(f"state_{name}" for name in transfer.__dataclass_fields__ if name != "errors")
             admission_fields = tuple(admission.__dataclass_fields__)
-            for enabled in serving_modes:
+            for enabled in graph_modes:
                 suffix = "-no-mtp" if drafting and not enabled else ""
                 for capacity in reversed(config.batch_capacities):
                     name = f"resume{capacity}" + suffix
