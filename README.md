@@ -3,11 +3,11 @@
 This fork carries local changes on top of
 [NVIDIA/flare-local-inference](https://github.com/NVIDIA/flare-local-inference) (GitHub now redirects it to `NVIDIA/spark-local-inference`).
 `deploy` (this branch) is the patch stack plus the DFlash2 work merged above it; `main` mirrors upstream unchanged.
-Stack base: upstream `585159c9` (2026-11-04). Upstream tip at last check: `af0907d9` (2026-11-07: Kimi K3.1 Pro and Inferact DSpark on TP16). Upstream has carried its own Flash Next DFlash2 (`d68ed8f5`) since `972e28e4` (2026-11-05); the next rebase folds the fork recipe onto it.
-History: 2026-11-04: Rebased onto `585159c9` (60 commits: ABI 6 package-defined completion capacity, sixteen-token completions, DFlash2 compact prefill + window staging, QAD draft quantization, warmup mapping reuse #154, Selene host tier, FlashInfer pinned to `560fef16`); one conflict (`flare/src/main.rs`) kept both sides; no patch retired. 2026-11-02: Rebased onto `6fa01a49` (61 commits: Muse Spark, Qwen3.8-27B DFlash2 through shared `components/dflash2.py`, vocabulary-parallel sampling #135, collective ladder, FlashInfer floated to `@main`); two conflicts (`planning.py`, `test_models.py`) kept both sides; no patch retired.
+Stack base: upstream `e774a468` (2026-11-10). Upstream has carried its own Flash Next DFlash2 (`d68ed8f5`, `--speculative-method dflash2`) since 2026-11-04; the fork recipe stays separate until [issue #210](https://github.com/NVIDIA/spark-local-inference/issues/210) settles mixed prefill.
+History: 2026-11-10: Rebased onto `e774a468` (48 commits: the terminal binary moved to `flare-cli/` over a shared `flare` library with a Windows desktop, packages renamed cores (`runtime_core`, `core_storage`), Kimi K3.1 and its DFlash2, exports that retain no CUDA graph templates, `--mtp-only`, `--force-moe-decode-a16`, FlashInfer pinned to `85ea6e76`); twelve commits conflicted and kept both sides on upstream's structure, one carry commit follows the renames, the opaque-write rule was ported onto upstream's copy-deferral pass, and the FlashInfer MoE fragment guard retired. 2026-11-04: Rebased onto `585159c9` (60 commits: ABI 6 package-defined completion capacity, sixteen-token completions, DFlash2 compact prefill + window staging, QAD draft quantization, warmup mapping reuse #154, Selene host tier, FlashInfer pinned to `560fef16`); one conflict (`flare/src/main.rs`) kept both sides; no patch retired. 2026-11-02: Rebased onto `6fa01a49` (61 commits: Muse Spark, Qwen3.8-27B DFlash2 through shared `components/dflash2.py`, vocabulary-parallel sampling #135, collective ladder, FlashInfer floated to `@main`); two conflicts (`planning.py`, `test_models.py`) kept both sides; no patch retired.
 Maintenance workflow: [FORK.md](FORK.md).
 
-"Still needed" is judged against upstream `af0907d9`.
+"Still needed" is judged against upstream `e774a468`.
 
 ## Active patches
 
@@ -28,7 +28,7 @@ Maintenance workflow: [FORK.md](FORK.md).
   - **Still needed:** Yes — until [PR #212](https://github.com/NVIDIA/spark-local-inference/pull/212) merges (PR #212's `ignition bench` forwarding fix `2ca523b2` is carried on `deploy` as a separate commit above the stack, not inside `patch/07`; it retires with `patch/07`)
 - **DFlash2 recipe `qwen38_dflash` (`8046cf12`, fold `df9a23d1`, `05289f11`, `cd47b4d8`)** — added 2026-10-31 · Prepared (`ignition/`)
   - What it does: Serves Qwen3.8-Flash-Next with the `incoai/Qwen3.8-Flash-Next-DFlash2` block draft (pinned `a22a1744`) in place of MTP, on the shared `components/dflash2.py`: aliases `qwen3.8-flash-dflash2` and `qwen3.8-flash-dflash2-yarn4` (1,048,576 tokens, `9f764425`), mixed prefill rounds embedding a DFlash2 draw (`890180c1`), completion records sized from the prepared draft width
-  - **Still needed:** On base `585159c9`, yes. Against `af0907d9`, only mixed prefill and the yarn4 alias: upstream `d68ed8f5` serves Flash Next DFlash2 itself (`--speculative-method dflash2`) and rejects mixed prefill. Fold onto it at the next rebase; [issue #210](https://github.com/NVIDIA/spark-local-inference/issues/210) asks the owner about mixed prefill
+  - **Still needed:** Only for mixed prefill and history drafts: upstream `d68ed8f5` serves Flash Next DFlash2 itself (`--speculative-method dflash2`), rejects mixed prefill, and combines with `patch/06`'s yarn4 declaration on this stack. Kept separate until [issue #210](https://github.com/NVIDIA/spark-local-inference/issues/210) answers whether mixed prefill rounds may embed a DFlash2 draw
 - **Muse Glimmer recipe `muse_glimmer_nvfp4` (`9834def8`, `85463f36`, `37f3613d`, `c4f4fa7c`, `8fe522a3`, `d77a2055`, `906ee060`)** — added 2026-11-06 · Prepared (`ignition/recipes`)
   - What it does: Serves `original-el8/Muse-Glimmer-30B-NVFP4` (alias `muse-glimmer-30b-nvfp4`) on one GPU at TP1: W4A4 NVFP4 decoder projections with a BF16 head, up to four images per request, eight concurrent requests by default and sixteen at `--max-concurrency 16` with 128 packed verification rows (served at 16 on one RTX PRO 6000: 57.3 GiB of KV, 9,076,736 tokens), and a declared 1,048,576-token context over the native 131,072 (no rope scaling; the sliding layers stay bounded at 2,048). Drafting uses the `z-lab/Muse-Glimmer-30B-DFlash2` block drafter (pinned `b54ffdd1`) at 15 draft tokens; `ignition export --draft-model` supplies the drafter offline. Passkey retrieval at 1M: 14 of 15 cells within a 256-token cap, the 15th at 1,024
   - **Still needed:** Yes — until [PR #229](https://github.com/NVIDIA/spark-local-inference/pull/229) merges (it carries the recipe rebased on `972e28e4`, without this fork's compilation lowering)
@@ -42,20 +42,23 @@ Maintenance workflow: [FORK.md](FORK.md).
   - What it does: Builds the packed mixed decoder without verification aliasing (`sampler=False`), declares no draft page tables on the DFlash2 speculation owner, and emits the proposal depth of mixed rounds with speculation
   - **Still needed:** Yes — open upstream as [PR #211](https://github.com/NVIDIA/spark-local-inference/pull/211)
 - **Opaque-write copy rule (`80946209`)** — added 2026-10-31 · Prepared (`ignition/preparation`)
-  - What it does: Keeps a captured copy as an invocation when it reads opaquely written storage or its destination is mutated later
-  - **Still needed:** Probably not — its reproducers pass on pristine `585159c9`; retire after a re-export and served comparison (it costs an extra launch per such copy)
+  - What it does: Keeps a captured copy as an invocation when it reads storage an earlier opaque call wrote or its destination is written again later. Upstream `fa0eadad` covers a different case (a later opaque call touching the destination); the rule runs inside upstream's copy-deferral pass, repeated until no copy changes
+  - **Still needed:** Undecided — its reproducers passed on pristine `585159c9`; it retires only if they and a destination-read-after-graph case pass on GPU without it (each kept copy costs an extra launch)
 - **`ignition export --recipe` / `--draft-model` (`2c8ba959`)** — added 2026-11-02 · Prepared (`ignition/cli`)
   - What it does: Prepares a local checkpoint directory with a named recipe and a local draft folder
   - **Still needed:** Yes — upstream has neither flag
-- **FlashInfer pin `Raydius/flashinfer@49fe5449` (`8c955dc8`)** — added 2026-10-29 · Prepared (`pyproject.toml`)
-  - What it does: FlashInfer main `42ba2f16` plus the fix that evicts planned Triton kernels for every JIT module and a MoE fragment guard
-  - **Still needed:** Yes — upstream now pins `2e4f4c2c` (moved from `1f8ed8a3` in `af0907d9`), which has the MoE guard (#71) but not the eviction fix ([FlashInfer PR #67](https://github.com/local-inference-lab/flashinfer/pull/67), open). Re-pin to `2e4f4c2c` + #67 at the next rebase
+- **FlashInfer pin `Raydius/flashinfer@ef6d6592` (`e6ccf746`)** — added 2026-10-29 · Prepared (`pyproject.toml`)
+  - What it does: Upstream's pin `local-inference-lab/flashinfer@85ea6e76` plus one commit that evicts planned Triton kernels from compiler workers for every JIT module (branch `evict-planned-jits-85ea6e76`)
+  - **Still needed:** Yes — `85ea6e76` does not carry the eviction fix ([FlashInfer PR #67](https://github.com/local-inference-lab/flashinfer/pull/67), open); its `07c41f32` releases compiler executables after jobs, a different mechanism
 - **DFlash2 qualification tools (`bee64b00`, `25640c8d`, `a75e845d`, `9f764425`, `d3919444`, `d77a2055`, `4f434bdb`)** — added 2026-10-28 · Tooling (`qualify/`)
   - What it does: `dflash2_acceptance.py`, `dflash2_served.py`, `dflash2_draft_sweep.py`, `dflash2_long_context.py` and their results: acceptance, served DFlash2-vs-MTP comparison, draft-count sweep, past-262k probe. `long_context_passkey.py`: five-digit passkey retrieval over prompt length × depth, against a launched package or a running server (`--base-url`), reporting width-16 speculative rounds and accepted drafts per round
   - **Still needed:** Yes — fork measurement tooling, not upstreamed
 
 ## Retired patches
 
+- **FlashInfer MoE fragment guard (`49fe5449`, in the `Raydius/flashinfer` pin)** — added 2026-10-29, retired 2026-11-10
+  - What it did: Flattened the dynamic MoE kernel's direct SFB fragment only when it was still nested, so `moe.decode` tuning stopped failing with `TypeError: Value after * must be an iterable, not int`
+  - **Why retired:** FlashInfer #71 (`e239dfb3a`) guards both flatten sites and is in upstream's pin `85ea6e76`
 - **`patch/02-graph-shared-memory`** — added 2026-10-21, retired 2026-10-22
   - What it did: On package load, raised a graph kernel's `MAX_DYNAMIC_SHARED_SIZE_BYTES` to the dynamic shared memory its captured node recorded. Fixed Ignition-prepared Qwen3.8-Flash packages failing `cuGraphAddKernelNode_v2` with `INVALID_VALUE` (43 prefill nodes at 57,600 B vs an exported 49,152)
   - **Why retired:** Upstream `37c87e1d` does the same: it raises a function's shared-memory allowance from its captured nodes
