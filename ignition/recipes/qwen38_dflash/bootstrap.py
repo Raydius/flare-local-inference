@@ -485,7 +485,7 @@ def _prepare_model(snapshot: Path, config: PreparationConfig, *, transient, prog
     }, layers=('layers', 'tree.model.language_model.layers')), device=device.index, max_active=config.max_active, graphs=graphs, buffers=buffers, signatures=signatures,
             export_zero_ranges=(*export_zero_ranges, *(() if scoring is None else scoring.zero_ranges()), *completion.zero_ranges(),
                                 *((t.data_ptr(), t.nbytes) for t in table.buffers().values())),
-            export_events=table.events(), package_data=table,
+            export_events=table.events(), core_data=table,
             resources=resources, server_config=server_config, memory_report=memory, session=session,
             close_resources=(table, *((scoring,) if scoring is not None else ())))
     except BaseException:
