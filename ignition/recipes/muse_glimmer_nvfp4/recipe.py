@@ -10,7 +10,7 @@ from ignition.recipes.declaration import Checkpoint, RankCosts, RankUsage, Recip
 
 
 def prepare(snapshot, plan, *, compile_forwards, kernel_cache, progress, retain_graphs=False,
-            package_storage=None, ranks=None):
+            core_storage=None, ranks=None):
     from .bootstrap import PreparationConfig, prepare as prepare_model
 
     if ranks is not None or plan.world_size != 1:
@@ -40,7 +40,7 @@ def prepare(snapshot, plan, *, compile_forwards, kernel_cache, progress, retain_
         headroom_bytes=plan.headroom_bytes + plan.reserve_bytes, compile_decoder=compile_forwards,
         retain_graphs=retain_graphs, kernel_cache=kernel_cache, language_model_only=plan.language_model_only,
         image_concurrency=plan.image_concurrency, dflash=plan.speculation is not None, **drafting)
-    return prepare_model(snapshot, config, progress=progress, package_storage=package_storage)
+    return prepare_model(snapshot, config, progress=progress, core_storage=core_storage)
 
 
 def usage(prepared):

@@ -5,7 +5,7 @@
 
 from pathlib import Path
 
-from ignition.preparation import runtime_package_pb2 as p
+from ignition.preparation import runtime_core_pb2 as p
 from ignition.preparation.frontend import prepare_frontend as _prepare_frontend
 from ignition.recipes.muse_spark.frontend import FRONTEND as _SPARK_FRONTEND
 from ignition.recipes.muse_spark.frontend import prepare_frontend as _prepare_spark_frontend

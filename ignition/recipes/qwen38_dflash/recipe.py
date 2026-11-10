@@ -41,7 +41,7 @@ _STATE_ROW_BYTES = 142_821_120
 _AUXILIARY_BYTES = (2 * 4096 + 2 * 128) * 12800 * 2
 
 
-def prepare(snapshot, plan, *, compile_forwards, kernel_cache, progress, retain_graphs=False, package_storage=None,
+def prepare(snapshot, plan, *, compile_forwards, kernel_cache, progress, retain_graphs=False, core_storage=None,
             ranks=None):
     """Prepare the plan's catalog with DFlash2 drafts on local GPU 0; the draft is unsharded, so TP1 only."""
     if plan.world_size != 1 or ranks is not None:
@@ -70,7 +70,7 @@ def prepare(snapshot, plan, *, compile_forwards, kernel_cache, progress, retain_
         rope_scaling=plan.checkpoint.rope_scaling,
         snapshot_budget_bytes=plan.snapshots * plan.costs.state_row_bytes,
         headroom_bytes=plan.headroom_bytes + plan.reserve_bytes, kernel_cache=kernel_cache, **drafting)
-    storage = {} if package_storage is None else {"package_storage": package_storage}
+    storage = {} if core_storage is None else {"core_storage": core_storage}
     return prepare_model(snapshot, config, progress=progress, compile_decoder=compile_forwards, **storage)
 
 

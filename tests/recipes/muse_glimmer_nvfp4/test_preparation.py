@@ -90,7 +90,11 @@ def test_recipe_prepare_runs_in_process_on_one_gpu(monkeypatch, tmp_path):
         autotune_effort="off", tuning_replica=None, native_dense_activations=False, lock_gpu_clocks=True,
         context=131072, concurrency=4, prefill_chunk=4096, snapshots=2, costs=SimpleNamespace(state_row_bytes=1 << 20),
         headroom_bytes=1 << 30, reserve_bytes=1 << 30, language_model_only=False, image_concurrency=2, hub_cache=tmp_path)
-    config = RECIPE.prepare(tmp_path, plan, compile_forwards=True, kernel_cache=None, progress=None)
+    storage = object()
+    # Serving and benchmarking call prepare(..., core_storage=...); the recipe forwards it to its bootstrap.
+    config = RECIPE.prepare(tmp_path, plan, compile_forwards=True, kernel_cache=None, progress=None,
+                            core_storage=storage)
+    assert captured["core_storage"] is storage
     assert config.device == 0 and config.dflash is False and config.language_model_only is False
     assert config.collective_tuning == "static" and config.collective_ladder is None
     assert config.image_concurrency == 2 and config.snapshot_budget_bytes == 2 << 20 and config.headroom_bytes == 2 << 30
