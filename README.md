@@ -44,6 +44,9 @@ Maintenance workflow: [FORK.md](FORK.md).
 - **`ignition export --recipe` / `--draft-model` (`2c8ba959`)** — added 2026-11-02 · Prepared (`ignition/cli`)
   - What it does: Prepares a local checkpoint directory with a named recipe and a local draft folder
   - **Still needed:** Yes — upstream has neither flag
+- **`--draft-model` for `qwen38` DFlash2 proposals** — added 2026-11-10 · Prepared (`ignition/`)
+  - What it does: `ignition export --recipe qwen38` with speculative method `dflash2` loads the DFlash2 draft from the `--draft-model` folder (`config.json`, `model.safetensors`) and downloads the pinned `incoai/Qwen3.8-Flash-Next-DFlash2` snapshot only without the flag. With MTP proposals the flag is still refused ("loads no external draft")
+  - **Still needed:** Yes — upstream's `qwen38` DFlash2 path reads the draft only from the hub cache, so an offline export or a draft other than the pin needs the folder
 - **FlashInfer pin `Raydius/flashinfer@ef6d6592` (`e6ccf746`)** — added 2026-10-29 · Prepared (`pyproject.toml`)
   - What it does: Upstream's pin `local-inference-lab/flashinfer@85ea6e76` plus one commit that evicts planned Triton kernels from compiler workers for every JIT module (branch `evict-planned-jits-85ea6e76`)
   - **Still needed:** Yes — `85ea6e76` does not carry the eviction fix ([FlashInfer PR #67](https://github.com/local-inference-lab/flashinfer/pull/67), open); its `07c41f32` releases compiler executables after jobs, a different mechanism
