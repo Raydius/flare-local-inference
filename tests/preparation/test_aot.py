@@ -706,6 +706,32 @@ def test_ordinary_reads_see_opaque_writes_before_rewriting_them(subview, zero):
     torch.testing.assert_close(forward.embedding, expected, rtol=0, atol=0)
 
 
+class PublishedOpaqueWriteForward:
+    """An opaque kernel writes a buffer that a complete copy then publishes to storage read only after the graph."""
+
+    def __init__(self):
+        self.source = torch.zeros(256, dtype=torch.bfloat16, device="cuda")
+        self.published = torch.zeros(256, dtype=torch.bfloat16, device="cuda")
+
+    def __call__(self):
+        torch.library.wrap_triton(_fill_shared)[(1,)](self.source, 256, 7)
+        self.published.copy_(self.source)
+
+
+@torch.no_grad()
+def test_copies_after_the_graph_publish_values_an_opaque_kernel_wrote():
+    forward = PublishedOpaqueWriteForward()
+    forward()
+    expected = forward.published.clone()
+    assert expected.eq(7).all()
+    forward.source.fill_(float("nan"))
+    forward.published.fill_(float("nan"))
+    compiled = aot_forward(forward)
+    compiled(forward)
+    torch.cuda.synchronize()
+    torch.testing.assert_close(forward.published, expected, rtol=0, atol=0)
+
+
 @triton.jit
 def _fill_counted(output, count_ptr, value: tl.constexpr):
     index = tl.program_id(0) * 256 + tl.arange(0, 256)

@@ -106,8 +106,8 @@ base/current (tag → an upstream commit)
   graph templates, `--mtp-only`, `--force-moe-decode-a16`, FlashInfer pinned to `85ea6e76`,
   design checklist digest `cfcf`). Twelve commits conflicted and kept both sides on upstream's
   structure; `patch/01` and `patch/03` moved their modules into `flare-cli/src/`; one carry
-  commit follows the renames; the opaque-write rule runs inside upstream's copy-deferral pass;
-  the FlashInfer MoE fragment guard retired (upstream FlashInfer #71). Conflicted commits were
+  commit follows the renames; the opaque-write copy rule retired (its reproducers pass on GPU without
+  it); the FlashInfer MoE fragment guard retired (upstream FlashInfer #71). Conflicted commits were
   continued with the hook off, so replayed commits keep their original acknowledgments.
   Retargeted from `8c2e782d` when upstream moved before the rebase ran. Pre-rebase refs:
   `backup/pre-rebase-20261109-*` tags.
