@@ -100,6 +100,17 @@ base/current (tag → an upstream commit)
   (`flare/src/main.rs`: upstream's `thinking_token_budget` beside `patch/01`'s defaults apply)
   kept both sides. No patch retired. Pinned to `585159c9`, not the moving `upstream/main`.
   Pre-rebase refs: `backup/pre-rebase-20261104-*` tags.
+  **2026-11-10: moved to upstream `e774a468`** (48 commits; the terminal binary moved from
+  `flare/` to `flare-cli/` over a shared `flare` library, packages renamed cores
+  (`runtime_core`, `core_storage`), Kimi K3.1 and its DFlash2, exports without retained CUDA
+  graph templates, `--mtp-only`, `--force-moe-decode-a16`, FlashInfer pinned to `85ea6e76`,
+  design checklist digest `cfcf`). Twelve commits conflicted and kept both sides on upstream's
+  structure; `patch/01` and `patch/03` moved their modules into `flare-cli/src/`; one carry
+  commit follows the renames; the opaque-write rule runs inside upstream's copy-deferral pass;
+  the FlashInfer MoE fragment guard retired (upstream FlashInfer #71). Conflicted commits were
+  continued with the hook off, so replayed commits keep their original acknowledgments.
+  Retargeted from `8c2e782d` when upstream moved before the rebase ran. Pre-rebase refs:
+  `backup/pre-rebase-20261109-*` tags.
 - **Moving to a newer upstream:** `scripts/fork/sync.sh`, then
   `scripts/fork/rebase.sh upstream/main` (or a sha; the tip defaults to `deploy`). The script
   refuses a tip that shares a commit with another branch (`--update-refs` would skip it).
@@ -133,10 +144,10 @@ log the outcome in `docs/models/qwen3-flash-next.md`'s Tuning-findings table.
 ## Tests
 
 ```bash
-cargo build --release --manifest-path flare/Cargo.toml
+cargo build --release --manifest-path flare-cli/Cargo.toml
 # memlock must be raised as CI does (sudo prlimit --pid $$ --memlock=67108864:67108864)
 cargo test --locked --release --manifest-path helios/Cargo.toml \
-  --target-dir flare/target --features runtime-package,server
+  --target-dir flare-cli/target --features runtime-core,server
 ```
 
 ## Patch inventory
