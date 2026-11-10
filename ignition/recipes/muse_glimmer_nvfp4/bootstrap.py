@@ -128,7 +128,7 @@ class PreparationConfig:
 
 @torch.no_grad()
 @with_autotune_effort
-def prepare(snapshot, config, *, progress=None, package_storage):
+def prepare(snapshot, config, *, progress=None, core_storage):
     from .recipe import RECIPE
 
     snapshot = Path(snapshot).resolve()
@@ -141,12 +141,12 @@ def prepare(snapshot, config, *, progress=None, package_storage):
         headers = [s.header_sha256 for s in manifest.shards]
         draft_headers = ([s.header_sha256 for s in inspect_indexed_checkpoint(config.draft_snapshot).shards]
                          if config.dflash else [])
-    weights = ModelWeights.load(manifest, device, shard=shard, progress=progress, package_storage=package_storage,
+    weights = ModelWeights.load(manifest, device, shard=shard, progress=progress, core_storage=core_storage,
                                 draft_snapshot=config.draft_snapshot if config.dflash else None, vision=vision)
     del manifest
     release_unused()
     transient = contextlib.ExitStack()
-    transient.enter_context(package_storage.transient())
+    transient.enter_context(core_storage.transient())
     layout = continuation_layout(weights.config, shard, dflash=config.dflash)
     snapshots = layout.snapshot_capacity(config.snapshot_budget_bytes)
     if snapshots < 1:
@@ -158,7 +158,7 @@ def prepare(snapshot, config, *, progress=None, package_storage):
     total_memory = torch.cuda.mem_get_info(device)[1]
     with phase(progress, "Allocate model state"):
         pool = ContinuationPool.allocate(weights.config, shard, state_rows + 1, pages, device,
-            storage=package_storage, maximum_pages=total_memory // page_bytes(weights.config, shard),
+            storage=core_storage, maximum_pages=total_memory // page_bytes(weights.config, shard),
             maximum_rows=total_memory // layout.row_bytes, backed_slots=min(state_rows + 1, 1 + 2 * slots),
             dflash=config.dflash)
         vocabulary = weights.config.vocabulary
@@ -178,14 +178,14 @@ def prepare(snapshot, config, *, progress=None, package_storage):
             autotune_effort=config.autotune_effort, tuning_replica=config.tuning_replica,
             native_dense_activations=config.native_dense_activations, lock_gpu_clocks=config.lock_gpu_clocks,
             device=device, checkpoint=identity, workload_schema="muse_glimmer_nvfp4", numerical_policy="default",
-            coordinator=None, headroom_bytes=config.headroom_bytes, benchmark_storage=package_storage)
+            coordinator=None, headroom_bytes=config.headroom_bytes, benchmark_storage=core_storage)
         session.__enter__()
         arena = ScratchArena(device, overlap=config.stream_overlap)
         session.register_scratch(arena)
         graph_buffers, private_buffers = (GraphBufferPool(device, chunk_bytes=2 << 20) for _ in range(2))
         target_buffers = GraphBufferPool(device, chunk_bytes=2 << 20) if config.dflash else None
         context_buffers = GraphBufferPool(device, chunk_bytes=2 << 20) if config.dflash else None
-        scratch_pool = package_storage.scratch_pool()
+        scratch_pool = core_storage.scratch_pool()
         with scratch_pool:
             prefill_storage = Scratch.allocate(weights.config, shard, config.prefill_chunk_size, 1, device,
                                                buffers=graph_buffers.cursor())
@@ -297,7 +297,7 @@ def prepare(snapshot, config, *, progress=None, package_storage):
                     add(name, forward, mode, capacity, 1, (*fields, "page_tables", *commands.buffers()), enabled=enabled)
     with phase(progress, "Prepare and tune kernels") as stage, transient:
         tuning = session.tune(show_progress=progress is not None, console=stage.console)
-    stream, graph_pool = torch.cuda.Stream(device=device), package_storage.graph_pool.id
+    stream, graph_pool = torch.cuda.Stream(device=device), core_storage.graph_pool.id
     if config.compile_decoder:
         scratch_pool.release_backing()
 
@@ -311,7 +311,7 @@ def prepare(snapshot, config, *, progress=None, package_storage):
         graphs, compiled = capture_forwards(forwards, signatures, session=session, device=device, stream=stream,
             pool=graph_pool, collective=None, coordinator=None, compile_decoder=config.compile_decoder,
             progress=progress, cache_root=config.kernel_cache, retain_graphs=config.retain_graphs,
-            materialize=materialize, warmup_storage=package_storage,
+            materialize=materialize, warmup_storage=core_storage,
             compile_kinds=("prefill", "scored_prefill", "decode", "resume", "speculative", *(("vision",) if vision else ())))
     finally:
         scratch_pool.materialize()

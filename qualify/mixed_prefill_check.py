@@ -98,7 +98,7 @@ def trace(function, pool, count):
 def run(args):
     from transformers import AutoTokenizer
 
-    from ignition.preparation.package_storage import PackageStorage
+    from ignition.preparation.core_storage import CoreStorage
     from ignition.recipes.qwen38.decoder_state import DecoderInputs
     from ignition.recipes.qwen38.ple import PLETable
     from ignition.recipes.qwen38.sampling import DeviceRequestState
@@ -113,8 +113,8 @@ def run(args):
         snapshot_budget_bytes=state_layout(True).row_bytes, compile_workers=args.compile_workers,
         kernel_cache=args.kernel_cache)
     results, generation = {}, 0
-    with PackageStorage(world=1) as storage:
-        with prepare_model(args.snapshot, config, compile_decoder=not args.no_compile, package_storage=storage,
+    with CoreStorage(world=1) as storage:
+        with prepare_model(args.snapshot, config, compile_decoder=not args.no_compile, core_storage=storage,
                            progress=lambda message: print(message, flush=True)) as model:
             def owner(kind):
                 return next(value for value in model.resources if isinstance(value, kind))

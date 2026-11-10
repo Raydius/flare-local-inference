@@ -10,7 +10,7 @@ from google.protobuf.json_format import ParseDict
 
 from ignition.components.paged_batch import BatchInputs
 from ignition.components.parallel import TensorParallelShard
-from ignition.preparation import contract as c, runtime_package_pb2 as p
+from ignition.preparation import contract as c, runtime_core_pb2 as p
 from ignition.preparation.execution import GraphSignature
 from ignition.recipes.muse_glimmer_nvfp4.config import ModelConfig
 from ignition.recipes.muse_glimmer_nvfp4.contract import prepare
