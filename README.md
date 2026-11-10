@@ -4,7 +4,7 @@ This fork carries local changes on top of
 [NVIDIA/flare-local-inference](https://github.com/NVIDIA/flare-local-inference) (GitHub now redirects it to `NVIDIA/spark-local-inference`).
 `deploy` (this branch) is the patch stack plus the DFlash2 work merged above it; `main` mirrors upstream unchanged.
 Stack base: upstream `e774a468` (2026-11-10). Upstream has carried its own Flash Next DFlash2 (`d68ed8f5`, `--speculative-method dflash2`) since 2026-11-04; the fork recipe stays separate until [issue #210](https://github.com/NVIDIA/spark-local-inference/issues/210) settles mixed prefill.
-History: 2026-11-10: Rebased onto `e774a468` (48 commits: the terminal binary moved to `flare-cli/` over a shared `flare` library with a Windows desktop, packages renamed cores (`runtime_core`, `core_storage`), Kimi K3.1 and its DFlash2, exports that retain no CUDA graph templates, `--mtp-only`, `--force-moe-decode-a16`, FlashInfer pinned to `85ea6e76`); twelve commits conflicted and kept both sides on upstream's structure, one carry commit follows the renames, the opaque-write rule was ported onto upstream's copy-deferral pass, and the FlashInfer MoE fragment guard retired. 2026-11-04: Rebased onto `585159c9` (60 commits: ABI 6 package-defined completion capacity, sixteen-token completions, DFlash2 compact prefill + window staging, QAD draft quantization, warmup mapping reuse #154, Selene host tier, FlashInfer pinned to `560fef16`); one conflict (`flare/src/main.rs`) kept both sides; no patch retired. 2026-11-02: Rebased onto `6fa01a49` (61 commits: Muse Spark, Qwen3.8-27B DFlash2 through shared `components/dflash2.py`, vocabulary-parallel sampling #135, collective ladder, FlashInfer floated to `@main`); two conflicts (`planning.py`, `test_models.py`) kept both sides; no patch retired.
+History: 2026-11-10: Rebased onto `e774a468` (48 commits: the terminal binary moved to `flare-cli/` over a shared `flare` library with a Windows desktop, packages renamed cores (`runtime_core`, `core_storage`), Kimi K3.1 and its DFlash2, exports that retain no CUDA graph templates, `--mtp-only`, `--force-moe-decode-a16`, FlashInfer pinned to `85ea6e76`); twelve commits conflicted and kept both sides on upstream's structure, one carry commit follows the renames, the opaque-write copy rule and the FlashInfer MoE fragment guard retired. 2026-11-04: Rebased onto `585159c9` (60 commits: ABI 6 package-defined completion capacity, sixteen-token completions, DFlash2 compact prefill + window staging, QAD draft quantization, warmup mapping reuse #154, Selene host tier, FlashInfer pinned to `560fef16`); one conflict (`flare/src/main.rs`) kept both sides; no patch retired. 2026-11-02: Rebased onto `6fa01a49` (61 commits: Muse Spark, Qwen3.8-27B DFlash2 through shared `components/dflash2.py`, vocabulary-parallel sampling #135, collective ladder, FlashInfer floated to `@main`); two conflicts (`planning.py`, `test_models.py`) kept both sides; no patch retired.
 Maintenance workflow: [FORK.md](FORK.md).
 
 "Still needed" is judged against upstream `e774a468`.
@@ -41,9 +41,6 @@ Maintenance workflow: [FORK.md](FORK.md).
 - **Mixed speculative export fixes (`ecb6c1dc`, `a088b0b6`, `388d3d21`)** — added 2026-10-31 · Prepared (`ignition/`)
   - What it does: Builds the packed mixed decoder without verification aliasing (`sampler=False`), declares no draft page tables on the DFlash2 speculation owner, and emits the proposal depth of mixed rounds with speculation
   - **Still needed:** Yes — open upstream as [PR #211](https://github.com/NVIDIA/spark-local-inference/pull/211)
-- **Opaque-write copy rule (`80946209`)** — added 2026-10-31 · Prepared (`ignition/preparation`)
-  - What it does: Keeps a captured copy as an invocation when it reads storage an earlier opaque call wrote or its destination is written again later. Upstream `fa0eadad` covers a different case (a later opaque call touching the destination); the rule runs inside upstream's copy-deferral pass, repeated until no copy changes
-  - **Still needed:** Undecided — its reproducers passed on pristine `585159c9`; it retires only if they and a destination-read-after-graph case pass on GPU without it (each kept copy costs an extra launch)
 - **`ignition export --recipe` / `--draft-model` (`2c8ba959`)** — added 2026-11-02 · Prepared (`ignition/cli`)
   - What it does: Prepares a local checkpoint directory with a named recipe and a local draft folder
   - **Still needed:** Yes — upstream has neither flag
@@ -56,6 +53,9 @@ Maintenance workflow: [FORK.md](FORK.md).
 
 ## Retired patches
 
+- **Opaque-write copy rule (`80946209`)** — added 2026-10-31, retired 2026-11-10
+  - What it did: Kept a captured copy as an invocation when it read storage an earlier opaque call wrote or its destination was written again later
+  - **Why retired:** On upstream `e774a468` its five reproducers in `tests/preparation/test_aot.py` (opaque writes before ordinary reads, counts and ids written by copies for opaque readers, deferred-then-opaque ids, opaque partial writes feeding a count) and a case whose copy destination is read only after the graph all pass on GPU without the rule; upstream `fa0eadad` keeps the first group's copies in order, and the post-graph case is deferred by upstream and still publishes the opaque write. The reproducers stay as regression tests
 - **FlashInfer MoE fragment guard (`49fe5449`, in the `Raydius/flashinfer` pin)** — added 2026-10-29, retired 2026-11-10
   - What it did: Flattened the dynamic MoE kernel's direct SFB fragment only when it was still nested, so `moe.decode` tuning stopped failing with `TypeError: Value after * must be an iterable, not int`
   - **Why retired:** FlashInfer #71 (`e239dfb3a`) guards both flatten sites and is in upstream's pin `85ea6e76`
