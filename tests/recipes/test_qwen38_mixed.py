@@ -123,12 +123,13 @@ def test_residual_checkpoint_follows_the_target_residual_region(drafting, monkey
     """The checkpoint feeds the MTP draft: an MTP layout compiles it, the DFlash layout has no region for it."""
     from ignition.recipes.qwen38 import decoder_state
     from ignition.recipes.qwen38.state import HybridStateLayout
-    from ignition.recipes.qwen38_dflash.bootstrap import state_layout
 
+    # The DFlash2 row: seven speculative histories and five draft windows, no MTP regions.
+    dflash = HybridStateLayout.build(speculative_tokens=7, world_size=1, mtp=False, draft_windows=(5, 2048, 8, 128))
     compiled = []
     monkeypatch.setattr(decoder_state, "compile_kernel", lambda kernel, args, grid: compiled.append(kernel) or kernel)
     for layout, expected in ((HybridStateLayout.build(speculative_tokens=7), True),
-                             (HybridStateLayout.build(), False), (state_layout(True), False)):
+                             (HybridStateLayout.build(), False), (dflash, False)):
         pool = SimpleNamespace(layout=layout, region=lambda name: torch.zeros((2, 4)))
         state = PreparedDecoderState.__new__(PreparedDecoderState)
         state.pool, state.maintain_draft_state, state.rows = pool, drafting, 1

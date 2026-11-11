@@ -22,7 +22,7 @@ HUB = Path.home() / ".cache/huggingface/hub"
 def test_declarations_import_without_model_dependencies():
     result = subprocess.run(
         [sys.executable, "-c", "import sys; from ignition.recipes import aliases; from ignition import planning;"
-         " import ignition.cli.preparation; assert aliases() == ('qwen3.8-flash', 'qwen3.8-flash-yarn4', 'qwen3.8-flash-dflash2', 'qwen3.8-flash-dflash2-yarn4', 'qwen3.8-27b', 'qwen3.8-27b-qad', 'glm-5.3-flash', 'deepseek-v4.1-flash', 'deepseek-v4-flash', 'mimo-v2.6-pro-mopd', 'kimi-k3-mxfp4-csf', 'kimi-k3', 'kimi-k3-dspark', 'step5-preview-nvfp4', 'nemotron-bolt-24gb', 'minimax-m3-1-flash', 'gemma-4-e2b', 'gemma-4-e4b', 'gemma-4-12b', 'gemma-4-26b-a4b', 'gemma-4-31b', 'gemma-4-e4b-nvfp4', 'gemma-4-12b-nvfp4', 'gemma-4-26b-a4b-nvfp4', 'gemma-4-31b-nvfp4', 'muse-spark-open-nvfp4', 'muse-glimmer-30b-nvfp4');"
+         " import ignition.cli.preparation; assert aliases() == ('qwen3.8-flash', 'qwen3.8-flash-yarn4', 'qwen3.8-27b', 'qwen3.8-27b-qad', 'glm-5.3-flash', 'deepseek-v4.1-flash', 'deepseek-v4-flash', 'mimo-v2.6-pro-mopd', 'kimi-k3-mxfp4-csf', 'kimi-k3', 'kimi-k3-dspark', 'step5-preview-nvfp4', 'nemotron-bolt-24gb', 'minimax-m3-1-flash', 'gemma-4-e2b', 'gemma-4-e4b', 'gemma-4-12b', 'gemma-4-26b-a4b', 'gemma-4-31b', 'gemma-4-e4b-nvfp4', 'gemma-4-12b-nvfp4', 'gemma-4-26b-a4b-nvfp4', 'gemma-4-31b-nvfp4', 'muse-spark-open-nvfp4', 'muse-glimmer-30b-nvfp4');"
          " assert not {'torch', 'transformers', 'flare_heliopause'} & set(sys.modules)"],
         cwd=ROOT, check=False, capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
@@ -110,7 +110,7 @@ def test_a_different_revision_of_a_declared_repository_is_not_the_pinned_checkpo
 
 @pytest.mark.parametrize("name", ["qwen", "Qwen3.8-Flash", "qwen3.8-flash@main"])
 def test_unknown_aliases_list_the_supported_aliases(name):
-    with pytest.raises(UsageError, match="supported models: qwen3.8-flash, qwen3.8-flash-yarn4, qwen3.8-flash-dflash2, qwen3.8-flash-dflash2-yarn4, qwen3.8-27b, qwen3.8-27b-qad, glm-5.3-flash"):
+    with pytest.raises(UsageError, match="supported models: qwen3.8-flash, qwen3.8-flash-yarn4, qwen3.8-27b, qwen3.8-27b-qad, glm-5.3-flash"):
         resolve(name)
 
 
@@ -336,22 +336,11 @@ def test_rope_parameters_flag_takes_a_json_object():
             _parser().parse_args(["export", "qwen3.8-flash", "--rope-parameters", value])
 
 
-def test_a_named_recipe_prepares_a_directory_of_its_architecture(tmp_path):
-    qualified = resolve("qwen3.8-flash-dflash2").checkpoint
-    write_checkpoint(tmp_path / "qad", qualified.architecture, qualified.stored_bytes)
-    assert resolve(str(tmp_path / "qad")).recipe.name == "qwen38"
-    named = resolve(str(tmp_path / "qad"), recipe_name="qwen38_dflash")
-    assert named.recipe.name == "qwen38_dflash" and named.checkpoint.alias == "qwen3.8-flash-dflash2"
-    assert named.directory == (tmp_path / "qad").resolve() and named.source == str(named.directory)
-    assert named.checkpoint.draft_bytes == qualified.draft_bytes
-    assert named.checkpoint.revision == resolve(str(tmp_path / "qad")).checkpoint.revision
-
-
 def test_a_named_recipe_never_falls_back(tmp_path):
     write_checkpoint(tmp_path / "glm", "Glm5NextForConditionalGeneration", 1 << 30)
-    with pytest.raises(UsageError, match="qwen38_dflash declares no checkpoint for architecture"):
-        resolve(str(tmp_path / "glm"), recipe_name="qwen38_dflash")
+    with pytest.raises(UsageError, match="qwen38 declares no checkpoint for architecture"):
+        resolve(str(tmp_path / "glm"), recipe_name="qwen38")
     with pytest.raises(UsageError, match="unknown recipe 'qwen99'"):
         resolve(str(tmp_path / "glm"), recipe_name="qwen99")
     with pytest.raises(UsageError, match="--recipe applies to a checkpoint directory MODEL"):
-        resolve("qwen3.8-flash", recipe_name="qwen38_dflash")
+        resolve("qwen3.8-flash", recipe_name="qwen38")

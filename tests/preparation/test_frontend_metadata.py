@@ -20,7 +20,7 @@ from ignition.recipes.declaration import SamplingDefaults, SamplingRange
 
 @pytest.mark.parametrize("recipe", recipes(), ids=lambda recipe: recipe.name)
 def test_default_mode_uses_manually_declared_model_card_sampling(recipe):
-    qwen = recipe.name in ("qwen38", "qwen38_dense", "qwen38_dflash")
+    qwen = recipe.name in ("qwen38", "qwen38_dense")
     # Muse Glimmer carries Muse Spark's defaults (temperature 1, top-p 1, top-k off); the card gives none.
     expected = dict(seed=0, temperature=1., top_p=1. if recipe.name in ("deepseek41", "kimi3", "muse_spark", "muse_glimmer_nvfp4") else .95,
         top_k=20 if qwen else 64 if recipe.name == "gemma4" else -1, min_p=0., repetition_penalty=1., presence_penalty=0., frequency_penalty=0.)
