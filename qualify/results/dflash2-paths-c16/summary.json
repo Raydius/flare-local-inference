@@ -634,5 +634,141 @@
     }
    ]
   }
+ },
+ "QA": {
+  "code_edit_c1": {
+   "tok_s": {
+    "runs": [
+     518.7,
+     521.7,
+     517.9
+    ],
+    "median": 518.7,
+    "min": 517.9,
+    "max": 521.7
+   },
+   "acceptance_rate": {
+    "runs": [
+     0.5778,
+     0.5778,
+     0.5771
+    ],
+    "median": 0.5778,
+    "min": 0.5771,
+    "max": 0.5778
+   },
+   "accepted_per_round": {
+    "runs": [
+     2.21,
+     2.212,
+     2.208
+    ],
+    "median": 2.21,
+    "min": 2.208,
+    "max": 2.212
+   },
+   "requests_failed": 0
+  },
+  "code_edit_c8": {
+   "tok_s": {
+    "runs": [
+     431.8,
+     376.6,
+     388.8
+    ],
+    "median": 388.8,
+    "min": 376.6,
+    "max": 431.8
+   },
+   "acceptance_rate": {
+    "runs": [
+     0.5818,
+     0.5835,
+     0.6015
+    ],
+    "median": 0.5835,
+    "min": 0.5818,
+    "max": 0.6015
+   },
+   "accepted_per_round": {
+    "runs": [
+     3.883,
+     3.361,
+     3.463
+    ],
+    "median": 3.463,
+    "min": 3.361,
+    "max": 3.883
+   },
+   "requests_failed": 0
+  },
+  "clients_16": {
+   "aggregate_tok_s": {
+    "runs": [
+     1152.0,
+     1127.6,
+     1186.3
+    ],
+    "median": 1152.0,
+    "min": 1127.6,
+    "max": 1186.3
+   },
+   "completed_of_requests": [
+    "0/16",
+    "0/16",
+    "0/16"
+   ]
+  },
+  "loaded_gib": 78.13,
+  "kv_tokens": 1110016,
+  "export": {
+   "entry": "gb202-tp1-202611110815",
+   "log": "vllm-llm-20261110T234518.log (export started by the owner)",
+   "stage_seconds": {
+    "Construct graph catalog": 7.6,
+    "Prepare and tune kernels": 473.6,
+    "Compile model forwards": 612.0,
+    "Warm compiled forwards": 169.2,
+    "Prepare serving graphs": 275.1,
+    "Export native core": 225.3
+   },
+   "lowest_free_gpu_mib": 12627,
+   "kernels": 7266
+  },
+  "graphs": {
+   "total": 109,
+   "decode": 5,
+   "init": 10,
+   "prefill": 20,
+   "restore": 10,
+   "resume": 10,
+   "snapshot": 10,
+   "speculative": 40,
+   "vision": 4
+  },
+  "max_active": 16,
+  "passkey_1m": {
+   "all_passed": true,
+   "cells": [
+    {
+     "depth": 0.1,
+     "prompt_tokens": 1009836,
+     "passed": true,
+     "client_error": null
+    },
+    {
+     "depth": 0.5,
+     "prompt_tokens": 1009836,
+     "passed": true,
+     "client_error": null
+    },
+    {
+     "depth": 0.9,
+     "prompt_tokens": 1009836,
+     "passed": true,
+     "client_error": null
+    }
+   ]
+  }
  }
 }

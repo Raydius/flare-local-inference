@@ -87,7 +87,29 @@ passes.
 - **A16 decode: not recommended.** Against arm U it is lower at concurrency 1 (511.2 against 537.1) and at
   16 clients (1148.0 against 1272.7), both with ranges that do not overlap. At concurrency 8 its tokens per
   second lie inside arm U's range and its acceptance rate overlaps it (median 0.623 against 0.579, ranges
-  0.581–0.632 and 0.563–0.617); no cell improves beyond the spread. The passkey passes.
+  0.581–0.632 and 0.563–0.617); no cell improves beyond the spread. The passkey passes. Added to the MXFP8
+  draft it loses the same way (next section).
+
+## The MXFP8 draft with A16 decode (arm QA, measured 2026-11-11)
+
+Arm QA is arm Q with `force_moe_decode_a16 = true` and no other field changed: console profile
+*2026-11-10 Flare DFlash2 MXFP8 A16*, entry `gb202-tp1-202611110815`, the same image and draft folder. Its
+export took 28 minutes and was started outside this study's scripts. It loads 78.13 GiB and holds 1,110,016
+KV tokens; 109 graphs, 7,266 kernels; the lowest free GPU memory during capture was 12,627 MiB. The same
+nine trials and the passkey probe ran after the other arms, with no failed request.
+
+| | Q | QA |
+|---|---|---|
+| `code_edit` tok/s, concurrency 1 | 555.9 (548.7–572.2) | 518.7 (517.9–521.7) |
+| `code_edit` tok/s, concurrency 8 | 436.7 (425.8–455.6) | 388.8 (376.6–431.8) |
+| 16 clients, aggregate tok/s | 1231.2 (1217.0–1259.9) | 1152.0 (1127.6–1186.3) |
+| Acceptance rate, concurrency 1 / 8 | 0.627 / 0.630 | 0.578 / 0.584 |
+| Accepted drafts per round, concurrency 1 / 8 | 2.38 / 3.96 | 2.21 / 3.46 |
+| 1M passkey | 3 of 3 | 3 of 3 |
+
+A16 decode lowers arm Q's rate by 7 % at concurrency 1 and 6 % with 16 clients, with ranges that do not
+overlap, and lowers acceptance at both concurrencies. At concurrency 8 the ranges meet (431.8 against 425.8)
+and the median is 11 % lower. The recommendation stands: arm Q, with A16 decode off.
 
 ## Limits of this evidence
 
@@ -99,8 +121,7 @@ passes.
 - The export log has no line naming A16 decode. Arm A's generated configuration carries
   `force_moe_decode_a16 = true`, its package added 71 GiB of stored data against 7 GiB for arm Q, and it
   holds 7,190 kernels against arm U's 6,969.
-- Not measured: tensor parallel, history drafts on, more than one 1M prompt at once, the MXFP8 draft and
-  A16 decode combined, direct BF16 feature averaging (no arm varies it), output quality beyond the passkey
+- Not measured: tensor parallel, history drafts on, more than one 1M prompt at once, direct BF16 feature averaging (no arm varies it), output quality beyond the passkey
   probe and acceptance counters.
 - Three trials per cell; the concurrency-8 ranges are wide (arm U spans 58 tok/s).
 
