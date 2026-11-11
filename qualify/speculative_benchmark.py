@@ -497,7 +497,8 @@ def measurement_summary(workload, observations, groups):
     return result
 
 
-def run(args):
+def run(args, *, validate=None):
+    """Run one trial. `validate` replaces `validate_arm` for packages outside the paired comparison."""
     workload = validate_artifacts(args.workload)
     # A sweep supplies its own arm policy; the comparison binds one of the frozen arms by id.
     arm = getattr(args, "arm_policy", None) or next(a for a in arms() if a["id"] == args.arm)
@@ -506,7 +507,7 @@ def run(args):
     if getattr(args, "model_id", None):
         arm = {**arm, "model_id": args.model_id}
     catalog = json.loads(args.catalog.read_text())
-    validate_arm(catalog, arm)
+    (validate or validate_arm)(catalog, arm)
     max_active = catalog["deployments"][0]["max_active"]
     args.output.mkdir(parents=True, exist_ok=False)
     measurements = {"arm": arm, "concurrency_ceiling": args.concurrency,
