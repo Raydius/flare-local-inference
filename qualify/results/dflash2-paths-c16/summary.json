@@ -1,0 +1,638 @@
+{
+ "baseline": {
+  "code_edit_c1": {
+   "tok_s": {
+    "runs": [
+     516.5,
+     544.0,
+     534.0
+    ],
+    "median": 534.0,
+    "min": 516.5,
+    "max": 544.0
+   },
+   "acceptance_rate": {
+    "runs": [
+     0.6071,
+     0.6057,
+     0.574
+    ],
+    "median": 0.6057,
+    "min": 0.574,
+    "max": 0.6071
+   },
+   "accepted_per_round": {
+    "runs": [
+     2.331,
+     2.445,
+     2.374
+    ],
+    "median": 2.374,
+    "min": 2.331,
+    "max": 2.445
+   },
+   "requests_failed": 0
+  },
+  "code_edit_c8": {
+   "tok_s": {
+    "runs": [
+     316.1,
+     383.5,
+     356.7
+    ],
+    "median": 356.7,
+    "min": 316.1,
+    "max": 383.5
+   },
+   "acceptance_rate": {
+    "runs": [
+     0.5819,
+     0.6262,
+     0.6077
+    ],
+    "median": 0.6077,
+    "min": 0.5819,
+    "max": 0.6262
+   },
+   "accepted_per_round": {
+    "runs": [
+     3.429,
+     3.932,
+     3.719
+    ],
+    "median": 3.719,
+    "min": 3.429,
+    "max": 3.932
+   },
+   "requests_failed": 0
+  },
+  "clients_16": {
+   "aggregate_tok_s": {
+    "runs": [
+     864.1,
+     868.4,
+     862.6
+    ],
+    "median": 864.1,
+    "min": 862.6,
+    "max": 868.4
+   },
+   "completed_of_requests": [
+    "8/16",
+    "8/16",
+    "8/16"
+   ]
+  },
+  "loaded_gib": 78.72,
+  "kv_tokens": 1150976
+ },
+ "U": {
+  "code_edit_c1": {
+   "tok_s": {
+    "runs": [
+     537.1,
+     539.2,
+     521.6
+    ],
+    "median": 537.1,
+    "min": 521.6,
+    "max": 539.2
+   },
+   "acceptance_rate": {
+    "runs": [
+     0.5882,
+     0.6614,
+     0.5839
+    ],
+    "median": 0.5882,
+    "min": 0.5839,
+    "max": 0.6614
+   },
+   "accepted_per_round": {
+    "runs": [
+     2.288,
+     2.383,
+     2.296
+    ],
+    "median": 2.296,
+    "min": 2.288,
+    "max": 2.383
+   },
+   "requests_failed": 0
+  },
+  "code_edit_c8": {
+   "tok_s": {
+    "runs": [
+     379.9,
+     395.3,
+     438.4
+    ],
+    "median": 395.3,
+    "min": 379.9,
+    "max": 438.4
+   },
+   "acceptance_rate": {
+    "runs": [
+     0.5787,
+     0.6168,
+     0.5625
+    ],
+    "median": 0.5787,
+    "min": 0.5625,
+    "max": 0.6168
+   },
+   "accepted_per_round": {
+    "runs": [
+     3.534,
+     3.829,
+     4.365
+    ],
+    "median": 3.829,
+    "min": 3.534,
+    "max": 4.365
+   },
+   "requests_failed": 0
+  },
+  "clients_16": {
+   "aggregate_tok_s": {
+    "runs": [
+     1247.3,
+     1274.2,
+     1272.7
+    ],
+    "median": 1272.7,
+    "min": 1247.3,
+    "max": 1274.2
+   },
+   "completed_of_requests": [
+    "0/16",
+    "0/16",
+    "0/16"
+   ]
+  },
+  "loaded_gib": 77.82,
+  "kv_tokens": 1138688,
+  "export": {
+   "entry": "gb202-tp1-202611110050",
+   "start": "2026-11-10T16:24:48-08:00",
+   "end": "2026-11-10T16:52:26-08:00",
+   "stage_seconds": {
+    "Construct graph catalog": 78.2,
+    "Prepare and tune kernels": 87.9,
+    "Compile model forwards": 719.9,
+    "Warm compiled forwards": 178.2,
+    "Prepare serving graphs": 276.0,
+    "Export native core": 216.8
+   },
+   "lowest_free_gpu_mib": 12779,
+   "kernels": 6969
+  },
+  "graphs": {
+   "total": 109,
+   "decode": 5,
+   "init": 10,
+   "prefill": 20,
+   "restore": 10,
+   "resume": 10,
+   "snapshot": 10,
+   "speculative": 40,
+   "vision": 4
+  },
+  "max_active": 16,
+  "passkey_1m": {
+   "all_passed": true,
+   "cells": [
+    {
+     "depth": 0.1,
+     "prompt_tokens": 1009836,
+     "passed": true,
+     "client_error": null
+    },
+    {
+     "depth": 0.5,
+     "prompt_tokens": 1009836,
+     "passed": true,
+     "client_error": null
+    },
+    {
+     "depth": 0.9,
+     "prompt_tokens": 1009836,
+     "passed": true,
+     "client_error": null
+    }
+   ]
+  }
+ },
+ "Q": {
+  "code_edit_c1": {
+   "tok_s": {
+    "runs": [
+     555.9,
+     548.7,
+     572.2
+    ],
+    "median": 555.9,
+    "min": 548.7,
+    "max": 572.2
+   },
+   "acceptance_rate": {
+    "runs": [
+     0.627,
+     0.601,
+     0.6291
+    ],
+    "median": 0.627,
+    "min": 0.601,
+    "max": 0.6291
+   },
+   "accepted_per_round": {
+    "runs": [
+     2.383,
+     2.436,
+     2.382
+    ],
+    "median": 2.383,
+    "min": 2.382,
+    "max": 2.436
+   },
+   "requests_failed": 0
+  },
+  "code_edit_c8": {
+   "tok_s": {
+    "runs": [
+     436.7,
+     425.8,
+     455.6
+    ],
+    "median": 436.7,
+    "min": 425.8,
+    "max": 455.6
+   },
+   "acceptance_rate": {
+    "runs": [
+     0.6392,
+     0.5911,
+     0.63
+    ],
+    "median": 0.63,
+    "min": 0.5911,
+    "max": 0.6392
+   },
+   "accepted_per_round": {
+    "runs": [
+     3.958,
+     3.778,
+     4.203
+    ],
+    "median": 3.958,
+    "min": 3.778,
+    "max": 4.203
+   },
+   "requests_failed": 0
+  },
+  "clients_16": {
+   "aggregate_tok_s": {
+    "runs": [
+     1217.0,
+     1231.2,
+     1259.9
+    ],
+    "median": 1231.2,
+    "min": 1217.0,
+    "max": 1259.9
+   },
+   "completed_of_requests": [
+    "0/16",
+    "0/16",
+    "0/16"
+   ]
+  },
+  "loaded_gib": 78.03,
+  "kv_tokens": 1118208,
+  "export": {
+   "entry": "gb202-tp1-202611110138",
+   "start": "2026-11-10T17:10:50-08:00",
+   "end": "2026-11-10T17:39:54-08:00",
+   "stage_seconds": {
+    "Construct graph catalog": 7.5,
+    "Prepare and tune kernels": 351.1,
+    "Compile model forwards": 628.1,
+    "Warm compiled forwards": 172.1,
+    "Prepare serving graphs": 270.2,
+    "Export native core": 218.9
+   },
+   "lowest_free_gpu_mib": 12593,
+   "kernels": 7240
+  },
+  "graphs": {
+   "total": 109,
+   "decode": 5,
+   "init": 10,
+   "prefill": 20,
+   "restore": 10,
+   "resume": 10,
+   "snapshot": 10,
+   "speculative": 40,
+   "vision": 4
+  },
+  "max_active": 16,
+  "passkey_1m": {
+   "all_passed": true,
+   "cells": [
+    {
+     "depth": 0.1,
+     "prompt_tokens": 1009836,
+     "passed": true,
+     "client_error": null
+    },
+    {
+     "depth": 0.5,
+     "prompt_tokens": 1009836,
+     "passed": true,
+     "client_error": null
+    },
+    {
+     "depth": 0.9,
+     "prompt_tokens": 1009836,
+     "passed": true,
+     "client_error": null
+    }
+   ]
+  }
+ },
+ "A": {
+  "code_edit_c1": {
+   "tok_s": {
+    "runs": [
+     511.2,
+     511.4,
+     511.2
+    ],
+    "median": 511.2,
+    "min": 511.2,
+    "max": 511.4
+   },
+   "acceptance_rate": {
+    "runs": [
+     0.6186,
+     0.6158,
+     0.6158
+    ],
+    "median": 0.6158,
+    "min": 0.6158,
+    "max": 0.6186
+   },
+   "accepted_per_round": {
+    "runs": [
+     2.318,
+     2.329,
+     2.329
+    ],
+    "median": 2.329,
+    "min": 2.318,
+    "max": 2.329
+   },
+   "requests_failed": 0
+  },
+  "code_edit_c8": {
+   "tok_s": {
+    "runs": [
+     413.3,
+     416.2,
+     399.0
+    ],
+    "median": 413.3,
+    "min": 399.0,
+    "max": 416.2
+   },
+   "acceptance_rate": {
+    "runs": [
+     0.623,
+     0.632,
+     0.5807
+    ],
+    "median": 0.623,
+    "min": 0.5807,
+    "max": 0.632
+   },
+   "accepted_per_round": {
+    "runs": [
+     4.064,
+     4.022,
+     3.765
+    ],
+    "median": 4.022,
+    "min": 3.765,
+    "max": 4.064
+   },
+   "requests_failed": 0
+  },
+  "clients_16": {
+   "aggregate_tok_s": {
+    "runs": [
+     1148.0,
+     1158.8,
+     1144.0
+    ],
+    "median": 1148.0,
+    "min": 1144.0,
+    "max": 1158.8
+   },
+   "completed_of_requests": [
+    "0/16",
+    "0/16",
+    "0/16"
+   ]
+  },
+  "loaded_gib": 77.93,
+  "kv_tokens": 1126400,
+  "export": {
+   "entry": "gb202-tp1-202611110224",
+   "start": "2026-11-10T17:54:50-08:00",
+   "end": "2026-11-10T18:25:24-08:00",
+   "stage_seconds": {
+    "Construct graph catalog": 7.3,
+    "Prepare and tune kernels": 456.8,
+    "Compile model forwards": 614.7,
+    "Warm compiled forwards": 171.2,
+    "Prepare serving graphs": 268.2,
+    "Export native core": 214.3
+   },
+   "lowest_free_gpu_mib": 12713,
+   "kernels": 7190
+  },
+  "graphs": {
+   "total": 109,
+   "decode": 5,
+   "init": 10,
+   "prefill": 20,
+   "restore": 10,
+   "resume": 10,
+   "snapshot": 10,
+   "speculative": 40,
+   "vision": 4
+  },
+  "max_active": 16,
+  "passkey_1m": {
+   "all_passed": true,
+   "cells": [
+    {
+     "depth": 0.1,
+     "prompt_tokens": 1009836,
+     "passed": true,
+     "client_error": null
+    },
+    {
+     "depth": 0.5,
+     "prompt_tokens": 1009836,
+     "passed": true,
+     "client_error": null
+    },
+    {
+     "depth": 0.9,
+     "prompt_tokens": 1009836,
+     "passed": true,
+     "client_error": null
+    }
+   ]
+  }
+ },
+ "M": {
+  "code_edit_c1": {
+   "tok_s": {
+    "runs": [
+     541.9,
+     530.5,
+     535.1
+    ],
+    "median": 535.1,
+    "min": 530.5,
+    "max": 541.9
+   },
+   "acceptance_rate": {
+    "runs": [
+     0.5953,
+     0.5763,
+     0.6092
+    ],
+    "median": 0.5953,
+    "min": 0.5763,
+    "max": 0.6092
+   },
+   "accepted_per_round": {
+    "runs": [
+     2.148,
+     2.233,
+     2.285
+    ],
+    "median": 2.233,
+    "min": 2.148,
+    "max": 2.285
+   },
+   "requests_failed": 0
+  },
+  "code_edit_c8": {
+   "tok_s": {
+    "runs": [
+     369.1,
+     352.2,
+     355.6
+    ],
+    "median": 355.6,
+    "min": 352.2,
+    "max": 369.1
+   },
+   "acceptance_rate": {
+    "runs": [
+     0.6018,
+     0.6017,
+     0.5716
+    ],
+    "median": 0.6017,
+    "min": 0.5716,
+    "max": 0.6018
+   },
+   "accepted_per_round": {
+    "runs": [
+     3.674,
+     3.337,
+     3.53
+    ],
+    "median": 3.53,
+    "min": 3.337,
+    "max": 3.674
+   },
+   "requests_failed": 0
+  },
+  "clients_16": {
+   "aggregate_tok_s": {
+    "runs": [
+     1278.2,
+     1238.8,
+     1262.5
+    ],
+    "median": 1262.5,
+    "min": 1238.8,
+    "max": 1278.2
+   },
+   "completed_of_requests": [
+    "0/16",
+    "0/16",
+    "0/16"
+   ]
+  },
+  "loaded_gib": 80.58,
+  "kv_tokens": 909312,
+  "export": {
+   "entry": "gb202-tp1-202611110410",
+   "start": "2026-11-10T18:39:54-08:00",
+   "end": "2026-11-10T20:12:06-08:00",
+   "stage_seconds": {
+    "Construct graph catalog": 27.4,
+    "Prepare and tune kernels": 218.2,
+    "Compile model forwards": 2760.0,
+    "Warm compiled forwards": 673.4,
+    "Prepare serving graphs": 1470.5,
+    "Export native core": 282.7
+   },
+   "lowest_free_gpu_mib": 10421,
+   "kernels": 19938
+  },
+  "graphs": {
+   "total": 217,
+   "decode": 5,
+   "init": 10,
+   "mixed": 108,
+   "prefill": 20,
+   "restore": 10,
+   "resume": 10,
+   "snapshot": 10,
+   "speculative": 40,
+   "vision": 4
+  },
+  "max_active": 16,
+  "passkey_1m": {
+   "all_passed": false,
+   "cells": [
+    {
+     "depth": 0.1,
+     "prompt_tokens": null,
+     "passed": false,
+     "client_error": "ValueError: HTTP status 400"
+    },
+    {
+     "depth": 0.5,
+     "prompt_tokens": null,
+     "passed": false,
+     "client_error": "ValueError: HTTP status 400"
+    },
+    {
+     "depth": 0.9,
+     "prompt_tokens": null,
+     "passed": false,
+     "client_error": "ValueError: HTTP status 400"
+    }
+   ]
+  }
+ }
+}
