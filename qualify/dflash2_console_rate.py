@@ -22,11 +22,9 @@ import statistics
 
 def rate(measurements):
     """One trial's ungated code_edit rate, request failures, and DFlash2 acceptance counters."""
-    cases = {case for group in measurements["groups"] for case in group.get("cases", group.get("manual_review_cases", []))}
-    groups = [group for group in measurements["groups"]
-              if any("code-" in str(case) for case in group.get("cases", group.get("manual_review_cases", [])))]
+    groups = [group for group in measurements["groups"] if group["category"] == "code_edit"]
     if not groups:
-        raise ValueError(f"no code_edit group among cases {sorted(map(str, cases))}")
+        raise ValueError("the trial has no code_edit group")
     rates = [group["actual_output_tokens"] * 1e9 / group["end_to_end_group_span_ns"] for group in groups]
     observations = measurements["observations"]
     failed = sum(o["status"] != 200 or not o["analysis"]["checks"]["no_stream_error"] for o in observations)
