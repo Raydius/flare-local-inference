@@ -87,7 +87,7 @@ def test_draft_preparation_selects_local_or_hub_snapshot(monkeypatch, tmp_path, 
     assert downloads == ([repository] if drafting and not embedded else [])
 
 
-def _dflash_plan(tmp_path, draft_model, *, speculation=True, name="qwen38_dflash"):
+def _dflash_plan(tmp_path, draft_model, *, speculation=True, name="muse_glimmer_nvfp4"):
     configuration = Configuration(tmp_path / "config.toml", {}, exists=True)
     recipe = next(recipe for recipe in recipes() if recipe.name == name)
     gpus = (planning.Gpu(0, "Blackwell", "GPU-0", 256 << 30, 250 << 30, (12, 0)),)
@@ -104,7 +104,7 @@ def _draft_folder(tmp_path, *names):
     return folder
 
 
-@pytest.mark.parametrize("name,field", [("qwen38_dflash", "draft_checkpoint"), ("muse_glimmer_nvfp4", "draft_snapshot")])
+@pytest.mark.parametrize("name,field", [("muse_glimmer_nvfp4", "draft_snapshot")])
 def test_a_draft_folder_replaces_the_pinned_download(monkeypatch, tmp_path, name, field):
     import huggingface_hub
 
@@ -126,8 +126,6 @@ def test_a_draft_folder_replaces_the_pinned_download(monkeypatch, tmp_path, name
 
 @pytest.mark.parametrize("name,files,speculation,message", [
     ("qwen38", ("config.json", "model.safetensors"), True, "qwen3.8-flash loads no external draft"),
-    ("qwen38_dflash", ("config.json",), True, "lacks model.safetensors"),
-    ("qwen38_dflash", ("config.json", "model.safetensors"), False, "requires speculation"),
     ("muse_glimmer_nvfp4", ("config.json",), True, "lacks model.safetensors"),
     ("muse_glimmer_nvfp4", ("config.json", "model.safetensors"), False, "requires speculation"),
 ])
@@ -144,10 +142,10 @@ def test_recipe_and_draft_model_are_export_flags():
 
     from ignition.cli import _parser
 
-    args = _parser().parse_args(["export", "/ckpt", "--recipe", "qwen38_dflash", "--draft-model", "/draft"])
-    assert args.recipe_name == "qwen38_dflash" and args.draft_model == Path("/draft")
+    args = _parser().parse_args(["export", "/ckpt", "--recipe", "qwen38", "--draft-model", "/draft"])
+    assert args.recipe_name == "qwen38" and args.draft_model == Path("/draft")
     with pytest.raises(SystemExit):
-        _parser().parse_args(["debug-serve", "/ckpt", "--recipe", "qwen38_dflash"])
+        _parser().parse_args(["debug-serve", "/ckpt", "--recipe", "qwen38"])
 
 
 def test_multi_host_export_rejects_a_draft_folder(monkeypatch, tmp_path):
