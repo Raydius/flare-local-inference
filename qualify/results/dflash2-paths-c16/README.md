@@ -85,13 +85,14 @@ passes.
   ranges that do not overlap, and the passkey passes. At concurrency 8 and at 16 clients the ranges overlap
   (436.7 against 395.3; 1231.2 against 1272.7). It costs 20,480 KV tokens.
 - **A16 decode: not recommended.** Against arm U it is lower at concurrency 1 (511.2 against 537.1) and at
-  16 clients (1148.0 against 1272.7), both with ranges that do not overlap; at concurrency 8 and on
-  acceptance it lies inside arm U's range. The passkey passes.
+  16 clients (1148.0 against 1272.7), both with ranges that do not overlap. At concurrency 8 its tokens per
+  second lie inside arm U's range and its acceptance rate overlaps it (median 0.623 against 0.579, ranges
+  0.581–0.632 and 0.563–0.617); no cell improves beyond the spread. The passkey passes.
 
 ## Limits of this evidence
 
-- The workload starts few mixed rounds. In arm M a concurrency-8 trial launched 11 mixed graphs (9 in the
-  code_edit group, 150 tokens emitted) and a concurrency-1 trial 3; the 16-client run uses empty contexts.
+- The workload starts few mixed rounds. In arm M the concurrency-8 trials launched 11, 11 and 12 mixed graphs (9 in
+  the code_edit group, 129 to 170 tokens emitted) and each concurrency-1 trial 3; the 16-client run uses empty contexts.
   The rule therefore shows that mixed prefill does not pay for its memory and export cost in these
   workloads. Decode throughput while long prompts prefill concurrently, the case mixed graphs exist for,
   was not measured.
@@ -99,7 +100,8 @@ passes.
   `force_moe_decode_a16 = true`, its package added 71 GiB of stored data against 7 GiB for arm Q, and it
   holds 7,190 kernels against arm U's 6,969.
 - Not measured: tensor parallel, history drafts on, more than one 1M prompt at once, the MXFP8 draft and
-  A16 decode combined, output quality beyond the passkey probe and acceptance counters.
+  A16 decode combined, direct BF16 feature averaging (no arm varies it), output quality beyond the passkey
+  probe and acceptance counters.
 - Three trials per cell; the concurrency-8 ranges are wide (arm U spans 58 tok/s).
 
 ## Files
