@@ -4,33 +4,12 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
 
 ## Open
 
-- [ ] `qwen38_dflash` tensor parallelism: the draft now runs on the shared DFlash2 component, whose
-      sharded embedding, head, and reductions are in place at `runtime=None`; the recipe's bootstrap
-      is still single-GPU (`ignition/recipes/qwen38_dflash/recipe.py` rejects `world_size != 1`).
-      Served comparison against the MTP package recorded in
-      `qualify/results/dflash2-served/summary.json`.
-      Draft-count sweep (adaptive versus fixed 0-7, concurrency 1 and 8) recorded in
-      `qualify/results/dflash2-draft-sweep/summary.json`.
-      History-drafts A/B at fixed-7 on the same image and package (2026-11-06,
-      `qualify/results/dflash2-history-drafts/`): off 497.7 / 346.4 tok/s, on 380.7 / 341.6 tok/s
-      (c1 / c8 code_edit medians; copies 52 % accepted on the on arm).
-      Requalification runs (rebase 2026-11-02 adaptive, fold 2026-11-03 adaptive, rebase2 2026-11-04
-      fixed-7; transport clean, rows carry the workload's manual-review cases) recorded in
-      `qualify/results/dflash2-requalify/<run>/summary.json`.
-      Past-262k probe on the yarn4 entry (2026-11-03 second run) recorded in
-      `qualify/results/dflash2-long-context/summary.json`.
-
-- [ ] `ignition/recipes/qwen38_dflash/bootstrap.py` repeats ~256 of the ~390 lines of qwen38's
-      `_prepare_model` (`ignition/recipes/qwen38/bootstrap.py:250`: transient wrapper, owner
-      allocation, catalog loop, tuning, capture, rebind, materialize, memory report) because
-      that function has no composition hook; `qwen38_dense` shares 14. Extracting a shared
-      catalog/capture helper changes qwen38's bootstrap, so it is an owner decision; take it
-      when qwen38's bootstrap next changes.
-
-- [ ] qwen38's _identity (`ignition/recipes/qwen38/bootstrap.py:210`) omits mtp and `row_bytes`
-      while Helios seeds prefix-cache digests from it (`helios/src/cache/hash.rs:33`), so an MTP
-      package and a DFlash package could match each other's rows if they shared it; the DFlash
-      recipe declares its own. Changing qwen38's identity re-keys every existing package.
+- [ ] qwen38's `_identity` (`ignition/recipes/qwen38/bootstrap.py:247`) records the DFlash2 draft as
+      the pinned repository and revision plus the draft's `config.json` text, also when
+      `--draft-model` supplied a folder. Two packages prepared from draft folders with the same
+      configuration and different weights share an identity, and Helios seeds prefix-cache digests
+      from it (`helios/src/cache/hash.rs:37`). Hashing the draft's shard headers into the identity
+      re-keys every existing DFlash2 package of this recipe.
 
 - [ ] Declare the history-draft copy inputs on the remaining recipes that use the shared
       parallel-draft round: DeepSeek V4 (`ignition/recipes/deepseek4/bootstrap.py:387`),

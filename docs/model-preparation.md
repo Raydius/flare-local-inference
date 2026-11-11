@@ -522,33 +522,29 @@ use the same prepared model graphs; the flag selects table storage only.
 
 ### Qwen3.8 Flash DFlash2
 
-`qwen3.8-flash-dflash2` prepares the Qwen3.8-Flash-Next target
-`local-inference-lab/Qwen3.8-Flash-Next-NVFP4-MXFP8-CSF-QAD` at its pinned
-revision `dc5b8ab2` from the Hugging Face hub cache (the checkpoint the
-acceptance spike measured) with the `incoai/Qwen3.8-Flash-Next-DFlash2` block
-draft in place of the checkpoint's MTP module. A `--local-dir` copy of the
-target must be present in the hub cache under that repository and revision. The
-draft is downloaded at its pinned revision `a22a1744` into the Hugging Face hub
-cache (or `[paths].hub_cache`); a draft copy under `--local-dir` is not read.
-Export on one GPU:
+`ignition export MODEL --speculative-method dflash2` prepares a Qwen3.8-Flash-Next
+target with the `incoai/Qwen3.8-Flash-Next-DFlash2` block draft in place of the
+checkpoint's MTP module, through the `qwen38` recipe. `MODEL` is an alias
+(`qwen3.8-flash`), a repository id, or a checkpoint directory; without the
+flag, or a `[defaults] speculative_method = "dflash2"` setting, the same
+`MODEL` prepares MTP proposals. The draft is downloaded at its pinned revision
+`a22a1744` into the Hugging Face hub cache (or `[paths].hub_cache`);
+`--draft-model DIR` loads a folder holding `config.json` and
+`model.safetensors` instead and downloads nothing.
 
 ```sh
-.venv/bin/ignition export qwen3.8-flash-dflash2 --gpus 0
-.venv/bin/ignition convert CACHE_ENTRY --form packed --output /data/flare-runtime/qwen38-tp1-dflash2.safetensors
+.venv/bin/ignition export qwen3.8-flash --speculative-method dflash2 --mtp-draft-tokens 7 --gpus 0
 ```
 
-Each round proposes seven draft tokens per request (`draft_tokens=7`) with a
-128-token speculative capacity. `flare run PACKAGE --history-drafts` is
-supported. The recipe prepares TP1 only; `--gpus` with more than one device is
-rejected. With `--mixed-prefill`, mixed graphs run the DFlash2 round around the
-packed prompt/decode target forward and write the prompt chunk's draft context
-from the same graph.
+The recipe captures five draft tokens per round by default and up to seven
+with `--mtp-draft-tokens 7`; a package serves at most the draft count it
+captured. The DFlash2 method rejects `--mixed-prefill`, and its packages
+declare no history-draft copy inputs.
 
-`qwen3.8-flash-dflash2-yarn4` is the same target and draft at a 1,048,576-token
-serving context through frequency-only rope interpolation of factor 4 anchored
-at the native 262,144 tokens, as `qwen3.8-flash-yarn4` is for the MTP recipe;
-`ignition export qwen3.8-flash-dflash2 --rope-parameters '{"rope_type":"yarn","factor":4.0,"original_max_position_embeddings":262144}'`
-prepares the same declaration. The scaling applies to the target's rotary
+`--rope-parameters '{"rope_type":"yarn","factor":4.0,"original_max_position_embeddings":262144}'`
+prepares a 1,048,576-token serving context through frequency-only rope
+interpolation of factor 4 anchored at the native 262,144 tokens, as the
+`qwen3.8-flash-yarn4` alias declares. The scaling applies to the target's rotary
 tables; the draft's rotary and its 2048-position rings take positions past
 262,144 unscaled. Serve the package with `--max-context-tokens 1048576`.
 `python -m qualify.dflash2_long_context --image IMAGE --package PACKAGE --publisher-keys KEYS --trust-store STORE --output DIR`
