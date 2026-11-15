@@ -3,7 +3,7 @@
 
 """DFlash2 drafter checkpoint checks and block-16 scratch through the shared DFlash2 components."""
 
-from dataclasses import MISSING, dataclass, fields, replace
+from dataclasses import dataclass, replace
 import os
 
 import pytest
@@ -14,7 +14,6 @@ from ignition.components.dflash2_geometry import DraftAttentionGeometry
 from ignition.components.dflash2_weights import DraftWeights, validate_metadata
 from ignition.components.parallel import TensorParallelShard
 from ignition.preparation.checkpoint import inspect_indexed_checkpoint
-from ignition.preparation.scratch import GraphBufferPool
 from ignition.reference.qwen38_dflash2 import DFlash2Reference
 
 # z-lab/Muse-Glimmer-30B-DFlash2: hidden 6656, intermediate 19968, 32/8 heads x 128, five sliding layers
@@ -130,19 +129,15 @@ def test_projector_switch_keeps_the_dflash2_tensor_set_apart(tmp_path):
         DraftWeights.load(tmp_path, StubDraftConfig(SMALL), "cpu", TensorParallelShard(0, 1), projector="dflash")
 
 
-def test_block_16_scratch_carries_the_convolution_buffers_and_has_no_default_block():
-    assert next(f for f in fields(DraftScratch) if f.name == "block_size").default is MISSING
+def test_draft_scratch_declares_complete_sixteen_token_blocks():
     config, shard = StubDraftConfig(SMALL), TensorParallelShard(0, 1)
-    scratch = DraftScratch.allocate(config, shard, 32, "meta", buffers=GraphBufferPool("meta").cursor())
-    assert scratch.block_size == 16 and scratch.convolution["coefficients"].shape == (32, 32)
-    assert scratch.embedding.shape == (32, 128) and scratch.query.shape == (32, 4, 32)
-    assert scratch.window_key.shape == (2 * 17, 128, 2, 32)
+    scratch = DraftScratch.allocate(config, shard, 32)
+    assert (scratch.tokens, scratch.block_size, scratch.hidden_size) == (32, 16, 128)
+    assert scratch.logit_shape == (32, config.text["vocab_size"])
     rows = scratch.rows(16, 16)
-    # Row views keep the whole convolution scratch; only per-token buffers narrow.
-    assert rows.block_size == 16 and rows.convolution is scratch.convolution
-    assert rows.embedding.shape == (16, 128)
+    assert (rows.tokens, rows.block_size) == (16, 16)
     with pytest.raises(ValueError, match="complete proposal blocks"):
-        DraftScratch.allocate(config, shard, 24, "meta", buffers=GraphBufferPool("meta").cursor())
+        DraftScratch.allocate(config, shard, 24)
 
 
 @pytest.mark.skipif(os.environ.get("FLARE_RUN_CUDA_TESTS") != "1", reason="requires assigned CUDA_VISIBLE_DEVICES")

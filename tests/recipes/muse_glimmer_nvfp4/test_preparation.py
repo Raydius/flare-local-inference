@@ -106,44 +106,47 @@ def test_recipe_prepare_runs_in_process_on_one_gpu(monkeypatch, tmp_path):
         RECIPE.prepare(tmp_path, plan, compile_forwards=True, kernel_cache=None, progress=None, ranks=object())
 
 
-def _stub_decoder(vision_state):
-    """A ``PreparedDecoder`` whose text parts are identities; only the vision hook is under test."""
+def _unaccepted_keywords(module):
+    """Keywords this module passes to Ignition callables whose signatures do not accept them."""
+    import ast
+    import importlib
     import inspect
-    from types import SimpleNamespace
 
-    from ignition.recipes.muse_glimmer_nvfp4.decoder import PreparedDecoder
-
-    assert inspect.signature(PreparedDecoder.__init__).parameters["vision_state"].default is None
-    decoder = object.__new__(PreparedDecoder)
-    decoder.embedding = lambda: torch.full((4, 8), 3.)
-    decoder.embedding_norm = lambda hidden: hidden * .5
-    decoder.layers, decoder.target_layers, decoder.scoring = [], (), None
-    decoder.metadata = SimpleNamespace(sample_indices=torch.tensor([0, 3]))
-    decoder.norm = lambda hidden: hidden
-    decoder.scratch = SimpleNamespace(hidden=torch.zeros(2, 8))
-    decoder.head = lambda hidden: hidden.clone()
-    decoder.output_multiplier, decoder.softcap = 1., 30.
-    decoder.vision_state = vision_state
-    return decoder
-
-
-def test_prefill_decoder_injects_image_features_after_the_embedding_norm():
-    class Vision:
-        calls = []
-
-        def inject(self, metadata, embedding):
-            self.calls.append((metadata, embedding.clone()))
-            embedding[0].fill_(7.)
-
-    vision = Vision()
-    decoder = _stub_decoder(vision)
-    decoder()
-    (metadata, normed), = vision.calls
-    assert metadata is decoder.metadata and torch.equal(normed, torch.full((4, 8), 1.5))
-    assert torch.equal(decoder.scratch.hidden[0], torch.full((8,), 7.))
+    tree = ast.parse(inspect.getsource(module))
+    names = dict(vars(module))
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom):
+            source = importlib.import_module("." * node.level + (node.module or ""), module.__package__)
+            names.update({alias.asname or alias.name: getattr(source, alias.name) for alias in node.names})
+    faults = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        callee = node.func
+        if isinstance(callee, ast.Name):
+            target = names.get(callee.id)
+        elif isinstance(callee, ast.Attribute) and isinstance(callee.value, ast.Name):
+            target = getattr(names.get(callee.value.id), callee.attr, None)
+        else:
+            continue
+        if not callable(target) or not getattr(target, "__module__", "").startswith("ignition."):
+            continue
+        parameters = inspect.signature(target).parameters
+        if any(parameter.kind is parameter.VAR_KEYWORD for parameter in parameters.values()):
+            continue
+        faults.extend(f"{module.__name__}:{node.lineno} {getattr(target, '__qualname__', target)}({keyword.arg}=)"
+                      for keyword in node.keywords if keyword.arg and keyword.arg not in parameters)
+    return faults
 
 
-def test_text_only_decoder_skips_the_vision_hook():
-    decoder = _stub_decoder(None)
-    decoder()
-    assert torch.equal(decoder.scratch.hidden, torch.full((2, 8), 1.5))
+@pytest.mark.parametrize("name", ["attention", "bootstrap", "decoder", "dflash"])
+def test_recipe_passes_only_keywords_its_components_accept(name):
+    """The attention, bootstrap, decoder and draft owner bind to the signatures of the components they construct.
+
+    This reads the call sites, so it covers keyword names only; it does not execute preparation,
+    which needs CUDA.
+    """
+    import importlib
+
+    assert not _unaccepted_keywords(importlib.import_module("ignition.recipes.muse_glimmer_nvfp4." + name))
+

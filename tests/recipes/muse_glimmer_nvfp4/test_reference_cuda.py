@@ -136,8 +136,8 @@ def test_prepared_prefill_and_decode_match_the_reference_across_the_window():
     pool = ContinuationPool.allocate(weights.config, shard, 3, blocks, selected, dflash=False)
     with PreparationSession(device=selected, autotune=False) as session:
         arena = ScratchArena(selected)
-        decoder, _ = prefill(weights, pool, ids, selected, blocks=blocks, session=session, workspace=arena,
-                             name="glimmer.reference.prefill")
+        decoder, metadata = prefill(weights, pool, ids, selected, blocks=blocks, session=session, workspace=arena,
+                                    name="glimmer.reference.prefill")
         decode_metadata = Metadata.allocate(1, 1, blocks, selected)
         decode = PreparedDecoder(weights, Scratch.allocate(weights.config, shard, 1, 1, selected), decode_metadata, pool,
                                  mode="decode", runtime=None, embedding_runtime=None, vocabulary_runtime=None,
@@ -148,20 +148,20 @@ def test_prepared_prefill_and_decode_match_the_reference_across_the_window():
         handles = [layer.register_forward_hook(
             lambda module, args, output, index=index: residuals.__setitem__(index, output.clone()))
             for index, layer in enumerate(decoder.layers)]
-        decoder()
+        sampled_hidden, sampled_logits, _, _ = decoder(metadata)
         torch.cuda.synchronize()
         for handle in handles:
             handle.remove()
         prefill_hidden = decoder.norm(residuals[len(decoder.layers) - 1])
         prefill_logits = softcapped(prefill_hidden, weights.head, c)
-        sampled_hidden, sampled_logits = decoder.scratch.hidden[0].clone(), decoder.scratch.logits[0].clone()
+        sampled_hidden, sampled_logits = sampled_hidden[0].clone(), sampled_logits[0].clone()
         next_token = int(sampled_logits.argmax())
         decode_metadata.set(torch.tensor([tokens], device=selected), torch.tensor([1], dtype=torch.int32, device=selected),
                             torch.tensor([1], device=selected), torch.arange(blocks, dtype=torch.int32, device=selected)[None],
                             torch.tensor([[next_token]], device=selected), torch.tensor([1], dtype=torch.int32, device=selected))
-        decode()
+        decode_hidden, decode_logits, _, _ = decode(decode_metadata)
         torch.cuda.synchronize()
-        decode_hidden, decode_logits = decode.scratch.hidden[0].clone(), decode.scratch.logits[0].clone()
+        decode_hidden, decode_logits = decode_hidden[0].clone(), decode_logits[0].clone()
     assert torch.isfinite(prefill_hidden).all() and torch.isfinite(prefill_logits).all()
     assert prefill_logits.abs().max() <= c["final_logit_softcapping"]
 

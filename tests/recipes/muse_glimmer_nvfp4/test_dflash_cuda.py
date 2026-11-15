@@ -146,13 +146,11 @@ def selector_walk(selector, projected, logits, pending, top_k):
 def test_width_16_round_proposes_the_dflash2_block():
     from b12x.preparation import PreparationSession
     from ignition.components.completion import CompletionOutputs, VECTOR_TOKENS_FIELD
-    from ignition.components.dflash2 import PreparedContext
     from ignition.components.paged_batch import BatchInputs, Metadata
     from ignition.components.parallel import TensorParallelShard
-    from ignition.components.parallel_draft import PreparedParallelDraftRound
     from ignition.components.sampling import DeviceRequestState, RequestAdmission
     from ignition.preparation.checkpoint import inspect_indexed_checkpoint
-    from ignition.preparation.scratch import GraphBufferPool, ScratchArena
+    from ignition.preparation.scratch import ScratchArena
     from ignition.recipes.muse_glimmer_nvfp4.decoder import PreparedDecoder, Scratch
     from ignition.recipes.muse_glimmer_nvfp4.dflash import SpeculativePreparation
     from ignition.recipes.muse_glimmer_nvfp4.weights import ModelWeights
@@ -175,21 +173,43 @@ def test_width_16_round_proposes_the_dflash2_block():
     completion = CompletionOutputs.allocate((2, 1, VECTOR_TOKENS_FIELD + BLOCK), device=selected)
     frame = torch.zeros(1, dtype=torch.int32, device=selected)
     sequence = torch.zeros(1, dtype=torch.int64, device=selected)
-    cursor = lambda: GraphBufferPool(selected, chunk_bytes=2 << 20).cursor()
     with PreparationSession(device=selected, autotune=False) as session:
         arena = ScratchArena(selected)
         decoder, metadata = prefill(weights, pool, ids, selected, blocks=blocks, session=session, workspace=arena,
                                     name="glimmer.dflash.prefill")
-        context = PreparedContext(weights, decoder.auxiliary, metadata, pool, session=session,
-                                  name="glimmer.dflash.prefill.context", workspace=arena, runtime=None,
-                                  coordinator=None, buffers=cursor())
-        owner = SpeculativePreparation(weights, pool, requests, inputs, Scratch.allocate(weights.config, shard, BLOCK, BLOCK, selected),
+        examples = {}
+        owner = SpeculativePreparation(weights, pool, requests, inputs,
+            Scratch.allocate(weights.config, shard, BLOCK, BLOCK, selected, examples=examples),
             completion=completion, frame=frame, sequence=sequence, session=session, workspace=arena,
-            buffers=cursor(), decoder_buffers=cursor(), context_buffers=cursor())
-        operation = PreparedParallelDraftRound(owner, 1, BLOCK, "glimmer.dflash.speculative1x16", buffers=cursor(),
-                                               target_token_capacity=BLOCK)
-        operation.prepare()
-        assert operation.draft.selector is not None
+            examples=examples)
+        context = owner.forwards.context(weights, decoder.auxiliary, metadata, pool, session=session,
+                                         name="glimmer.dflash.prefill.context", workspace=arena).functional()
+        operation = owner.round(1, BLOCK, "glimmer.dflash.speculative1x16", target_token_capacity=BLOCK)
+        selector = operation.draft.selector
+        assert selector is not None
+        # The round's forwards return forward-local values. These wrappers retain the draft block's
+        # normalized rows and logits, the verification logits, and both sampling scratch sets.
+        observed = {}
+        draft_forward = operation.draft
+
+        def observed_draft(draft_metadata):
+            hidden, logits, features = draft_forward.forward(draft_metadata)
+            observed.update(draft_hidden=hidden, draft_logits=logits, selector_features=features)
+            return logits, features
+
+        operation.draft = observed_draft
+        target, _, verify, _ = operation.operations
+        target_run, verify_run = target.run, verify.run
+
+        def observed_target(scratch, logits, **kwargs):
+            observed.update(target=scratch, verify_logits=logits)
+            return target_run(scratch, logits, **kwargs)
+
+        def observed_verify(scratch, *args, **kwargs):
+            observed.update(verify=scratch)
+            return verify_run(scratch, *args, **kwargs)
+
+        target.run, verify.run = observed_target, observed_verify
         # The target's own continuation, one decode step at a time, after the round (decode writes the ring
         # slots of positions N.. that verification still reads for a prompt past the window).
         decode_metadata = Metadata.allocate(1, 1, blocks, selected)
@@ -198,11 +218,11 @@ def test_width_16_round_proposes_the_dflash2_block():
                                  coordinator=None, session=session, name="glimmer.dflash.decode", workspace=arena)
         arena.finalize()
         pool.clear_for_preparation()
-        decoder()
-        context(decoder.auxiliary, metadata.lengths)
+        _, prefill_logits, auxiliary, _ = decoder(metadata)
+        context(auxiliary, metadata.lengths, metadata)
         torch.cuda.synchronize()
-        pending = int(decoder.scratch.logits[0].argmax())
-        taps = decoder.auxiliary[:tokens].clone()
+        pending = int(prefill_logits[0].argmax())
+        taps = auxiliary[:tokens].clone()
         # The target's own greedy continuation before the round, with the continuation row and the
         # full-layer pages restored afterwards: a round's commit would otherwise leave committed block
         # positions in ring slots a decode behind the commit still attends.
@@ -212,11 +232,11 @@ def test_width_16_round_proposes_the_dflash2_block():
             decode_metadata.set(torch.tensor([tokens + step], device=selected), torch.tensor([1], dtype=torch.int32, device=selected),
                                 torch.tensor([1], device=selected), torch.arange(blocks, dtype=torch.int32, device=selected)[None],
                                 torch.tensor([[token]], device=selected), torch.tensor([1], dtype=torch.int32, device=selected))
-            decode()
+            _, decode_logits, _, _ = decode(decode_metadata)
             torch.cuda.synchronize()
             if step == 0:
-                decode_anchor_logits = decode.scratch.logits[0].clone()
-            token = int(decode.scratch.logits[0].argmax())
+                decode_anchor_logits = decode_logits[0].clone()
+            token = int(decode_logits[0].argmax())
             greedy.append(token)
         pool.backing[1].copy_(row_before)
         for name, value in pages_before.items():
@@ -230,45 +250,49 @@ def test_width_16_round_proposes_the_dflash2_block():
         inputs.request_state_rows[0].fill_(1)
         inputs.page_tables[0].copy_(torch.arange(blocks, dtype=torch.int32, device=selected))
         inputs.query_lengths.fill_(BLOCK)
-        operation()
+        probabilities = torch.empty(operation.probability_shape, dtype=torch.float32, device=selected)
+        proposal = operation.propose(probabilities=probabilities)
+        verify_metadata, accepted, committed = operation.verify(probabilities=probabilities, proposal=proposal)
         torch.cuda.synchronize()
-        target, _, verify, commit = operation.operations
-        candidates = operation.candidates[0].tolist()
-        verify_logits = operation.decoder.scratch.logits.view(BLOCK, -1).clone()
-        target_argmax = target.probabilities[0].argmax(-1).tolist()
-        draft_ids = operation.drafts[0]
-        draft_at = operation.probabilities[0].gather(-1, draft_ids[:, None])[:, 0]
-        target_at = target.probabilities[0, :-1].gather(-1, draft_ids[:, None])[:, 0]
+        draft_metadata = proposal.metadata
+        target_probabilities, target_valid = observed["target"]["probabilities"], observed["target"]["valid"]
+        candidates = proposal.candidates[0].tolist()
+        verify_logits = observed["verify_logits"].view(BLOCK, -1).clone()
+        target_argmax = target_probabilities[0].argmax(-1).tolist()
+        draft_ids = proposal.drafts[0]
+        draft_at = probabilities[0].gather(-1, draft_ids[:, None])[:, 0]
+        target_at = target_probabilities[0, :-1].gather(-1, draft_ids[:, None])[:, 0]
         acceptance = dict(
-            candidates=candidates, verify_token_ids=operation.metadata.token_ids.tolist(),
-            verify_positions=operation.metadata.positions.tolist(), verify_lengths=operation.metadata.lengths.tolist(),
+            candidates=candidates, verify_token_ids=verify_metadata.token_ids.tolist(),
+            verify_positions=verify_metadata.positions.tolist(), verify_lengths=verify_metadata.lengths.tolist(),
             pending_token=int(requests.pending_token[0]), query_lengths=inputs.query_lengths.tolist(),
             parameters=requests.parameters[0].tolist(), top_k=int(requests.top_k[0]),
             verify_logits_argmax=verify_logits.argmax(-1).tolist(),
             target_argmax_equals_next_candidate=[a == b for a, b in zip(target_argmax[:-1], candidates[1:])],
-            target_valid=target.valid[0].tolist(), target_mass=target.probabilities[0].sum(-1).tolist(),
-            draft_valid=operation.valid[0].tolist(), draft_mass=operation.probabilities[0].sum(-1).tolist(),
+            target_valid=target_valid[0].tolist(), target_mass=target_probabilities[0].sum(-1).tolist(),
+            draft_valid=proposal.valid[0].tolist(), draft_mass=probabilities[0].sum(-1).tolist(),
             draft_prob_at_draft=[round(p, 4) for p in draft_at.tolist()],
             target_prob_at_draft=[round(p, 4) for p in target_at.tolist()],
-            verify_valid=verify.output.valid.tolist(), independent_accepted=verify.independent_accepted.tolist(),
-            emitted_drafts=verify.emitted_drafts.tolist(), accepted_drafts=verify.output.accepted_drafts.tolist(),
-            offered_drafts=verify.output.offered_drafts.tolist(), proposed_count=verify.output.proposed_count.tolist(),
-            output_token_ids=verify.output.token_ids[0].tolist(), survival=[round(s, 4) for s in verify.output.survival[0].tolist()],
-            commit_emitted=commit.emitted_count.tolist(), commit_accepted=commit.accepted_count.tolist(),
+            verify_valid=accepted.valid.tolist(),
+            independent_accepted=observed["verify"]["independent_accepted"].tolist(),
+            emitted_drafts=observed["verify"]["emitted_drafts"].tolist(), accepted_drafts=accepted.accepted_drafts.tolist(),
+            offered_drafts=accepted.offered_drafts.tolist(), proposed_count=accepted.proposed_count.tolist(),
+            output_token_ids=accepted.token_ids[0].tolist(), survival=[round(s, 4) for s in accepted.survival[0].tolist()],
+            commit_emitted=committed.emitted_count.tolist(), commit_accepted=committed.accepted_count.tolist(),
             status=requests.status.tolist(), error_code=requests.error_code.tolist())
         print(acceptance, flush=True)
         assert not requests.error_code.count_nonzero(), requests.error_code.tolist()
-        emitted = int(operation.operations[-1].emitted_count[0])
+        emitted = int(committed.emitted_count[0])
         assert 1 <= emitted <= BLOCK
         assert int(requests.consumed_tokens[0]) == tokens + emitted
-        assert torch.equal(operation.draft_metadata.token_ids[1:], torch.full((BLOCK - 1,), draft.noise_token, device=selected))
-        assert int(operation.draft_metadata.token_ids[0]) == pending
-        proposed_hidden = operation.draft.scratch.hidden.clone()
-        proposed_logits = operation.draft.scratch.logits.clone()
+        assert torch.equal(draft_metadata.token_ids[1:], torch.full((BLOCK - 1,), draft.noise_token, device=selected))
+        assert int(draft_metadata.token_ids[0]) == pending
+        proposed_hidden = observed["draft_hidden"].clone()
+        proposed_logits = observed["draft_logits"].clone()
         ring = pool.reserved_region("draft0.key")[1]
         for position in range(tokens, tokens + emitted):
             assert ring[position % draft.attention.window].view(torch.uint8).count_nonzero(), position
-        block_positions = operation.draft_metadata.positions.tolist()
+        block_positions = draft_metadata.positions.tolist()
         context_positions = (int(metadata.positions[0]), int(metadata.positions[tokens - 1]))
         print(dict(verify_vs_decode_anchor_logits=relative_l2(verify_logits[0], decode_anchor_logits),
                    verify_anchor_argmax=int(verify_logits[0].argmax()), decode_anchor_argmax=int(decode_anchor_logits.argmax())),
@@ -276,9 +300,9 @@ def test_width_16_round_proposes_the_dflash2_block():
         # The prepared selector's greedy walk over the prepared rows, through the component the round used.
         proposed, predecessor = [], torch.tensor([pending], device=selected)
         for position in range(1, BLOCK):
-            unary = proposed_logits[position:position + 1].clone()
-            operation.draft.selector(unary, predecessor, position)
-            predecessor = unary.argmax(-1)
+            corrected = selector(proposed_logits[position:position + 1], predecessor, position,
+                                 observed["selector_features"])
+            predecessor = corrected.argmax(-1)
             proposed.append(int(predecessor))
 
     block_ids = torch.full((BLOCK,), draft.noise_token, dtype=torch.int64, device=selected)

@@ -4,6 +4,12 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
 
 ## Open
 
+- [ ] Fold Muse Glimmer's attention back onto Muse Spark's. `ignition/recipes/muse_glimmer_nvfp4/attention.py`
+      takes packed metadata per forward and returns local values, which `PreparedGeneration` and
+      `PreparedParallelDraftRound` require; `ignition/recipes/muse_spark/attention.py` binds its metadata
+      and scratch at construction. Remove the Glimmer module when Spark's attention accepts per-forward
+      metadata, by importing it with Glimmer's separate gate projection and unnormalized gate input.
+
 - [ ] Compare Inkling 2 effort-zero generation with the canonical target using
       the static NVFP4 checkpoint. Native TP4 emits analysis in content_text and
       violates exact-output prompts; a long-prefix lookup also intermittently
