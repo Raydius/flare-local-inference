@@ -50,7 +50,7 @@ designed behavior that the code does not implement as a specification marked
 designed, not implemented. State support as present qualification: what is
 implemented, the hardware and configurations on which it is qualified, and what
 is not qualified. Record unresolved defects, unrun checks, and pending
-measurements in [docs/TODO.txt](docs/TODO.txt), not in design documents. Do not
+measurements in [docs/TODO.md](docs/TODO.md), not in design documents. Do not
 add defect reports, investigation logs, run journals, or progress notes to the
 repository.
 
