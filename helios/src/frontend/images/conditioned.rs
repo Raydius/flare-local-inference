@@ -581,6 +581,7 @@ mod tests {
                 ImageSettings::Qwen(_) | ImageSettings::Mimo(_) => 1536,
                 ImageSettings::Radio {} => 768,
                 ImageSettings::Glm {} | ImageSettings::PatchMerge(_) | ImageSettings::MuseGlimmer(_) => 1176,
+                ImageSettings::PaddedGrid {} => super::super::padded_grid::FEATURES,
                 ImageSettings::Deepseek4 {} | ImageSettings::DeepseekRowMajor(_)
                 | ImageSettings::Moonvit {} | ImageSettings::Step {} => 588,
             }, "{settings:?}");
