@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from ignition.preparation import inspect_qwen38_checkpoint
+from ignition.preparation.qwen38 import TRANSFORMERS_RELEASE, TRANSFORMERS_REVISION, supported_transformers
 from ignition.recipes.qwen38 import create_model_tree
 
 
@@ -27,3 +28,24 @@ def test_exact_checkpoint_constructs_canonical_meta_tree_without_cuda():
     assert all(p.device.type == "meta" for p in model.buffers())
     assert not model.training
     assert torch.cuda.is_initialized() == initialized
+
+
+@pytest.mark.parametrize("version,direct_url,accepted", [
+    (TRANSFORMERS_RELEASE, None, True),
+    ("5.21.0.dev0", '{"vcs_info": {"commit_id": "%s"}}' % TRANSFORMERS_REVISION, True),
+    ("5.21.0.dev0", '{"vcs_info": {"commit_id": "0000000000000000000000000000000000000000"}}', False),
+    ("5.22.0", None, False),
+])
+def test_qwen_preparation_accepts_the_locked_release_and_the_pinned_revision(version, direct_url, accepted):
+    from types import SimpleNamespace
+
+    distribution = SimpleNamespace(version=version, read_text=lambda name: direct_url)
+    assert supported_transformers(distribution) is accepted
+
+
+def test_locked_transformers_release_is_the_accepted_release():
+    import tomllib
+
+    project = tomllib.loads((Path(__file__).resolve().parents[2] / "pyproject.toml").read_text())
+    pins = [d for d in project["project"]["optional-dependencies"]["prepare"] if d.startswith("transformers")]
+    assert pins == [f"transformers[torch,vision,chat_template]=={TRANSFORMERS_RELEASE}"]
