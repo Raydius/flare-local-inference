@@ -4,6 +4,12 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
 
 ## Open
 
+- [ ] Fold Muse Glimmer's attention back onto Muse Spark's. `ignition/recipes/muse_glimmer_nvfp4/attention.py`
+      takes packed metadata per forward and returns local values, which `PreparedGeneration` and
+      `PreparedParallelDraftRound` require; `ignition/recipes/muse_spark/attention.py` binds its metadata
+      and scratch at construction. Remove the Glimmer module when Spark's attention accepts per-forward
+      metadata, by importing it with Glimmer's separate gate projection and unnormalized gate input.
+
 - [ ] Fix native TP4 shutdown reporting "free(): double free detected in tcache 2"
       after server drain with Inkling 2 cores. Reproduces with compiled and
       uncompiled graphs; preserve the successful request drain and GPU release.
