@@ -56,7 +56,7 @@ def test_proposal_metadata_and_rng_use_runtime_rows_without_retaining_destinatio
 
     operation.draft = draft
     operation.shortlisted_selector = operation.selector = operation.markov = None
-    operation.full_proposal = operation.proposal_block = None
+    operation.full_proposal = operation.proposal_block = operation.copy_buffers = None
     operation.sampling_scratch = {}
     for name in ("metadata", "draft_metadata", "draft_inputs", "markov_token", "before", "active", "candidates",
                  "drafts", "valid", "seed", "offset", "base_offset", "sampled", "logits", "probabilities"):
@@ -127,8 +127,8 @@ def test_verification_passes_local_metadata_through_commit_and_preserves_inactiv
 
     committed = SimpleNamespace(emitted_count=torch.tensor([2, 0], dtype=torch.int32))
 
-    def commit(logits, *, acceptance, inputs):
-        assert inputs is proposal.candidates
+    def commit(logits, *, acceptance, inputs, copy_offered_mask):
+        assert inputs is proposal.candidates and copy_offered_mask is proposal.copy_mask
         assert acceptance.valid.tolist() == [True, False]
         return committed
 
