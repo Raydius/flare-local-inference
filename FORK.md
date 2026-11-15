@@ -111,6 +111,21 @@ base/current (tag → an upstream commit)
   continued with the hook off, so replayed commits keep their original acknowledgments.
   Retargeted from `8c2e782d` when upstream moved before the rebase ran. Pre-rebase refs:
   `backup/pre-rebase-20261109-*` tags.
+  **2026-11-15: moved to upstream `6b68b9b4`** (75 commits; KV and capacity fixes #253, #286 and
+  #285, native MXFP8 DFlash2 draft bodies (#291), the one-layout DFlash2 embedding binding (#250),
+  Inductor-planned temporaries with forwards that take their metadata per call, Inkling 2 Small
+  NVFP4, #298 and #302 prefix-cache changes, FlashInfer pinned to `4fd836dc`, design checklist
+  digest `ed22`). 27 of 93 replayed commits conflicted and kept both sides on upstream's structure.
+  History drafts follow upstream's copy path: copies are substituted on the round's local tensors
+  and the copy mask travels in `DraftProposalState` to the commit. Muse Glimmer's image number
+  moved from 10 to 11. Three carry commits follow the replay: the retired `qwen38_dflash` recipe's
+  mixed-round hooks are dropped, `AGENTS.md`'s second TODO link is repointed, and Muse Glimmer
+  moves onto the per-call forwards with its own attention module while `muse_spark/attention.py`
+  returns to upstream's text. The FlashInfer pin is re-cut on `4fd836dc` as
+  `Raydius/flashinfer@7245b1e0`, carrying only stub rejection and the `compile_compress` program
+  cache. No patch retired. Retargeted from `29192ef7` when upstream moved before the rebase ran.
+  Not yet run on this base: Rust builds, GPU tests and exports. Pre-rebase refs:
+  `backup/pre-rebase-20261114-*` tags.
 - **Moving to a newer upstream:** `scripts/fork/sync.sh`, then
   `scripts/fork/rebase.sh upstream/main` (or a sha; the tip defaults to `deploy`). The script
   refuses a tip that shares a commit with another branch (`--update-refs` would skip it).
