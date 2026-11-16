@@ -8,7 +8,6 @@ construction is the same one; this module exists so the recipe owns its identity
 another recipe's prepared cores.
 """
 
-from ignition.recipes.qwen38_dense.contract import FRONTEND
 from ignition.recipes.qwen38_dense.contract import prepare as _prepare
 
 

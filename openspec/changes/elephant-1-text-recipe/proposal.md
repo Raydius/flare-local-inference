@@ -11,7 +11,7 @@ Type: feature
 
 Assumed: the package is text-only — no vision tower, no image tokens, image inputs refused.
 Assumed: the lane is causal-only; the checkpoint's `block_bidirectional` full-attention mask is out of scope and the OneJev parity probe measures the deviation.
-Assumed: decisions are served as client-rendered prompts through Completions with 1-token, top-20 generation logprobs; no new API surface.
+Assumed: decisions are served as client-rendered prompts through Completions with 1-token generation logprobs of the option letters (`logprob_token_ids`); no new API surface.
 Assumed: packaging quantizes the BF16 checkpoint to NVFP4 at preparation; the embedding stays BF16.
 Assumed: declared context is the trained 16,384 tokens; longer requests are refused.
 Assumed: the single MTP layer named by `mtp_num_hidden_layers` has no shipped tensors and is not served.
@@ -27,9 +27,9 @@ The one intended deviation from training is the attention mask. The reference ru
 ## What Changes
 
 - New recipe `ignition/recipes/elephant1/`: geometry validation, weight mapping, decoder (GDN + gated attention + dense MLP), text contract, export entry, and recipe declaration (alias `elephant-1-9b`, context 16,384, page tokens 128, 12GB-targeted concurrency).
-- New preparation path that packs a BF16 checkpoint's body projections to NVFP4 (weights-only, W4A16) by generalizing the packing already used by `components/vocabulary.nvfp4_draft_head`, with the embedding left BF16 and the vocabulary head packed separately.
+- New preparation path that packs a BF16 checkpoint's body projections to NVFP4 (weights-only, W4A16) with a packer in `ignition/components/weights.py` that applies the arithmetic of `components/vocabulary.nvfp4_draft_head` in a separate function, leaving that function unchanged; the embedding and the vocabulary head stay BF16.
 - Registration in `ignition/recipes/__init__.py`, a preparation section in `docs/model-preparation.md`, declaration tests, and one qualification driver that compares package probabilities against the reference `DecisionEngine` on a fixed prompt set.
-- Generation logprob outputs are enabled so a caller reads the answer position's top-20 logprobs and maps slot letters to probabilities.
+- Generation logprob outputs are enabled so a caller reads the option letters' logprobs at the answer position and maps slot letters to probabilities.
 
 Non-goals: vision and image tokens; the `block_bidirectional` mask; a native decide endpoint or any new HTTP route; speculative decoding and the MTP layer; multi-GPU or Orbit serving; publishing an NVFP4 checkpoint to the Hub.
 
@@ -45,9 +45,9 @@ None.
 
 ## Impact
 
-- New files only under `ignition/recipes/elephant1/`, `ignition/components/` (quantization helper), `tests/recipes/`, and `qualify/`; plus edits to `ignition/recipes/__init__.py`, `docs/model-preparation.md`, and `tests/recipes/test_declarations.py`.
-- No `helios/`, `selene/`, `selene-manager/`, `flare/` or `flare-cli/` change; no contract additions.
-- No change to existing recipes or their checkpoints; `qwen38_dense` keeps its 48-value-head geometry and quantized-checkpoint requirement.
+- New files under `ignition/recipes/elephant1/`, `tests/recipes/`, `tests/components/` and `qualify/`; the packer is added to `ignition/components/weights.py`; plus edits to `ignition/recipes/__init__.py`, `pyproject.toml` (the recipe's chat-template asset), `docs/model-preparation.md`, `docs/TODO.md`, `docs/runtime-core-design.md`, and the existing tests that enumerate recipes or build Gated DeltaNet fixtures (`tests/recipes/test_declarations.py`, `tests/recipes/test_qwen38_gdn.py`, `tests/recipes/test_qwen38_dense_mlp_memory.py`, `tests/components/test_gdn_functional.py`, `tests/cli/test_models.py`, `tests/cli/test_mtp_only.py`, `tests/preparation/test_frontend_metadata.py`).
+- One `helios/` change: core loading bounds the recorded persisting L2 cache size by the serving device's maximum (`helios/src/runtime_core/mod.rs`), which a core exported on a larger card needs to load on GPU 1. No `selene/`, `selene-manager/`, `flare/` or `flare-cli/` change; no contract additions.
+- Shared code the recipe reuses takes its widths and formats from data: `ignition/components/gated_delta.py` derives buffer widths from the module's key and value head counts, `ignition/recipes/qwen38_dense/decoder.py` passes those counts to its scratch and chooses FP8 queries only over an FP8 cache, and `ignition/components/linear.py` exposes which projections the parallel MX join executes. `qwen38_dense` keeps its 48-value-head geometry, its quantized-checkpoint requirement and its prepared behavior.
 - Package footprint target: under 12GB of device memory for weights, KV pages, GDN state, graphs and workspace at the declared context and concurrency.
 
 ## Blast Radius

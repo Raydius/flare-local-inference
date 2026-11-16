@@ -5,7 +5,6 @@
 
 import contextlib
 from dataclasses import dataclass
-from functools import partial
 import hashlib
 import json
 from pathlib import Path
@@ -15,7 +14,7 @@ import torch
 from ignition.components.completion import CompletionOutputs, VECTOR_TOKENS_FIELD
 from ignition.components.prompt_logprobs import PreparedScoredPrefill, PromptScoring, prefill_modes
 
-from ignition.components.capacity import batch_capacities, prefill_capacities, request_capacity, serving_modes
+from ignition.components.capacity import batch_capacities, prefill_capacities, request_capacity
 from ignition.components.paged_batch import BatchInputs, Metadata, PreparedBatch
 from ignition.components.paged_generation import PreparedGeneration
 from ignition.components.paged_maintenance import PreparedMaintenance

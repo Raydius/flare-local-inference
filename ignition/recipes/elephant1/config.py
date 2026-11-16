@@ -77,8 +77,10 @@ class ModelConfig:
                 or rope.get("mrope_interleaved") is not True or tuple(section or ()) != (11, 11, 10)
                 or sum(section) * 2 != rotary_dim):
             raise ValueError("Elephant-1 requires interleaved partial rotary embeddings covering the head dimension")
-        if not 0 < float(text.get("rms_norm_eps", 0)) or not 0 < float(rope.get("rope_theta", 0)):
-            raise ValueError("Elephant-1 rotary frequency base and normalization epsilon must be positive")
+        if rope.get("rope_theta") != 10_000_000:
+            raise ValueError(f"unsupported Elephant-1 rope_theta: {rope.get('rope_theta')!r}")
+        if not 0 < float(text.get("rms_norm_eps", 0)):
+            raise ValueError("Elephant-1 normalization epsilon must be positive")
         if text.get("max_position_embeddings", 0) < TRAINED_CONTEXT:
             raise ValueError("Elephant-1 checkpoint must position-embed the trained text length")
         if raw.get("quantization_config") is not None:
@@ -102,11 +104,6 @@ class ModelConfig:
     @property
     def vocabulary(self):
         return self.text["vocab_size"]
-
-    @property
-    def rotary(self):
-        rope = self.text["rope_parameters"]
-        return int(self.text["head_dim"] * rope["partial_rotary_factor"]), float(rope["rope_theta"])
 
     @property
     def pack_gdn_inputs(self):

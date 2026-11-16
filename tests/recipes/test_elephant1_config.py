@@ -39,7 +39,8 @@ def config():
 def test_geometry_and_rotary(config):
     assert config.layers.count("full_attention") == 8 and len(config.layers) == 32
     assert (config.hidden, config.intermediate, config.vocabulary) == (4096, 12288, 248320)
-    assert config.rotary == (64, 10000000.)
+    rope = config.text["rope_parameters"]
+    assert (config.text["head_dim"] * rope["partial_rotary_factor"], rope["rope_theta"]) == (64, 10000000)
     assert not config.pack_gdn_inputs
 
 
@@ -65,6 +66,8 @@ def test_body_plan_packs_every_wide_projection_only(config):
         "linear_attention", "full_attention", "linear_attention", "linear_attention"] * 8}),
     dict(text_config={**CONFIG["text_config"], "rope_parameters": {
         **CONFIG["text_config"]["rope_parameters"], "mrope_section": [11, 10, 11]}}),
+    dict(text_config={**CONFIG["text_config"], "rope_parameters": {
+        **CONFIG["text_config"]["rope_parameters"], "rope_theta": 10000}}),
 ])
 def test_rejects_foreign_geometry(fault):
     with pytest.raises(ValueError):

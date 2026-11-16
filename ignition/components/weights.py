@@ -697,9 +697,9 @@ def nvfp4_body_parts(weight, *, rows_per_chunk=8192, allocate=None):
     global_scale = (6.0 * 448.0) / weight.abs().amax().float().clamp_min(1e-8)
     values = (torch.empty((rows, columns // 2), dtype=torch.uint8, device=weight.device) if allocate is None
               else allocate((rows, columns // 2), dtype=torch.uint8, device=weight.device))
-    scales = (torch.empty((rows, columns // 16), dtype=torch.float8_e4m3fn, device=weight.device)
-              if allocate is None else
-              allocate((rows, columns // 16), dtype=torch.float8_e4m3fn, device=weight.device))
+    # Row-major scales are scratch: b12x reads the swizzled copy the caller stores, so `allocate`, which
+    # places final storage, never receives them.
+    scales = torch.empty((rows, columns // 16), dtype=torch.float8_e4m3fn, device=weight.device)
     bounds = torch.tensor(_E2M1_BOUNDS, device=weight.device)
     for start in range(0, rows, rows_per_chunk):
         block = weight[start:start + rows_per_chunk].float().view(-1, columns // 16, 16)

@@ -514,3 +514,25 @@ def test_nemotron_speculative_graphs_bind_copy_inputs_only_when_declared():
         "copy_expected_consumed": p.COPY_CONSUMED_TOKENS, "copy_generation": p.COPY_GENERATION}
     assert not any(b["buffer"] in copies for b in graphs["bare"]["inputs"])
     assert graphs["round"]["draft_cursor"]["lag_tokens"] == 0
+
+
+def test_elephant1_adapter_configures_a_text_decision_core(monkeypatch, tmp_path):
+    model = resolve("elephant-1-9b")
+    recipe = model.recipe
+    assert (recipe.served_model_name, recipe.context, recipe.page_tokens) == ("Elephant-1", 16384, 128)
+    assert (recipe.concurrency, recipe.max_concurrency, recipe.prefill_chunk) == (2, 2, 2048)
+    assert recipe.speculation is None and recipe.max_draft_tokens == 0 and recipe.tensor_parallel == (1,)
+    seen = []
+    monkeypatch.setattr("ignition.recipes.elephant1.bootstrap.prepare",
+                        lambda snapshot, config, *, progress, core_storage: seen.append(config) or "prepared")
+    plan = fitted(model, 1, concurrency=recipe.concurrency, speculation=None, reserve_bytes=1 << 30)
+    assert recipe.prepare(tmp_path, plan, compile_forwards=True, kernel_cache=tmp_path / "kernels",
+                          progress=None) == "prepared"
+    config = seen.pop()
+    assert (config.max_active, config.context, config.prefill_chunk_size) == (2, 16384, 2048)
+    assert config.compile_decoder and config.kernel_cache == tmp_path / "kernels"
+    assert config.snapshot_budget_bytes == plan.snapshots * recipe.costs(1, None).state_row_bytes
+    assert config.headroom_bytes == planning.HEADROOM_BYTES + (1 << 30)
+    # One local GPU prepares the core; a rank group is refused before any weight loads.
+    with pytest.raises(ValueError, match="one local GPU"):
+        recipe.prepare(tmp_path, plan, compile_forwards=True, kernel_cache=None, progress=None, ranks=object())

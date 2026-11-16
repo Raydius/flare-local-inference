@@ -59,6 +59,18 @@ def test_chunked_rows_match_a_single_chunk():
     assert torch.equal(whole, split)
 
 
+def test_final_storage_holds_codes_and_gain_but_not_row_major_scales():
+    placed = []
+
+    def allocate(shape, dtype, device):
+        placed.append((tuple(shape), dtype))
+        return torch.empty(shape, dtype=dtype, device=device)
+
+    values, scales, gain = nvfp4_body_parts(torch.ones((64, 32), dtype=torch.bfloat16), allocate=allocate)
+    assert placed == [((64, 16), torch.uint8), ((1,), torch.float32)]
+    assert scales.shape == (64, 2) and scales.dtype is torch.float8_e4m3fn
+
+
 @pytest.mark.parametrize("fault", [
     lambda: torch.randn((16, 32)),
     lambda: torch.zeros((16, 24), dtype=torch.bfloat16),
