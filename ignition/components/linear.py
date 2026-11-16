@@ -619,6 +619,15 @@ def _fake_parallel_mx_projections(source, values, scales, outputs, workspaces, p
 class ParallelProjections:
     """Two prepared MX projections with explicit storage and a captured join."""
 
+    @staticmethod
+    def supports(projection) -> bool:
+        """Whether a prepared projection has the unbiased MXFP8 or MXFP4 weights this join executes."""
+        from b12x.gemm.blockscaled._a16 import _weight_parts
+
+        values, _, gain, fp4 = _weight_parts(projection.weight)
+        return (values.dtype in (torch.float8_e4m3fn, torch.uint8) and gain is None and not fp4
+                and projection.bias is None)
+
     def __init__(self, main: QuantizedProjection, auxiliary: QuantizedProjection, *, session,
                  workspace: ScratchArena):
         from b12x.gemm.blockscaled._a16 import _weight_parts
@@ -627,10 +636,9 @@ class ParallelProjections:
         self.arena = workspace
         self.values, self.scales, self.outputs, self.plans = [], [], [], []
         for projection in self.projections:
-            values, scales, gain, fp4 = _weight_parts(projection.weight)
-            if (values.dtype not in (torch.float8_e4m3fn, torch.uint8) or gain is not None or fp4
-                    or projection.bias is not None):
+            if not self.supports(projection):
                 raise ValueError("parallel projections require unbiased MXFP8 or MXFP4 weights")
+            values, scales, _, _ = _weight_parts(projection.weight)
             self.values.append(values)
             self.scales.append(scales.view(torch.uint8))
             self.outputs.append(projection.output)

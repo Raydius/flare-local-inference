@@ -354,9 +354,12 @@ class PreparedGDN:
                             for key in ("in_proj_qkvz", "in_proj_ba"))):
                 from ignition.components.linear import ParallelProjections
 
-                self.parallel_projections = ParallelProjections(
-                    self.projections["in_proj_qkvz"], self.projections["in_proj_ba"],
-                    session=session, workspace=projection_workspace)
+                # NVFP4 projections run in sequence: the parallel join executes MXFP8 and MXFP4 weights only.
+                if all(ParallelProjections.supports(self.projections[key])
+                       for key in ("in_proj_qkvz", "in_proj_ba")):
+                    self.parallel_projections = ParallelProjections(
+                        self.projections["in_proj_qkvz"], self.projections["in_proj_ba"],
+                        session=session, workspace=projection_workspace)
         self.partitions = partitions
         if partitions is not None:
             self.sequences_by_role = tuple(

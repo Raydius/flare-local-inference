@@ -39,8 +39,10 @@ def projection_plan(config):
     """Prepared projection name to the checkpoint prefixes fused into it, in fusion order.
 
     A fused query/gate projection arrives as per-head pairs, so query and gate rows are separated and the gate
-    rows moved behind the query rows exactly as `ignition/recipes/qwen38_dense/weights.py` does. GDN B and A
-    inputs fuse in checkpoint order.
+    rows moved behind the query rows exactly as `ignition/recipes/qwen38_dense/weights.py` does. The GDN
+    query/key/value and gate inputs fuse into one projection whose output fills the adjacent Q/K/V and Z
+    columns, because the NVFP4 projection writes a contiguous output. GDN B and A inputs fuse in checkpoint
+    order.
     """
     plan = {}
     for index, kind in enumerate(config.layers):
@@ -48,8 +50,7 @@ def projection_plan(config):
         short = f"layers.{index}"
         if kind == "linear_attention":
             attention = f"{base}.linear_attn"
-            plan[f"{short}.linear_attn.in_proj_qkv"] = (f"{attention}.in_proj_qkv",)
-            plan[f"{short}.linear_attn.in_proj_z"] = (f"{attention}.in_proj_z",)
+            plan[f"{short}.linear_attn.in_proj_qkvz"] = (f"{attention}.in_proj_qkv", f"{attention}.in_proj_z")
             plan[f"{short}.linear_attn.in_proj_ba"] = (f"{attention}.in_proj_b", f"{attention}.in_proj_a")
             plan[f"{short}.linear_attn.out_proj"] = (f"{attention}.out_proj",)
         else:
@@ -113,16 +114,14 @@ class ModelWeights:
             tree.embed_tokens.weight = torch.nn.Parameter(
                 loader.load_tensor(f"{TEXT_PREFIX}.embed_tokens.weight"), requires_grad=False)
             for name, parts in plan.items():
-                fields = tuple(f"{part}.weight" for part in parts)
-                if len(fields) == 1:
-                    combined = loader.load_linear(parts[0])
-                else:
-                    combined = loader.load_linear_group(parts)
+                # A packed projection keeps only its NVFP4 storage; its BF16 source is preparation scratch.
+                packed = any(config.packed(part) for part in parts)
+                combined = loader.load_linear_group(parts, temporary=packed)
                 _validate_shape(name, combined, _expected_shape(config, name))
                 if name.endswith(".self_attn.qgkv_proj"):
                     combined = _separate_query_gate(combined, config)
-                projections[name] = (pack_body_nvfp4(combined) if any(config.packed(part) for part in parts)
-                                     else combined)
+                projections[name] = pack_body_nvfp4(combined) if packed else combined
+                del combined
             head = loader.load_linear("lm_head")
             if tuple(head.shape) != (config.vocabulary, config.hidden):
                 raise ValueError("Elephant-1 vocabulary projection shape differs from the model")
@@ -139,9 +138,8 @@ def _expected_shape(config, name):
         "self_attn.o_proj": (config.hidden, query),
         "mlp.gate_up": (2 * config.intermediate, config.hidden),
         "mlp.down_proj": (config.hidden, config.intermediate),
-        "linear_attn.in_proj_qkv": (
-            2 * text["linear_num_key_heads"] * text["linear_key_head_dim"] + value, config.hidden),
-        "linear_attn.in_proj_z": (value, config.hidden),
+        "linear_attn.in_proj_qkvz": (
+            2 * text["linear_num_key_heads"] * text["linear_key_head_dim"] + 2 * value, config.hidden),
         "linear_attn.in_proj_ba": (2 * text["linear_num_value_heads"], config.hidden),
         "linear_attn.out_proj": (config.hidden, value),
     }

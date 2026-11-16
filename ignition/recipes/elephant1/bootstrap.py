@@ -27,7 +27,7 @@ from ignition.preparation.rebuild_manifest import declare_weights
 from ignition.preparation.checkpoint import inspect_indexed_checkpoint
 from ignition.preparation.disposable import storage_ranges
 from ignition.preparation.execution import GraphSignature
-from ignition.preparation.frontend import prepare_frontend
+from ignition.preparation.frontend import annotated_template_asset, prepare_frontend
 from ignition.preparation.fixtures.recurrent import register_benchmark_state
 from ignition.preparation.host_memory import release_unused
 from ignition.preparation.model import PreparedModel
@@ -187,6 +187,8 @@ def prepare(snapshot, config, *, progress=None, core_storage):
     torch.cuda.synchronize(device)
     release_unused()
     assets = {role: {"path": str(snapshot / file)} for role, file in (("tokenizer", "tokenizer.json"),)}
+    assets["chat_template"] = annotated_template_asset(
+        (snapshot / "chat_template.jinja").read_bytes(), Path(__file__).parent / "assets" / "chat_template.patch.json")
     eos = weights.config.text["eos_token_id"]
     tokenizer = json.loads((snapshot / "tokenizer_config.json").read_text())
     eos_text = tokenizer["eos_token"]

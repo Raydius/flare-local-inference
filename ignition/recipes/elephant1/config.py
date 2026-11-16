@@ -110,7 +110,7 @@ class ModelConfig:
 
     @property
     def pack_gdn_inputs(self):
-        """Elephant-1 keeps B and A input projections fused and QKV and Z separate; nothing is packed jointly."""
+        """Elephant-1 fuses the Q/K/V and Z input projections and, separately, B and A; the two stay apart."""
         return False
 
     def packed(self, prefix):

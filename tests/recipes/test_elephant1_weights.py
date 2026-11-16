@@ -60,7 +60,10 @@ def test_manifest_refuses_missing_and_unmapped_tensors(config):
 
 def test_projection_plan_fuses_checkpoint_order(config):
     plan = projection_plan(config)
-    assert len(plan) == 176
+    assert len(plan) == 152
+    assert plan["layers.0.linear_attn.in_proj_qkvz"] == (
+        "model.language_model.layers.0.linear_attn.in_proj_qkv",
+        "model.language_model.layers.0.linear_attn.in_proj_z")
     assert plan["layers.0.linear_attn.in_proj_ba"] == (
         "model.language_model.layers.0.linear_attn.in_proj_b",
         "model.language_model.layers.0.linear_attn.in_proj_a")
@@ -77,8 +80,7 @@ def test_prepared_shapes_match_the_checkpoint(config):
     assert _expected_shape(config, "layers.3.self_attn.o_proj") == (4096, 4096)
     assert _expected_shape(config, "layers.0.mlp.gate_up") == (24576, 4096)
     assert _expected_shape(config, "layers.0.mlp.down_proj") == (4096, 12288)
-    assert _expected_shape(config, "layers.0.linear_attn.in_proj_qkv") == (8192, 4096)
-    assert _expected_shape(config, "layers.0.linear_attn.in_proj_z") == (4096, 4096)
+    assert _expected_shape(config, "layers.0.linear_attn.in_proj_qkvz") == (12288, 4096)
     assert _expected_shape(config, "layers.0.linear_attn.in_proj_ba") == (64, 4096)
     assert _expected_shape(config, "layers.0.linear_attn.out_proj") == (4096, 4096)
 
