@@ -420,6 +420,91 @@ flare/target/release/flare run /data/flare-runtime/muse-glimmer-tp1.safetensors 
     --template-kwargs '{"reasoning_strength": "low"}' --max-tokens 256 --timeout 1800
 ```
 
+## Elephant-1
+
+The `elephant-1-9b` alias selects
+[`baselabs/elephant-1`](https://huggingface.co/baselabs/elephant-1) at revision
+`b3f8a93462fb1051a9de031e94a7ff380e254072`, a Qwen3.5-9B fine-tune that answers
+a question by one prefill: the prompt ends at an answer line and the option
+probabilities are the next-token distribution over the option letters. The
+recipe is `elephant1`. It prepares the language model only: 24 Gated DeltaNet
+layers (16 key and 32 value heads) and 8 full-attention layers with a sigmoid
+output gate, 64 of 256 head dimensions rotated at theta 1e7. The checkpoint's
+333 `model.visual.*` tensors are skipped, and a request with an image part is
+refused with `prepared model does not support image inputs`.
+
+The checkpoint is BF16. Preparation packs the attention, MLP and Gated DeltaNet
+projections to NVFP4 with BF16 activations (W4A16, group-16 block scales, one
+gain per tensor from its largest magnitude) and keeps the embedding, vocabulary
+head, normalization weights, Gated DeltaNet convolution and per-head scalars in
+BF16. KV pages are BF16 and the recurrent state is FP32. A checkpoint that
+declares its own `quantization_config` is rejected.
+
+The recipe declares the trained 16,384-token context, 128-token pages, two
+concurrent requests, 2048-token prefill chunks and no
+speculation. A prompt longer than the context is rejected, not truncated.
+Sampling defaults are temperature 1.0, top-p 1.0 and top-k 1, since the model
+card gives none and a decision read samples nothing.
+
+Preparation needs FlashInfer Gated DeltaNet prefill and decode operators that
+accept two value heads per key head. The FlashInfer revision pinned in
+`pyproject.toml` accepts only three; [docs/TODO.md](TODO.md) tracks the pin.
+
+```sh
+.venv/bin/ignition export elephant-1-9b --gpus 0 --max-concurrency 2
+flare-cli/target/release/flare run CACHE_ENTRY --gpus 0 \
+  --memory-limit 0.88 --kv-cache-limit concurrency
+```
+
+A caller renders the prompt with the vendor rules (OneJev `qev.prompt` and the
+checkpoint's chat template with `enable_thinking` false) and reads the answer
+through Completions: `max_tokens: 1`, `logprobs: 20`, and `logprob_token_ids`
+naming the option letters' tokens. Normalizing the returned letter
+probabilities gives the option distribution. The twenty most likely tokens are
+not a sufficient readout, because the model is trained on the letters' relative
+logits: on the probe set below the vendor runtime places a mean 0.61 of the
+next-token probability on the letters, and the core's twenty most likely tokens
+held every letter for 138 of the 157 questions with at most 20 options.
+
+The core was exported on an RTX PRO 6000 Blackwell (GB202) at concurrency 2 and
+`flare inspect` reports 8.05 GiB of fixed device allocations in 16 graphs.
+Served with the flags above on an RTX 5060 Ti with 16 GB, beside about 2.9 GB of
+desktop use, the `flare` process held 9,608 MiB after answering a 15,609-token
+prompt, inside the 12 GB the recipe targets. That card is in no Flare hardware
+platform list, so this is a measurement of a GB202 core, not a qualified
+platform.
+
+`qualify/elephant1_decision_parity.py` compares decision probabilities with the
+vendor runtime (OneJev `81ce62f` with the checkpoint's `serve.patch`) on 160
+rendered questions: 30 states with five yes/no, choice and score questions
+each, a 20-option and a 26-option choice, service logs up to 16,301 prompt
+tokens, and two over-length prompts. The vendor runtime runs the full-attention
+layers with the trained mask, bidirectional inside the shared prefix and inside
+the question; the core runs every layer causally. The results are in
+`qualify/results/elephant1-decision-parity/`:
+
+| Comparison | Questions | Argmax agreement | Mean abs. probability delta | Maximum | Score rank agreement |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| BF16 checkpoint, causal mask, against the vendor runtime | 159 | 0.906 | 0.032 | 0.436 | 0.639 |
+| Served core against the BF16 checkpoint, causal mask | 158 | 0.968 | 0.017 | 0.338 | 0.861 |
+
+Both comparisons fail the change's acceptance bounds: 0.99 argmax agreement and
+0.02 mean delta for the mask, 0.01 mean delta for the packed core. The core
+does not reproduce the vendor runtime's probabilities and is not qualified as
+equivalent to it. The core refused both over-length prompts; the vendor engine,
+whose own limit is 32,768 tokens per question, answered the 17,135-token one.
+
+The reference side needs the vendor environment from the checkpoint's
+`setup.sh` and a GPU that holds the 18.8 GB BF16 checkpoint:
+
+```sh
+python -m qualify.elephant1_decision_parity reference --checkpoint CHECKPOINT --output reference.json
+python -m qualify.elephant1_decision_parity core --probes reference.json \
+  --url http://127.0.0.1:8000 --output core.json
+python -m qualify.elephant1_decision_parity report --reference reference.json --core core.json \
+  --output qualify/results/elephant1-decision-parity
+```
+
 ## Storage and graph capacities
 
 Gemma 4 and Muse Spark default to four concurrent requests. Gemma 4's speculative
