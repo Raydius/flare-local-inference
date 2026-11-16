@@ -81,6 +81,21 @@ use driver::{
 };
 use format::{Blob, Core, Memory, Node, Reference, Relocation, RelocationKind, invalid};
 
+/// `CU_LIMIT_PERSISTING_L2_CACHE_SIZE`.
+const PERSISTING_L2_CACHE_LIMIT: usize = 6;
+/// `CU_DEVICE_ATTRIBUTE_MAX_PERSISTING_L2_CACHE_SIZE`.
+const MAX_PERSISTING_L2_CACHE_ATTRIBUTE: i32 = 108;
+
+/// The persisting L2 cache size to request on the serving device.
+///
+/// A core records the limit of the context it was exported from. The device
+/// maximum differs between GPUs of one compute capability, and the driver
+/// rejects a size above it, so a recorded size is bounded by the serving
+/// device's maximum.
+fn persisting_l2_limit(recorded: usize, device_maximum: i32) -> usize {
+    recorded.min(usize::try_from(device_maximum).unwrap_or(0))
+}
+
 struct Storage {
     base: u64,
     address: u64,
@@ -416,9 +431,22 @@ impl NativeResources {
             if !primary_context {
                 let configured = (|| -> Result<()> {
                     for [limit, value] in &core.context.limits {
+                        let mut value = *value;
+                        if *limit == PERSISTING_L2_CACHE_LIMIT {
+                            let mut maximum = 0;
+                            owner.driver.check(
+                                "cuDeviceGetAttribute",
+                                (owner.driver.device_attribute)(
+                                    &mut maximum,
+                                    MAX_PERSISTING_L2_CACHE_ATTRIBUTE,
+                                    device,
+                                ),
+                            )?;
+                            value = persisting_l2_limit(value, maximum);
+                        }
                         owner.driver.check(
                             "cuCtxSetLimit",
-                            (owner.driver.context_limit)(*limit as i32, *value),
+                            (owner.driver.context_limit)(*limit as i32, value),
                         )?;
                     }
                     owner.driver.check(
@@ -1507,5 +1535,19 @@ unsafe fn apply_context_settings(
             let _ = (driver.context_set)(previous);
         }
         configured
+    }
+}
+
+#[cfg(test)]
+mod persisting_l2_limit_tests {
+    use super::persisting_l2_limit;
+
+    #[test]
+    fn recorded_size_is_bounded_by_the_serving_device() {
+        // RTX PRO 6000 Blackwell default, replayed on an RTX 5060 Ti maximum.
+        assert_eq!(persisting_l2_limit(25_165_824, 20_971_520), 20_971_520);
+        assert_eq!(persisting_l2_limit(6_291_456, 20_971_520), 6_291_456);
+        assert_eq!(persisting_l2_limit(25_165_824, 83_886_080), 25_165_824);
+        assert_eq!(persisting_l2_limit(25_165_824, 0), 0);
     }
 }
