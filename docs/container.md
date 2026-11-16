@@ -33,6 +33,25 @@ or select it with Docker Buildx. ARM64 also includes libibverbs and its provider
 because Flare enables the RoCE transport on that architecture. Multi-host RoCE
 deployment additionally requires the host's RDMA devices and network setup.
 
+## Publish
+
+Pushing a `vX.Y.Z` tag on the default branch runs `.github/workflows/container.yml`,
+which builds this Dockerfile and publishes `ghcr.io/<owner>/<repo>:X.Y.Z` and
+`:sha-<commit>` to the GitHub container registry. The workflow stamps the tag
+version with `scripts/set_release_version.py` before building, so `flare --version`
+in the image reports the release version; a `workflow_dispatch` run publishes only
+the `sha-` tag and keeps the tree's `0.0.0` build. After pushing, the workflow
+pulls the `sha-` tag and requires `--version` to match and `run --help` to list the
+serving overrides this fork adds to `flare run`.
+
+The registry creates a package private, so set the package visibility to public
+once per repository before consumers can pull without a token. The image carries
+this fork's runtime changes — the `helios/proto` contract delta and the
+`flare-cli` serving overrides — so a published model card names the image and pins
+it by tag and `@sha256:` digest; the reported version alone does not identify the
+patch set. The core side of a published package follows
+[production signing](signing.md).
+
 ## Run
 
 This example exposes host GPU 0 and mounts a directory containing a prepared

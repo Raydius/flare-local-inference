@@ -1,0 +1,82 @@
+name: Container
+
+# Publishes the serving image from docs/container.md to the GitHub container
+# registry. It is separate from Release so a slow or broken image build neither
+# blocks the binary archives nor waits on them; both trigger on the same tags.
+
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  image:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Require the tagged commit on the default branch
+        if: github.event_name == 'push'
+        run: git merge-base --is-ancestor "$GITHUB_SHA" "origin/${{ github.event.repository.default_branch }}"
+      - name: Resolve the image name and tags
+        id: image
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY@L}"
+          if [[ "$GITHUB_EVENT_NAME" == push ]]; then
+            version="${GITHUB_REF_NAME#v}"
+            tags="$image:sha-$GITHUB_SHA,$image:$version"
+          else
+            # A manual build reports the tree version, so it never overwrites a
+            # released version tag.
+            version=0.0.0
+            tags="$image:sha-$GITHUB_SHA"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tags=$tags" >> "$GITHUB_OUTPUT"
+          echo "check_tag=${tags%%,*}" >> "$GITHUB_OUTPUT"
+      - name: Stamp the release version
+        if: github.event_name == 'push'
+        run: python3 scripts/set_release_version.py "${{ steps.image.outputs.version }}"
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.image.outputs.tags }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ steps.image.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Check the pushed image
+        env:
+          CHECK_TAG: ${{ steps.image.outputs.check_tag }}
+          EXPECTED: flare ${{ steps.image.outputs.version }}
+        run: |
+          # Pull the pushed tag rather than reusing the local build so the check
+          # covers what the registry actually serves.
+          docker pull --quiet "$CHECK_TAG"
+          reported=$(docker run --rm "$CHECK_TAG" --version)
+          if [[ "$reported" != "$EXPECTED" ]]; then
+            echo "::error::$CHECK_TAG reported \"$reported\"; expected \"$EXPECTED\"."
+            exit 1
+          fi
+          # The fork's serving overrides must be present; their absence means the
+          # image was built from upstream sources instead of the patch stack.
+          help=$(docker run --rm "$CHECK_TAG" run --help)
+          for flag in --generation-defaults --max-context-tokens --chat-template; do
+            if ! grep -q -- "$flag" <<<"$help"; then
+              echo "::error::$CHECK_TAG lacks the fork flag $flag."
+              exit 1
+            fi
+          done
