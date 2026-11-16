@@ -170,13 +170,13 @@ def _validate_geometry(module: torch.nn.Module) -> _Widths:
     if any(getattr(module, name, None) != value for name, value in required.items()):
         raise ValueError("GDN geometry requires 128-element heads and a four-tap convolution"
                          " over the query, key, and value columns")
-    return widths
     if module.activation != "silu" or module.norm.activation not in ("silu", "sigmoid"):
         raise ValueError(
             "Qwen GDN requires SiLU convolution and SiLU/sigmoid output gating"
         )
     if module.conv1d.bias is not None:
         raise ValueError("Qwen GDN convolution must not have bias")
+    return widths
 
 
 class PreparedGDN:

@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 import torch
@@ -69,6 +70,30 @@ def test_gdn_scratch_columns_follow_head_counts(key_heads, value_heads, world_si
     assert scratch.projected_qkvz.stride() == (stride, 1)
     if pack_ba:
         assert scratch.projected_ba.data_ptr() == scratch.projected_qkvz.data_ptr() + 2 * (2 * key + 2 * value)
+
+
+def _geometry(value_heads=48, **fields):
+    module = dict(num_k_heads=16, num_v_heads=value_heads, head_k_dim=128, head_v_dim=128,
+                  conv_dim=128 * (2 * 16 + value_heads), conv_kernel_size=4, activation="silu",
+                  norm=SimpleNamespace(activation="silu"), conv1d=SimpleNamespace(bias=None))
+    return SimpleNamespace(**{**module, **fields})
+
+
+@pytest.mark.parametrize("value_heads", [32, 48])
+def test_gdn_geometry_accepts_two_or_three_value_heads_per_key_head(value_heads):
+    widths = _validate_geometry(_geometry(value_heads))
+    assert (widths.key_heads, widths.value_heads, widths.qkv) == (16, value_heads, 128 * (32 + value_heads))
+
+
+@pytest.mark.parametrize("fields, message", [
+    (dict(activation="relu"), "SiLU convolution"),
+    (dict(norm=SimpleNamespace(activation="tanh")), "SiLU convolution"),
+    (dict(conv1d=SimpleNamespace(bias=object())), "must not have bias"),
+    (dict(conv_dim=10240, num_v_heads=32), "four-tap convolution"),
+])
+def test_gdn_geometry_rejects_foreign_activation_bias_and_width(fields, message):
+    with pytest.raises(ValueError, match=message):
+        _validate_geometry(_geometry(**fields))
 
 
 def test_gdn_cpu_buffer_contracts():
