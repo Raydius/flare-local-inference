@@ -563,7 +563,8 @@ with the recorded device pointer before it loads any contents.
 
 `NativeResources::load` in `helios/src/runtime_core/mod.rs` rebuilds a
 core in this order: create a context with the recorded flags, limits, and
-cache configuration; reserve the recorded range and compare addresses; back
+cache configuration, bounding the recorded persisting L2 cache size by the
+serving device's maximum; reserve the recorded range and compare addresses; back
 each device allocation at its recorded address and map each host region;
 upload contents or zero-fill; apply storage relocations; load modules and
 resolve functions, checking each kernel's parameter layout against the
