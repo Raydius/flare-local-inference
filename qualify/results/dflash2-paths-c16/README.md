@@ -111,6 +111,34 @@ A16 decode lowers arm Q's rate by 7 % at concurrency 1 and 6 % with 16 clients, 
 overlap, and lowers acceptance at both concurrencies. At concurrency 8 the ranges meet (431.8 against 425.8)
 and the median is 11 % lower. The recommendation stands: arm Q, with A16 decode off.
 
+## Arm Q on upstream 6b68b9b4 (arm Q4, measured 2026-11-15)
+
+Arm Q4 is arm Q's console profile copied as *2026-11-14 Flare DFlash2 Q Rebase4* with only the image changed,
+to `local/flare-ignition:3b4a1a2e` (fork `deploy` on upstream `6b68b9b4`, image id `sha256:331149f657ce…`).
+The checkpoint, draft folder and every export and run option are arm Q's. The image prepares Qwen3.8 with the
+Transformers 5.23.0 release in place of the Git revision `1d9654e7` that arm Q's image used. Entry
+`gb202-tp1-202611160316` was exported without a kernel folder from an earlier image, in about 63 minutes (kernel
+tuning 838 s, forward compilation 1,869 s). It loads 74.01 GiB and holds 1,449,984 KV tokens; 109 graphs of
+the same kinds as arm Q, 9,103 kernels; the lowest free GPU memory during capture was 16,045 MiB. The same
+nine trials and the passkey probe ran with arm Q's commands, with no failed request.
+
+| | Q | Q4 | Q4 against Q |
+|---|---|---|---|
+| `code_edit` tok/s, concurrency 1 | 555.9 (548.7–572.2) | 552.3 (538.4–570.8) | −0.6 %, ranges overlap |
+| `code_edit` tok/s, concurrency 8 | 436.7 (425.8–455.6) | 447.4 (446.3–451.5) | +2.5 %, ranges overlap |
+| 16 clients, aggregate tok/s | 1231.2 (1217.0–1259.9) | 1219.4 (1200.8–1227.1) | −1.0 %, ranges overlap |
+| Acceptance rate, concurrency 1 / 8 | 0.627 / 0.630 | 0.619 / 0.609 | ranges overlap |
+| Accepted drafts per round, concurrency 1 / 8 | 2.38 / 3.96 | 2.36 / 3.76 | ranges overlap |
+| 1M passkey | 3 of 3 | 3 of 3 | |
+| Loaded GiB / KV tokens | 78.03 / 1,118,208 | 74.01 / 1,449,984 | −4.02 GiB / +331,776 |
+
+No median moves by more than 2.5 %, every Q4 range overlaps arm Q's, and the passkey passes at every depth:
+on this workload the rebased core serves at arm Q's rate and acceptance, with 30 % more KV capacity. The
+comparison covers the whole rebased stack (upstream `6b68b9b4`, the fork's carried commits and Transformers
+5.23.0); no difference is attributed to one of them. Numerical agreement of the Qwen3.8 forwards under
+Transformers 5.23.0 with those under `1d9654e7` was not measured beyond the acceptance counters and the
+passkey probe. Arm QA (A16 decode) was not re-exported on this image.
+
 ## Limits of this evidence
 
 - The workload starts few mixed rounds. In arm M the concurrency-8 trials launched 11, 11 and 12 mixed graphs (9 in
@@ -130,4 +158,5 @@ and the median is 11 % lower. The recommendation stands: arm Q, with A16 decode 
 `summary.json` holds every figure above per arm, with export stage timings. `<arm>/c<N>-r<R>/measurements.json`
 is the benchmark's trial record without its per-request observations (the full output is
 `~/.cache/dflash2-served/paths-c16/` on the measuring host); `<arm>/bench16-r<R>/measurements.json` is the
-16-client cell without its per-request samples.
+16-client cell without its per-request samples. Arm Q4's full trial output is
+`~/models/.cache/rebase-6b68b9b4/console/Q4/` on the measuring host.
