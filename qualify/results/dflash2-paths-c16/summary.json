@@ -770,5 +770,147 @@
     }
    ]
   }
+ },
+ "Q4": {
+  "code_edit_c1": {
+   "tok_s": {
+    "runs": [
+     570.8,
+     538.4,
+     552.3
+    ],
+    "median": 552.3,
+    "min": 538.4,
+    "max": 570.8
+   },
+   "acceptance_rate": {
+    "runs": [
+     0.6524,
+     0.6037,
+     0.619
+    ],
+    "median": 0.619,
+    "min": 0.6037,
+    "max": 0.6524
+   },
+   "accepted_per_round": {
+    "runs": [
+     2.428,
+     2.362,
+     2.354
+    ],
+    "median": 2.362,
+    "min": 2.354,
+    "max": 2.428
+   },
+   "requests_failed": 0
+  },
+  "code_edit_c8": {
+   "tok_s": {
+    "runs": [
+     447.4,
+     451.5,
+     446.3
+    ],
+    "median": 447.4,
+    "min": 446.3,
+    "max": 451.5
+   },
+   "acceptance_rate": {
+    "runs": [
+     0.5986,
+     0.6092,
+     0.6608
+    ],
+    "median": 0.6092,
+    "min": 0.5986,
+    "max": 0.6608
+   },
+   "accepted_per_round": {
+    "runs": [
+     3.761,
+     3.658,
+     4.05
+    ],
+    "median": 3.761,
+    "min": 3.658,
+    "max": 4.05
+   },
+   "requests_failed": 0
+  },
+  "clients_16": {
+   "aggregate_tok_s": {
+    "runs": [
+     1200.8,
+     1227.1,
+     1219.4
+    ],
+    "median": 1219.4,
+    "min": 1200.8,
+    "max": 1227.1
+   },
+   "completed_of_requests": [
+    "0/16",
+    "0/16",
+    "0/16"
+   ]
+  },
+  "loaded_gib": 74.01,
+  "kv_tokens": 1449984,
+  "export": {
+   "entry": "gb202-tp1-202611160316",
+   "start": "2026-11-15T18:14:29-08:00",
+   "stage_seconds": {
+    "Construct graph catalog": 127.1,
+    "Prepare and tune kernels": 837.9,
+    "Compile model forwards": 1869.0,
+    "Warm compiled forwards": 333.6,
+    "Prepare serving graphs": 296.7,
+    "Export native core": 236.8
+   },
+   "lowest_free_gpu_mib": 16045,
+   "kernels": 9103
+  },
+  "graphs": {
+   "total": 109,
+   "decode": 5,
+   "init": 10,
+   "prefill": 20,
+   "restore": 10,
+   "resume": 10,
+   "snapshot": 10,
+   "speculative": 40,
+   "vision": 4
+  },
+  "max_active": 16,
+  "passkey_1m": {
+   "all_passed": true,
+   "cells": [
+    {
+     "depth": 0.1,
+     "prompt_tokens": 1009836,
+     "passed": true,
+     "client_error": null
+    },
+    {
+     "depth": 0.5,
+     "prompt_tokens": 1009836,
+     "passed": true,
+     "client_error": null
+    },
+    {
+     "depth": 0.9,
+     "prompt_tokens": 1009836,
+     "passed": true,
+     "client_error": null
+    }
+   ]
+  },
+  "image": {
+   "tag": "local/flare-ignition:3b4a1a2e",
+   "id": "sha256:331149f657ce7f5816ac5eb3852be26f02e14c0c2099d37565da16ffe304f37e",
+   "transformers": "5.23.0",
+   "transformers_source": "release"
+  }
  }
 }
