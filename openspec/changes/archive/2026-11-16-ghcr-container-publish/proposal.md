@@ -1,6 +1,6 @@
 # Publish the serving container to GHCR on version tags
 
-Tier: 1 — two files (one new workflow, one doc section), no runtime code or behavior fork
+Tier: 1 — three files (one new workflow, one doc section, two README passages), no runtime code or behavior fork
 Type: feature
 
 External Review: Waived — Tier 1 (one new workflow plus one documentation section; no runtime code)
@@ -10,6 +10,7 @@ External Review: Waived — Tier 1 (one new workflow plus one documentation sect
 - "Let’s create a tag triggered ghcr flow"
 - "I would do ghcr"
 - "I only provided JohnB’s upload as a format example. I would need to package the whole runtime including the relevant patchwork"
+- "is there anything about this build/publish that should be included in the deploy branch's README?  Perhaps the ghcr.io ?"
 
 ## Blast Radius
 
