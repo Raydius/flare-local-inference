@@ -97,11 +97,13 @@ class ModelWeights:
         skipped = check_manifest(set(manifest.tensors), config)
         tree = canonical_tree(Qwen3_5TextModel, Qwen3_5TextConfig.from_dict(config.text))
         plan = projection_plan(config)
-        grouped = {part + ".weight" for parts in plan.values() for part in parts}
+        grouped = {part.removeprefix(TEXT_PREFIX + ".") + ".weight" for parts in plan.values() for part in parts}
         before = allocated_tensor_bytes(device)
         projections = {}
         with DirectWeightLoader(manifest, device, prefixes=(TEXT_PREFIX + ".", "lm_head."),
                                 progress=progress) as loader:
+            # The published checkpoint is BF16 throughout and declares no quantized layers.
+            loader.quantization = {}
             for name, _ in tuple(tree.named_parameters()):
                 if name in grouped or name == "embed_tokens.weight":
                     continue
