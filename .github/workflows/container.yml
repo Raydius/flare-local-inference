@@ -21,18 +21,20 @@ jobs:
         with:
           fetch-depth: 0
       - name: Require the tagged commit on the default branch
-        if: github.event_name == 'push'
+        if: github.ref_type == 'tag'
         run: git merge-base --is-ancestor "$GITHUB_SHA" "origin/${{ github.event.repository.default_branch }}"
       - name: Resolve the image name and tags
         id: image
         run: |
-          image="ghcr.io/${GITHUB_REPOSITORY@L}"
-          if [[ "$GITHUB_EVENT_NAME" == push ]]; then
+          # Named after the upstream repository, NVIDIA/hyperflare-inference, not this fork.
+          image="ghcr.io/${GITHUB_REPOSITORY_OWNER@L}/hyperflare-inference"
+          if [[ "$GITHUB_REF_TYPE" == tag ]]; then
             version="${GITHUB_REF_NAME#v}"
             tags="$image:sha-$GITHUB_SHA,$image:$version"
           else
-            # A manual build reports the tree version, so it never overwrites a
-            # released version tag.
+            # A manual build of a branch reports the tree version, so it never
+            # overwrites a released version tag. A manual build of a version tag
+            # takes the branch above and rebuilds that release.
             version=0.0.0
             tags="$image:sha-$GITHUB_SHA"
           fi
@@ -40,7 +42,7 @@ jobs:
           echo "tags=$tags" >> "$GITHUB_OUTPUT"
           echo "check_tag=${tags%%,*}" >> "$GITHUB_OUTPUT"
       - name: Stamp the release version
-        if: github.event_name == 'push'
+        if: github.ref_type == 'tag'
         run: python3 scripts/set_release_version.py "${{ steps.image.outputs.version }}"
       - uses: docker/login-action@v3
         with:
