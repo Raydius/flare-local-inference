@@ -77,26 +77,28 @@ class GDNScratch:
 
     @classmethod
     def allocate(cls, tokens: int, device: torch.device, *, world_size=1, hidden_size=2560, buffers=None,
-                 output=None, pack_ba=False) -> GDNScratch:
+                 output=None, pack_ba=False, key_heads=16, value_heads=48) -> GDNScratch:
         if type(tokens) is not int or tokens <= 0:
             raise ValueError("GDN token capacity must be positive")
         def zeros(width):
             return (torch.zeros((tokens, width), device=device, dtype=torch.bfloat16) if buffers is None
                     else buffers.zeros((tokens, width), torch.bfloat16))
+        widths = _Widths(key_heads // world_size, value_heads // world_size)
         if pack_ba:
-            packed = zeros(16480 // world_size)
-            qkvz, ba = packed.split((16384 // world_size, 96 // world_size), dim=-1)
+            packed = zeros(widths.qkvz + widths.ba)
+            qkvz, ba = packed.split((widths.qkvz, widths.ba), dim=-1)
         else:
-            qkvz = zeros(16384 // world_size)
-            ba = zeros(96 // world_size)
+            qkvz = zeros(widths.qkvz)
+            ba = zeros(widths.ba)
         convolved, recurrence, gated = (
             zeros(width)
-            for width in (10240 // world_size, 6144 // world_size, 6144 // world_size))
+            for width in (widths.qkv, widths.value, widths.value))
         output = zeros(hidden_size) if output is None else output
         prefill = PrefillBuffers.allocate(tokens if sm103.is_sm103(device) else 0, device,
-                                         key_heads=16 // world_size, value_heads=48 // world_size,
+                                         key_heads=widths.key_heads, value_heads=widths.value_heads,
                                          buffers=buffers)
-        return cls(qkvz[:, :10240 // world_size], convolved, qkvz[:, 10240 // world_size:], ba[:, 48 // world_size:], ba[:, :48 // world_size],
+        return cls(qkvz[:, :widths.qkv], convolved, qkvz[:, widths.qkv:], ba[:, widths.value_heads:],
+                   ba[:, :widths.value_heads],
                    recurrence, gated, output, qkvz, ba, prefill.query, prefill.key, prefill.value, prefill.decay,
                    prefill.beta)
 
@@ -124,17 +126,51 @@ class GDNScratch:
         )
 
 
-def _validate_geometry(module: torch.nn.Module, world_size=1) -> None:
-    required = {
-        "num_k_heads": 16 // world_size,
-        "num_v_heads": 48 // world_size,
-        "head_k_dim": 128,
-        "head_v_dim": 128,
-        "conv_dim": 10240 // world_size,
-        "conv_kernel_size": 4,
-    }
+@dataclass(frozen=True)
+class _Widths:
+    """Column widths of one rank's GDN buffers, from that rank's key and value head counts.
+
+    The input projection writes query, key, value, and gate (Z) columns in that
+    order, then one beta and one alpha column per value head. Every head has
+    128 elements.
+    """
+
+    key_heads: int
+    value_heads: int
+
+    def __post_init__(self):
+        if (type(self.key_heads) is not int or type(self.value_heads) is not int
+                or self.key_heads <= 0 or self.value_heads <= 0):
+            raise ValueError("GDN requires positive key and value head counts on every rank")
+
+    @property
+    def key(self) -> int:
+        return 128 * self.key_heads
+
+    @property
+    def value(self) -> int:
+        return 128 * self.value_heads
+
+    @property
+    def qkv(self) -> int:
+        return 2 * self.key + self.value
+
+    @property
+    def qkvz(self) -> int:
+        return self.qkv + self.value
+
+    @property
+    def ba(self) -> int:
+        return 2 * self.value_heads
+
+
+def _validate_geometry(module: torch.nn.Module) -> _Widths:
+    widths = _Widths(getattr(module, "num_k_heads", None), getattr(module, "num_v_heads", None))
+    required = {"head_k_dim": 128, "head_v_dim": 128, "conv_dim": widths.qkv, "conv_kernel_size": 4}
     if any(getattr(module, name, None) != value for name, value in required.items()):
-        raise ValueError("GDN geometry requires 16 key heads, 48 value heads, and 128-element head dimensions before sharding")
+        raise ValueError("GDN geometry requires 128-element heads and a four-tap convolution"
+                         " over the query, key, and value columns")
+    return widths
     if module.activation != "silu" or module.norm.activation not in ("silu", "sigmoid"):
         raise ValueError(
             "Qwen GDN requires SiLU convolution and SiLU/sigmoid output gating"
@@ -184,10 +220,8 @@ class PreparedGDN:
         prepare_projections: bool = True,
         gdn_buffers=None,
     ) -> None:
-        self.world_size = 48 // module.num_v_heads
-        self.key_heads, self.value_heads = module.num_k_heads, module.num_v_heads
-        world_size = self.world_size
-        _validate_geometry(module, world_size)
+        self.widths = widths = _validate_geometry(module)
+        self.key_heads, self.value_heads = widths.key_heads, widths.value_heads
         if mode not in ("decode", "prefill"):
             raise ValueError("GDN graph mode must be decode or prefill")
         self.module, self.scratch, self.state, self.metadata = (
@@ -207,16 +241,16 @@ class PreparedGDN:
             raise ValueError("GDN source must be BF16 with the module's hidden width")
         if self.device.type != "cuda":
             raise ValueError("prepared GDN requires CUDA")
-        widths = tuple(width if index == 7 else width // world_size for index, width in
-                       enumerate((10240, 10240, 6144, 48, 48, 6144, 6144, module.hidden_size, 16384, 96)))
+        column_widths = (widths.qkv, widths.qkv, widths.value, widths.value_heads, widths.value_heads,
+                         widths.value, widths.value, module.hidden_size, widths.qkvz, widths.ba)
         qkvz_stride, ba_stride = scratch.projected_qkvz.stride(0), scratch.projected_ba.stride(0)
-        if qkvz_stride < 16384 // world_size or ba_stride < 96 // world_size:
+        if qkvz_stride < widths.qkvz or ba_stride < widths.ba:
             raise ValueError("GDN projection row strides must cover their complete outputs")
-        strides = (qkvz_stride, 10240 // world_size, qkvz_stride, ba_stride, ba_stride,
-                   6144 // world_size, 6144 // world_size, module.hidden_size, qkvz_stride, ba_stride)
+        strides = (qkvz_stride, widths.qkv, qkvz_stride, ba_stride, ba_stride,
+                   widths.value, widths.value, module.hidden_size, qkvz_stride, ba_stride)
         # Projection operands; the chunked-prefill buffers are validated where they are used.
         projected = [field for field in fields(scratch) if not field.name.startswith("prefill_")]
-        for field, width, stride in zip(projected, widths, strides, strict=True):
+        for field, width, stride in zip(projected, column_widths, strides, strict=True):
             tensor = getattr(scratch, field.name)
             if (
                 tensor.device != self.device
@@ -301,9 +335,9 @@ class PreparedGDN:
 
         if prepare_projections:
             if self.fused_qkvzba:
-                width = 16480 // world_size
+                width = widths.qkvz + widths.ba
                 if (qkvz_stride != width or ba_stride != width
-                        or scratch.projected_ba.data_ptr() != scratch.projected_qkvz.data_ptr() + 2 * 16384 // world_size):
+                        or scratch.projected_ba.data_ptr() != scratch.projected_qkvz.data_ptr() + 2 * widths.qkvz):
                     raise ValueError("combined GDN projection requires adjacent QKV/Z and B/A column views")
                 packed = scratch.projected_qkvz.as_strided((self.tokens, width), (width, 1))
                 inputs = (("in_proj_qkvzba", packed),)
@@ -444,7 +478,7 @@ class PreparedGDN:
                 null_state_index=0,
                 recurrence_policy="sequential_k1",
             )
-            q, k, v = scratch.convolved_qkv.split((2048 // world_size, 2048 // world_size, 6144 // world_size), dim=-1)
+            q, k, v = scratch.convolved_qkv.split((widths.key, widths.key, widths.value), dim=-1)
             args = dict(
                 **common,
                 q=q.view(self.tokens, self.key_heads, 128),
@@ -597,7 +631,7 @@ class PreparedGDN:
             raise RuntimeError("functional GDN requires completed sequence binding finalization")
         if self.fused_qkvzba:
             packed = self.projections["in_proj_qkvzba"](source)
-            qkvz, ba = packed.split((16384 // self.world_size, 96 // self.world_size), dim=-1)
+            qkvz, ba = packed.split((self.widths.qkvz, self.widths.ba), dim=-1)
         elif self.parallel_projections is not None:
             qkvz, ba = self.parallel_projections(source)
         else:
@@ -607,7 +641,7 @@ class PreparedGDN:
                 z = self.projections["in_proj_z"](source)
             ba = self.projections["in_proj_ba"](source)
         if qkvz is not None:
-            projected, z = qkvz.split((10240 // self.world_size, 6144 // self.world_size), dim=-1)
+            projected, z = qkvz.split((self.widths.qkv, self.widths.value), dim=-1)
         b, a = ba.chunk(2, dim=-1)
         if not self._has_partitions:
             if metadata is None:
@@ -622,7 +656,7 @@ class PreparedGDN:
             outputs = []
             for part, sequence in zip(partitions.parts, self.sequences_by_role, strict=True):
                 packed_qkvz, packed_ba = part.gather(qkvz), part.gather(ba)
-                part_projected, part_z = packed_qkvz.split((10240 // self.world_size, 6144 // self.world_size), dim=-1)
+                part_projected, part_z = packed_qkvz.split((self.widths.qkv, self.widths.value), dim=-1)
                 part_b, part_a = packed_ba.chunk(2, dim=-1)
                 values, _ = sequence._functional_sequence(part_projected, part_z, part_a, part_b,
                     records=records if part.mode == "decode" else None, metadata=part.metadata)

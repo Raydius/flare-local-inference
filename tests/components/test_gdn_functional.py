@@ -96,7 +96,7 @@ def test_functional_gdn_routes_projection_slices_without_bound_scratch(kind):
     owner = object.__new__(gated_delta.PreparedGDN)
     owner._functional_requested = owner._functional_ready = True
     owner._has_partitions = False
-    owner.world_size = 1
+    owner.widths = gated_delta._Widths(16, 48)
     owner.fused_qkvzba, owner.fused_qkvz = kind == "combined", kind == "parallel"
     owner.tokens = 2
     owner.scratch = None
@@ -135,7 +135,7 @@ def test_functional_gdn_routes_projection_slices_without_bound_scratch(kind):
 def test_functional_gdn_uses_runtime_partition_metadata_and_records():
     owner = object.__new__(gated_delta.PreparedGDN)
     owner._functional_requested = owner._functional_ready = owner._has_partitions = True
-    owner.world_size, owner.fused_qkvzba, owner.fused_qkvz = 1, True, True
+    owner.widths, owner.fused_qkvzba, owner.fused_qkvz = gated_delta._Widths(16, 48), True, True
     owner.partitions = None
     owner.projections = {"in_proj_qkvzba": lambda source: torch.zeros((2, 16480), dtype=torch.bfloat16),
                          "out_proj": lambda value: value}

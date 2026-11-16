@@ -49,6 +49,28 @@ def test_gdn_chunked_prefill_storage_follows_execution_path(monkeypatch, chunked
     assert scratch.prefill_decay.shape == scratch.prefill_beta.shape == (4096 if chunked else 0, 48)
 
 
+@pytest.mark.parametrize("pack_ba", [False, True])
+@pytest.mark.parametrize("key_heads, value_heads, world_size", [(16, 48, 1), (16, 48, 2), (16, 32, 1)])
+def test_gdn_scratch_columns_follow_head_counts(key_heads, value_heads, world_size, pack_ba):
+    scratch = GDNScratch.allocate(3, torch.device("cpu"), world_size=world_size, key_heads=key_heads,
+                                  value_heads=value_heads, pack_ba=pack_ba)
+    key, value = 128 * key_heads // world_size, 128 * value_heads // world_size
+    heads = value_heads // world_size
+    assert scratch.projected_qkv.shape == scratch.convolved_qkv.shape == (3, 2 * key + value)
+    assert scratch.z.shape == scratch.recurrence.shape == scratch.gated.shape == (3, value)
+    assert scratch.projected_qkvz.shape == (3, 2 * key + 2 * value)
+    assert scratch.projected_ba.shape == (3, 2 * heads)
+    assert scratch.b.shape == scratch.a.shape == (3, heads)
+    assert scratch.b.data_ptr() == scratch.projected_ba.data_ptr()
+    # Q/K/V and Z are adjacent columns of one projection output; beta precedes alpha.
+    assert scratch.projected_qkv.data_ptr() == scratch.projected_qkvz.data_ptr()
+    assert scratch.z.data_ptr() == scratch.projected_qkvz.data_ptr() + 2 * (2 * key + value)
+    stride = 2 * key + 2 * value + (2 * heads if pack_ba else 0)
+    assert scratch.projected_qkvz.stride() == (stride, 1)
+    if pack_ba:
+        assert scratch.projected_ba.data_ptr() == scratch.projected_qkvz.data_ptr() + 2 * (2 * key + 2 * value)
+
+
 def test_gdn_cpu_buffer_contracts():
     state = GDNState.allocate(3, torch.device("cpu"), speculative_tokens=2)
     metadata = DeltaMetadata.allocate(2, torch.device("cpu"), verification_columns=3)

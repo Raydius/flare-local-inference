@@ -679,6 +679,59 @@ def quantize_bf16_linear_as_mxfp8(weight, *, retain_scale_rows=True):
     return MXFP8LinearWeight(quantize_mxfp8_rows_torch(source, retain_scale_rows=retain_scale_rows, allocate=persistent_empty), columns, padded, rows)
 
 
+_E2M1_BOUNDS = (0.25, 0.75, 1.25, 1.75, 2.5, 3.5, 5.0)
+
+
+def nvfp4_body_parts(weight, *, rows_per_chunk=8192, allocate=None):
+    """E2M1 codes, group-16 E4M3 scales, and the FP32 gain of one BF16 matrix, on any device.
+
+    Mirrors the draft vocabulary head's packing (`ignition/components/vocabulary.py:nvfp4_draft_head`): one
+    amax-derived gain per matrix, one E4M3 scale per 16 input columns, and nearest E2M1 codes.
+    """
+    import torch
+
+    if (weight.ndim != 2 or weight.dtype != torch.bfloat16 or min(weight.shape) <= 0
+            or weight.shape[1] % 16 or not weight.is_contiguous()):
+        raise ValueError("NVFP4 packing requires a contiguous BF16 matrix with 16-aligned input width")
+    rows, columns = weight.shape
+    global_scale = (6.0 * 448.0) / weight.abs().amax().float().clamp_min(1e-8)
+    values = (torch.empty((rows, columns // 2), dtype=torch.uint8, device=weight.device) if allocate is None
+              else allocate((rows, columns // 2), dtype=torch.uint8, device=weight.device))
+    scales = (torch.empty((rows, columns // 16), dtype=torch.float8_e4m3fn, device=weight.device)
+              if allocate is None else
+              allocate((rows, columns // 16), dtype=torch.float8_e4m3fn, device=weight.device))
+    bounds = torch.tensor(_E2M1_BOUNDS, device=weight.device)
+    for start in range(0, rows, rows_per_chunk):
+        block = weight[start:start + rows_per_chunk].float().view(-1, columns // 16, 16)
+        scale = (block.abs().amax(-1) / 6.0 * global_scale).clamp(max=448.0).to(torch.float8_e4m3fn)
+        effective = scale.float() / global_scale
+        quantized = block / torch.where(effective > 0, effective, torch.ones_like(effective)).unsqueeze(-1)
+        codes = (torch.bucketize(quantized.abs(), bounds) | ((quantized < 0).long() << 3)).to(torch.uint8)
+        codes = codes.view(-1, columns)
+        values[start:start + rows_per_chunk] = codes[:, 0::2] | (codes[:, 1::2] << 4)
+        scales[start:start + rows_per_chunk] = scale.view(-1, columns // 16)
+    gain = (torch.empty((1,), dtype=torch.float32, device=weight.device) if allocate is None
+            else allocate((1,), dtype=torch.float32, device=weight.device))
+    gain.copy_((1.0 / global_scale).reshape(1).float())
+    return values, scales, gain
+
+
+def pack_body_nvfp4(weight, *, rows_per_chunk=8192):
+    """Convert a BF16 projection to b12x NVFP4 weights-only storage during preparation."""
+    import torch
+    from b12x._lib.intrinsics.reference import swizzle_block_scale
+    from b12x.gemm.blockscaled import pack_weight
+
+    if (weight.ndim != 2 or weight.dtype != torch.bfloat16 or not weight.is_cuda
+            or min(weight.shape) <= 0 or weight.shape[1] % 16 or not weight.is_contiguous()):
+        raise ValueError("NVFP4 packing requires a contiguous BF16 CUDA matrix with 16-aligned input width")
+    if not bool(torch.isfinite(weight).all()):
+        raise ValueError("NVFP4 packing requires finite BF16 weights")
+    values, scales, gain = nvfp4_body_parts(weight, rows_per_chunk=rows_per_chunk, allocate=persistent_empty)
+    return pack_weight(values, swizzle_block_scale(scales, allocate=persistent_empty), recipe="nvfp4",
+                       global_scale=gain, global_scale_kind="multiplier", allocate=persistent_empty)
+
+
 def _read_mode():
     """Checkpoint transport for a rank process that allocates only on its own GPU.
 

@@ -130,7 +130,7 @@ def test_fallback_allocates_bf16_intermediate():
 ])
 def test_projection_formats_determine_tensor_fp8_staging_allocation(formats, expected_bytes):
     text = dict(hidden_size=5120, vocab_size=248320, num_attention_heads=24, head_dim=256,
-        layer_types=["linear_attention", "full_attention"])
+        linear_num_key_heads=16, linear_num_value_heads=48, layer_types=["linear_attention", "full_attention"])
     quantization = {f"{TEXT_PREFIX}.layers.{index}.mlp.down_proj": dict(quant_algo="NVFP4", group_size=16)
                     for index in range(2)}
     for suffix, algorithm in zip(("layers.0.linear_attn.out_proj", "layers.1.self_attn.o_proj"), formats, strict=True):

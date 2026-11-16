@@ -31,6 +31,9 @@ def test_default_mode_uses_manually_declared_model_card_sampling(recipe):
         expected["ranges"] = {"temperature": {"min": .95, "max": 1.}, "top_p": {"min": .95, "max": 1.}}
     elif recipe.name == "kimi3":
         expected["ranges"] = {"top_p": {"min": .95, "max": 1.}}
+    elif recipe.name == "elephant1":
+        # The card gives no sampling parameters; it describes single-pass decisions, served greedy.
+        expected.update(top_p=1., top_k=1)
     assert recipe.sampling_defaults.as_dict() == expected
 
 

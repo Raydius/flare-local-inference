@@ -23,6 +23,7 @@ from .declaration import Checkpoint, Recipe
 def recipes() -> tuple[Recipe, ...]:
     from .deepseek4.recipe import RECIPE as deepseek4
     from .deepseek41.recipe import RECIPE as deepseek41
+    from .elephant1.recipe import RECIPE as elephant1
     from .gemma4.recipe import RECIPE as gemma4
     from .glm53.recipe import RECIPE as glm53
     from .qwen38.recipe import RECIPE as qwen38
@@ -38,7 +39,7 @@ def recipes() -> tuple[Recipe, ...]:
     from .muse_glimmer_nvfp4.recipe import RECIPE as muse_glimmer_nvfp4
 
     return (qwen38, qwen38_dense, glm53, deepseek41, deepseek4, mimo_v2, kimi3, kimi31, step5,
-            nemotron_h, minimax_m3, gemma4, muse_spark, inkling2, muse_glimmer_nvfp4)
+            nemotron_h, minimax_m3, gemma4, muse_spark, inkling2, muse_glimmer_nvfp4, elephant1)
 
 
 def snapshot_directory(hub_cache: Path, checkpoint: Checkpoint) -> Path:

@@ -48,6 +48,8 @@ class Scratch:
         return cls(zeros((tokens, config.hidden)), zeros((rows, config.hidden)),
                    zeros((rows, config.vocabulary)),
                    GDNScratch.allocate(tokens, device, hidden_size=config.hidden,
+                                       key_heads=config.text["linear_num_key_heads"],
+                                       value_heads=config.text["linear_num_value_heads"],
                                        pack_ba=config.pack_gdn_inputs), quantized)
 
     def rows(self, tokens, rows):
