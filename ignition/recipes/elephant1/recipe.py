@@ -46,6 +46,7 @@ RECIPE = Recipe(
     ),
     context=TRAINED_CONTEXT, page_tokens=PAGE_TOKENS, concurrency=2, max_concurrency=4,
     max_draft_tokens=0, prefill_chunk=2048, language_model_only=True,
-    # Continuation and KV geometry, and the graph allowance measured on the target device.
+    # Continuation and KV geometry, and the graph allowance. At concurrency 2 and the full context, with the KV
+    # cache capped at two contexts, the serving process held 9,608 MiB on an RTX 5060 Ti.
     ranks=MappingProxyType({1: RankCosts(55_714_048, 4_194_304, 2 << 30)}),
 )
