@@ -137,7 +137,8 @@ on this workload the rebased core serves at arm Q's rate and acceptance, with 30
 comparison covers the whole rebased stack (upstream `6b68b9b4`, the fork's carried commits and Transformers
 5.23.0); no difference is attributed to one of them. Numerical agreement of the Qwen3.8 forwards under
 Transformers 5.23.0 with those under `1d9654e7` was not measured beyond the acceptance counters and the
-passkey probe. Arm QA (A16 decode) was not re-exported on this image.
+passkey probe. Arm QA (A16 decode) was exported on this image afterwards (entry `gb202-tp1-202611160632`: 74.01 GiB
+loaded, 1,449,984 KV tokens against arm QA's 1,110,016) and is not measured in this study.
 
 ## Limits of this evidence
 
