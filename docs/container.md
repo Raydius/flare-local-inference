@@ -36,11 +36,12 @@ deployment additionally requires the host's RDMA devices and network setup.
 ## Publish
 
 Pushing a `vX.Y.Z` tag on the default branch runs `.github/workflows/container.yml`,
-which builds this Dockerfile and publishes `ghcr.io/<owner>/<repo>:X.Y.Z` and
+which builds this Dockerfile and publishes `ghcr.io/<owner>/hyperflare-inference:X.Y.Z` and
 `:sha-<commit>` to the GitHub container registry. The workflow stamps the tag
 version with `scripts/set_release_version.py` before building, so `flare --version`
-in the image reports the release version; a `workflow_dispatch` run publishes only
-the `sha-` tag and keeps the tree's `0.0.0` build. After pushing, the workflow
+in the image reports the release version. A `workflow_dispatch` run on a version
+tag rebuilds that release the same way; one on a branch publishes only the `sha-`
+tag and keeps the tree's `0.0.0` build. After pushing, the workflow
 pulls the `sha-` tag and requires `--version` to match and `run --help` to list the
 serving overrides this fork adds to `flare run`.
 
