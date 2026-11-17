@@ -253,6 +253,7 @@ impl Incoming {
             host_stops: self.prompt.has_host_stops(),
             prompt_logprobs: self.prompt_scored < self.prompt_score_end,
             growable_output: true,
+            atomic_spans: self.prompt.data.spans.clone(),
         }
     }
 
@@ -1467,14 +1468,6 @@ impl<'a> Worker<'a> {
             incoming.blocked = None;
             self.scheduler.set_arrival(handle, incoming.arrival_ns)?;
             let slot = handle.slot as usize;
-            if let Err(error) = self
-                .scheduler
-                .set_prefill_spans(handle, &incoming.prompt.data.spans)
-            {
-                self.scheduler.cancel(handle)?;
-                incoming.fail(error);
-                continue;
-            }
             let consumed = self.scheduler.request(handle)?.consumed_tokens as usize;
             for image in incoming
                 .prompt
@@ -3131,6 +3124,7 @@ mod tests {
             host_stops: false,
             prompt_logprobs: false,
             growable_output: false,
+            atomic_spans: Vec::new(),
         };
         let constrained = scheduler.admit(spec(7, true)).unwrap();
         assert_eq!(
@@ -3395,6 +3389,7 @@ mod tests {
             host_stops: false,
             prompt_logprobs: false,
             growable_output: false,
+            atomic_spans: Vec::new(),
         }
     }
 
@@ -3910,6 +3905,7 @@ mod tests {
             host_stops: false,
             prompt_logprobs: false,
             growable_output: false,
+            atomic_spans: Vec::new(),
         };
         let active = scheduler.admit(spec()).unwrap();
         let rejected = scheduler.admit(spec()).unwrap_err();

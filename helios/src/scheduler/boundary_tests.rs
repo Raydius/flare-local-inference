@@ -88,6 +88,7 @@ fn spec(system: Option<usize>, prompt: usize, output: u32) -> RequestSpec {
         host_stops: false,
         prompt_logprobs: false,
         growable_output: false,
+        atomic_spans: Vec::new(),
     }
 }
 fn run_step(s: &mut RequestScheduler) -> ScheduledPlan {
@@ -696,6 +697,69 @@ fn atomic_prefill_spans_reject_invalid_geometry_before_execution() {
     s.set_prefill_spans(h, &[400..700]).unwrap();
     run_step(&mut s);
     assert!(s.set_prefill_spans(h, &[800..900]).is_err());
+}
+
+/// A prompt of two blocks: `prefix` shared tokens, then a suffix whose tokens depend on `salt`.
+fn block_spec(prefix: usize, prompt: usize, salt: u32) -> RequestSpec {
+    let mut spec = spec(None, prompt, 1);
+    for token in &mut spec.prompt[prefix..] {
+        *token += salt;
+    }
+    spec.message_boundaries = vec![prefix];
+    spec.atomic_spans = vec![0..prefix, prefix..prompt];
+    spec
+}
+
+fn prefill_chunks(s: &mut RequestScheduler, h: RequestHandle) -> Vec<(u64, usize)> {
+    let mut chunks = Vec::new();
+    while s.request(h).unwrap().phase != RequestPhase::Finishing {
+        let step = run_step(s);
+        if step.kind == GraphKind::Prefill {
+            chunks.push((step.lanes[0].start_position, step.lanes[0].tokens));
+        }
+    }
+    chunks
+}
+
+#[test]
+fn a_prefix_block_is_prefilled_once_and_reused_at_its_unaligned_end() {
+    let mut s = scheduler(24, false);
+    let first = s.admit(block_spec(300, 420, 0)).unwrap();
+    assert_eq!(prefill_chunks(&mut s, first), [(0, 300), (300, 120)]);
+    s.finish(first).unwrap();
+    let second = s.admit(block_spec(300, 400, 1000)).unwrap();
+    assert_eq!(s.request(second).unwrap().reused_prompt_tokens(), 300);
+    assert_eq!(prefill_chunks(&mut s, second), [(300, 100)]);
+    s.finish(second).unwrap();
+}
+
+#[test]
+fn a_request_never_resumes_inside_its_own_block() {
+    let mut s = scheduler(24, false);
+    let first = s.admit(block_spec(300, 420, 0)).unwrap();
+    prefill_chunks(&mut s, first);
+    s.finish(first).unwrap();
+    // The longer prompt holds the whole earlier prompt inside its second block, whose state at
+    // token 420 depends on the tokens after it: only the prefix block is reusable.
+    let extended = s.admit(block_spec(300, 470, 0)).unwrap();
+    assert_eq!(s.request(extended).unwrap().reused_prompt_tokens(), 300);
+    assert_eq!(prefill_chunks(&mut s, extended), [(300, 170)]);
+    s.finish(extended).unwrap();
+    // The same tokens without blocks reuse the deepest checkpoint, as before.
+    let mut causal = block_spec(300, 470, 0);
+    causal.atomic_spans.clear();
+    let causal = s.admit(causal).unwrap();
+    assert!(s.request(causal).unwrap().reused_prompt_tokens() >= 420);
+}
+
+#[test]
+fn invalid_atomic_spans_are_refused_at_admission() {
+    for spans in [vec![10..10], vec![0..513], vec![900..1100], vec![20..100, 90..110], vec![200..300, 10..20]] {
+        let mut s = scheduler(8, false);
+        let mut request = spec(None, 1024, 1);
+        request.atomic_spans = spans;
+        assert!(s.admit(request).is_err());
+    }
 }
 
 #[test]

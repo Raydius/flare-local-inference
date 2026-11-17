@@ -145,6 +145,7 @@ fn add(s: &mut RequestScheduler, id: u32, prompt: usize, output: u32) -> Request
         host_stops: false,
         prompt_logprobs: false,
         growable_output: false,
+        atomic_spans: Vec::new(),
     })
     .unwrap()
 }
@@ -1221,6 +1222,7 @@ fn long_conversations_use_work_budget_and_cross_unselected_messages() {
             host_stops: false,
             prompt_logprobs: false,
             growable_output: false,
+            atomic_spans: Vec::new(),
         }).unwrap());
     }
     let mut full_chunks = 0;
@@ -1726,6 +1728,7 @@ fn prerequisite_cohort_accounts_for_ready_batch_mates() {
             host_stops: false,
             prompt_logprobs: false,
             growable_output: false,
+            atomic_spans: Vec::new(),
         })
         .unwrap();
     for handle in [decode, prefill] {
@@ -2357,6 +2360,7 @@ fn mixed_cancellation_keeps_other_rows_live_and_retires_pages_only_after_complet
             host_stops: false,
             prompt_logprobs: false,
             growable_output: false,
+            atomic_spans: Vec::new(),
         })
         .is_err()
     );
@@ -3058,7 +3062,8 @@ fn terminal_snapshot_publishes_exact_partial_page_for_shared_cache_geometries() 
         s.commit(&plan, fence).unwrap();
         let spec = RequestSpec { prompt: vec![1; page_tokens + 1], message_boundaries: vec![],
             conditioning: vec![], max_new_tokens: 1, grammar_constrained: false,
-            host_stops: false, prompt_logprobs: false, growable_output: false };
+            host_stops: false, prompt_logprobs: false, growable_output: false,
+            atomic_spans: Vec::new(), };
         assert_eq!(s.plan_admission(&spec).unwrap().resident_tokens(), 0);
         assert_eq!(s.stats().snapshot_publications, publications);
         complete_timed(&mut s, &plan, fence, 0, true, gpu_time(MS / 10));
@@ -3154,6 +3159,7 @@ fn feedback_prefill_tails_progress_before_existing_generations_finish() {
                         host_stops: false,
                         prompt_logprobs: false,
                         growable_output: true,
+                        atomic_spans: Vec::new(),
                     })
                     .unwrap()
                 })

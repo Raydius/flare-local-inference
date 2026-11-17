@@ -286,6 +286,27 @@ pub struct PromptData {
     pub spans: Vec<std::ops::Range<usize>>,
 }
 
+/// Atomic prefill spans of a prompt whose core declares a block-end marker: the block through the
+/// marker and the block after it. A prompt without the marker has none; one holding it more than
+/// once has no single block boundary and is refused.
+pub fn block_spans(tokens: &[u32], marker: &[u32]) -> Result<Vec<std::ops::Range<usize>>> {
+    if marker.is_empty() {
+        return Ok(vec![]);
+    }
+    let mut ends = tokens
+        .windows(marker.len())
+        .enumerate()
+        .filter(|(_, window)| *window == marker)
+        .map(|(start, _)| start + marker.len());
+    let Some(end) = ends.next() else {
+        return Ok(vec![]);
+    };
+    if ends.next().is_some() {
+        return Err("prompt holds the block-end marker more than once".into());
+    }
+    Ok([0..end, end..tokens.len()].into_iter().filter(|span| !span.is_empty()).collect())
+}
+
 impl PromptData {
     pub fn is_image_position(&self, position: usize) -> bool {
         self.vision_token_indices.get(position).is_some_and(|index| *index >= 0)
@@ -424,6 +445,10 @@ pub fn validate_prompt_data(config: &ModelConfig, tokens: &[u32], data: &PromptD
     {
         return Err("prompt arrays violate prepared geometry".into());
     }
+    let marker = &config.contract.frontend.block_end_marker;
+    if !marker.is_empty() && data.spans != block_spans(tokens, marker)? {
+        return Err("prompt spans do not match the declared block-end marker".into());
+    }
     if let Some(layout) = &config.contract.frontend.image_tokens {
         if data.vision_token_indices.len() != tokens.len()
             || tokens
@@ -449,7 +474,7 @@ pub fn validate_prompt_data(config: &ModelConfig, tokens: &[u32], data: &PromptD
             }) {
                 return Err("image token spans do not match their declared boundaries".into());
             }
-        } else if !data.spans.is_empty() {
+        } else if marker.is_empty() && !data.spans.is_empty() {
             return Err("image layout does not declare atomic spans".into());
         }
     }

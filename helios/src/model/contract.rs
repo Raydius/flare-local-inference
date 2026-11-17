@@ -337,6 +337,9 @@ pub struct FrontendContract {
     pub message_end_markers: Vec<String>,
     pub prefix_boundary: Option<PrefixBoundary>,
     pub image_tokens: Option<ImageTokenLayout>,
+    /// Token sequence ending a prompt's first attention block; empty when the core declares none.
+    #[cfg_attr(any(feature = "frontend", feature = "runtime-core"), serde(default))]
+    pub block_end_marker: Vec<u32>,
 }
 
 #[derive(Clone, Debug)]
@@ -425,6 +428,13 @@ impl PreparedContract {
             {
                 return Err("invalid attention history storage geometry".into());
             }
+        }
+        let marker = &self.frontend.block_end_marker;
+        if marker.iter().any(|id| *id as usize >= self.input_vocabulary)
+            || (!marker.is_empty()
+                && self.frontend.image_tokens.as_ref().is_some_and(|layout| layout.span.is_some()))
+        {
+            return Err("invalid prepared block-end marker".into());
         }
         if self.vision.enabled() != self.frontend.image_tokens.is_some()
             || self.frontend.image_tokens.as_ref().is_some_and(|layout| {

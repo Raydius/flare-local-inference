@@ -31,6 +31,9 @@ pub struct PrefixHistory {
     tail_events: Vec<ConditioningEvent>,
     tokens: Vec<u32>,
     events: Vec<ConditioningEvent>,
+    /// Token ranges computed as one bidirectional block. State strictly inside one depends on
+    /// tokens after it, so no prefix key exists there.
+    atomic_spans: Vec<std::ops::Range<u64>>,
 }
 
 impl PrefixHistory {
@@ -48,7 +51,14 @@ impl PrefixHistory {
             tail_events: Vec::new(),
             tokens: Vec::new(),
             events: Vec::new(),
+            atomic_spans: Vec::new(),
         }
+    }
+
+    /// Declare the history's atomic spans. A lookup then never resumes strictly inside one and
+    /// falls back to the deepest checkpoint outside them.
+    pub fn set_atomic_spans(&mut self, spans: &[std::ops::Range<usize>]) {
+        self.atomic_spans = spans.iter().map(|span| span.start as u64..span.end as u64).collect();
     }
 
     pub fn identity(&self) -> [u8; 32] {
@@ -60,6 +70,13 @@ impl PrefixHistory {
     }
 
     pub fn key_at(&self, consumed_tokens: u64) -> Option<PrefixKey> {
+        if self.atomic_spans.iter().any(|span| span.start < consumed_tokens && consumed_tokens < span.end) {
+            return None;
+        }
+        self.digest_at(consumed_tokens)
+    }
+
+    fn digest_at(&self, consumed_tokens: u64) -> Option<PrefixKey> {
         let end = usize::try_from(consumed_tokens).ok()?;
         if end > self.tokens.len() {
             return None;
@@ -101,7 +118,7 @@ impl PrefixHistory {
     /// every endpoint inside that hash block in host-store buckets.
     pub fn bucket_at(&self, consumed_tokens: u64) -> Option<[u8; 16]> {
         let aligned = consumed_tokens - consumed_tokens % HASH_BLOCK_TOKENS as u64;
-        self.key_at(aligned).map(|key| key.digest)
+        self.digest_at(aligned).map(|key| key.digest)
     }
 
     pub fn append(&mut self, tokens: &[u32], events: &[ConditioningEvent]) -> Result<()> {
