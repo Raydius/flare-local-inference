@@ -441,6 +441,10 @@ message FrontendContract {
   repeated string message_end_markers = 8;
   PrefixBoundary prefix_boundary = 9;
   ImageTokenLayout image_tokens = 10;
+  // Token sequence ending a prompt's first attention block. A prompt holding it once has two
+  // atomic prefill spans, through the sequence and after it; a prompt holding it more than once
+  // is refused.
+  repeated uint32 block_end_marker = 11;
 }
 message Cluster {
   uint32 world = 1;

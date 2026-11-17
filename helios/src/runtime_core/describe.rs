@@ -408,6 +408,7 @@ pub(super) fn frontend_json(
         "message_end_markers": contract.map(|c| c.message_end_markers.clone()),
         "rejected_tokens": contract.map_or(0, |c| c.rejected_tokens.len()),
         "position_dimensions": contract.map_or(0, |c| c.position_dimensions),
+        "block_end_marker": contract.map(|c| c.block_end_marker.clone()),
         "prefix_boundary": contract.and_then(|c| c.prefix_boundary.as_ref()).map(|b| json!({
             "roles": b.roles,
             "append_role": b.append_role,

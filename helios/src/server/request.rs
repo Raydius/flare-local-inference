@@ -323,6 +323,13 @@ pub(super) fn prepare_validated_inference(
         message_boundaries.sort_unstable();
         message_boundaries.dedup();
     }
+    if !config.contract.frontend.block_end_marker.is_empty() && data.spans.len() > 1 {
+        // The end of a prompt's first block is a checkpoint boundary: its state does not depend
+        // on the block after it, so later prompts sharing the block reuse it.
+        message_boundaries.extend(data.spans[..data.spans.len() - 1].iter().map(|span| span.end));
+        message_boundaries.sort_unstable();
+        message_boundaries.dedup();
+    }
     let mut sampling = sampling_parameters(object, &config.sampling_defaults, &config.sampling_ranges)?;
     sampling.seed = sampling.seed.wrapping_add(index as u64);
     let stop_sequences = opts.token_stops.clone();
