@@ -31,3 +31,18 @@ The core SHALL declare the token sequence that ends the rendered state block as 
 - **WHEN** a prompt holds the block-end marker more than once
 - **THEN** the request is refused and no answer is returned
 
+## MODIFIED Requirements
+
+### Requirement: Declared precision
+
+The prepared core SHALL declare NVFP4 W4A16 storage for the body projections and BF16 storage for the embedding, normalization weights, GDN convolution and scalars, and the precision SHALL be visible in the prepared declaration. The packed core's deviation from the BF16 forward under the served mask SHALL be measured on the same probe set, and a mean absolute probability delta above 0.01 MUST be reported as failed acceptance.
+
+#### Scenario: Precision declaration matches the prepared core
+
+- **WHEN** the core's declared storage is inspected
+- **THEN** body projections report NVFP4 W4A16 and the embedding, norms, convolutions and GDN scalars report BF16
+
+#### Scenario: Quantization delta measured
+
+- **WHEN** the probe runs the packed core and the BF16 forward under the served mask over the fixed probe set
+- **THEN** the report contains the precision-stage deltas, including the contribution of the 24 recurrent GDN layers
