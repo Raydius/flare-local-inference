@@ -443,6 +443,8 @@ declares its own `quantization_config` is rejected.
 The recipe declares the trained 16,384-token context, 128-token pages, two
 concurrent requests, a prefill chunk of the whole context and no
 speculation. A prompt longer than the context is rejected, not truncated.
+Sampling defaults are temperature 1.0, top-p 1.0 and top-k 1, since the model
+card gives none and a decision read samples nothing.
 
 The checkpoint's full-attention layers were trained with a block mask: a token
 attends to every token of its own block and of every earlier block, where the
@@ -455,9 +457,9 @@ more than once`. The Gated DeltaNet layers are causal. The end of the prefix
 block is a prefix-cache checkpoint, so further questions about one state
 prefill only their question. Prompt logprobs are null inside a block. An answer
 longer than one token decodes causally after the question block, which the
-model was not trained for.
-Sampling defaults are temperature 1.0, top-p 1.0 and top-k 1, since the model
-card gives none and a decision read samples nothing.
+model was not trained for. Only Helios applies the mask: `ignition debug-serve
+--direct` uploads no block distances, so that diagnostic path runs every prompt
+causally, without an error.
 
 Preparation needs FlashInfer Gated DeltaNet prefill and decode operators that
 accept two value heads per key head. The FlashInfer revision pinned in
