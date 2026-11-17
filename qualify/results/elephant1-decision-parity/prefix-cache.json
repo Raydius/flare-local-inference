@@ -1,0 +1,1630 @@
+{
+ "method": "the probe set scored in both orders, each on a freshly started core: a state's first and last question run once with an empty prefix cache and once from the cached prefix block; an extended prompt appends the most likely letter to a prompt just served",
+ "cores": [
+  {
+   "url": "http://127.0.0.1:8120",
+   "served_model": "Elephant-1",
+   "max_model_len": 16384,
+   "reversed": false,
+   "ambiguous_block_end_refusal": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"prompt holds the block-end marker more than once\",\"param\":null,\"code\":\"invalid_request_error\"}}",
+   "flare": {
+    "max_top_logprobs": 20,
+    "max_concurrency": 2
+   }
+  },
+  {
+   "url": "http://127.0.0.1:8120",
+   "served_model": "Elephant-1",
+   "max_model_len": 16384,
+   "reversed": true,
+   "ambiguous_block_end_refusal": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"prompt holds the block-end marker more than once\",\"param\":null,\"code\":\"invalid_request_error\"}}",
+   "flare": {
+    "max_top_logprobs": 20,
+    "max_concurrency": 2
+   }
+  }
+ ],
+ "ambiguous_block_end_refused": [
+  true,
+  true
+ ],
+ "empty_cache_against_cached_block": {
+  "compared": 68,
+  "identical": 68,
+  "argmax_agreement": 1.0,
+  "maximum_absolute_probability_delta": 0.0
+ },
+ "all_questions": {
+  "compared": 158,
+  "identical": 158,
+  "argmax_agreement": 1.0,
+  "maximum_absolute_probability_delta": 0.0
+ },
+ "extended_prompts": {
+  "served": 70,
+  "resumed_at_or_before_the_first_block_end": 70,
+  "resumed_at_the_first_block_end": 70
+ },
+ "rows": [
+  {
+   "id": "support0.refund",
+   "block_end": 58,
+   "cached_tokens": [
+    0,
+    58
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "support0.team",
+   "block_end": 58,
+   "cached_tokens": [
+    58,
+    58
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "support0.urgency",
+   "block_end": 58,
+   "cached_tokens": [
+    58,
+    58
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "support0.mood",
+   "block_end": 58,
+   "cached_tokens": [
+    58,
+    58
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "support0.english",
+   "block_end": 58,
+   "cached_tokens": [
+    58,
+    0
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "support1.refund",
+   "block_end": 68,
+   "cached_tokens": [
+    0,
+    68
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "support1.team",
+   "block_end": 68,
+   "cached_tokens": [
+    68,
+    68
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "support1.urgency",
+   "block_end": 68,
+   "cached_tokens": [
+    68,
+    68
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "support1.mood",
+   "block_end": 68,
+   "cached_tokens": [
+    68,
+    68
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "support1.english",
+   "block_end": 68,
+   "cached_tokens": [
+    68,
+    0
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "support2.refund",
+   "block_end": 61,
+   "cached_tokens": [
+    0,
+    61
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "support2.team",
+   "block_end": 61,
+   "cached_tokens": [
+    61,
+    61
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "support2.urgency",
+   "block_end": 61,
+   "cached_tokens": [
+    61,
+    61
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "support2.mood",
+   "block_end": 61,
+   "cached_tokens": [
+    61,
+    61
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "support2.english",
+   "block_end": 61,
+   "cached_tokens": [
+    61,
+    0
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "support3.refund",
+   "block_end": 62,
+   "cached_tokens": [
+    0,
+    62
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "support3.team",
+   "block_end": 62,
+   "cached_tokens": [
+    62,
+    62
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "support3.urgency",
+   "block_end": 62,
+   "cached_tokens": [
+    62,
+    62
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "support3.mood",
+   "block_end": 62,
+   "cached_tokens": [
+    62,
+    62
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "support3.english",
+   "block_end": 62,
+   "cached_tokens": [
+    62,
+    0
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "support4.refund",
+   "block_end": 63,
+   "cached_tokens": [
+    0,
+    63
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "support4.team",
+   "block_end": 63,
+   "cached_tokens": [
+    63,
+    63
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "support4.urgency",
+   "block_end": 63,
+   "cached_tokens": [
+    63,
+    63
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "support4.mood",
+   "block_end": 63,
+   "cached_tokens": [
+    63,
+    63
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "support4.english",
+   "block_end": 63,
+   "cached_tokens": [
+    63,
+    0
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "support5.refund",
+   "block_end": 74,
+   "cached_tokens": [
+    0,
+    74
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "support5.team",
+   "block_end": 74,
+   "cached_tokens": [
+    74,
+    74
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "support5.urgency",
+   "block_end": 74,
+   "cached_tokens": [
+    74,
+    74
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "support5.mood",
+   "block_end": 74,
+   "cached_tokens": [
+    74,
+    74
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "support5.english",
+   "block_end": 74,
+   "cached_tokens": [
+    74,
+    0
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "moderation0.violates",
+   "block_end": 57,
+   "cached_tokens": [
+    0,
+    57
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "moderation0.category",
+   "block_end": 57,
+   "cached_tokens": [
+    57,
+    57
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "moderation0.severity",
+   "block_end": 57,
+   "cached_tokens": [
+    57,
+    57
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "moderation0.review",
+   "block_end": 57,
+   "cached_tokens": [
+    57,
+    57
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "moderation0.targeted",
+   "block_end": 57,
+   "cached_tokens": [
+    57,
+    0
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "moderation1.violates",
+   "block_end": 69,
+   "cached_tokens": [
+    0,
+    69
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "moderation1.category",
+   "block_end": 69,
+   "cached_tokens": [
+    69,
+    69
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "moderation1.severity",
+   "block_end": 69,
+   "cached_tokens": [
+    69,
+    69
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "moderation1.review",
+   "block_end": 69,
+   "cached_tokens": [
+    69,
+    69
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "moderation1.targeted",
+   "block_end": 69,
+   "cached_tokens": [
+    69,
+    0
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "moderation2.violates",
+   "block_end": 65,
+   "cached_tokens": [
+    0,
+    65
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "moderation2.category",
+   "block_end": 65,
+   "cached_tokens": [
+    65,
+    65
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "moderation2.severity",
+   "block_end": 65,
+   "cached_tokens": [
+    65,
+    65
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "moderation2.review",
+   "block_end": 65,
+   "cached_tokens": [
+    65,
+    65
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "moderation2.targeted",
+   "block_end": 65,
+   "cached_tokens": [
+    65,
+    0
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "moderation3.violates",
+   "block_end": 64,
+   "cached_tokens": [
+    0,
+    64
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "moderation3.category",
+   "block_end": 64,
+   "cached_tokens": [
+    64,
+    64
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "moderation3.severity",
+   "block_end": 64,
+   "cached_tokens": [
+    64,
+    64
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "moderation3.review",
+   "block_end": 64,
+   "cached_tokens": [
+    64,
+    64
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "moderation3.targeted",
+   "block_end": 64,
+   "cached_tokens": [
+    64,
+    0
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "moderation4.violates",
+   "block_end": 64,
+   "cached_tokens": [
+    0,
+    64
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "moderation4.category",
+   "block_end": 64,
+   "cached_tokens": [
+    64,
+    64
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "moderation4.severity",
+   "block_end": 64,
+   "cached_tokens": [
+    64,
+    64
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "moderation4.review",
+   "block_end": 64,
+   "cached_tokens": [
+    64,
+    64
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "moderation4.targeted",
+   "block_end": 64,
+   "cached_tokens": [
+    64,
+    0
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "moderation5.violates",
+   "block_end": 65,
+   "cached_tokens": [
+    0,
+    65
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "moderation5.category",
+   "block_end": 65,
+   "cached_tokens": [
+    65,
+    65
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "moderation5.severity",
+   "block_end": 65,
+   "cached_tokens": [
+    65,
+    65
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "moderation5.review",
+   "block_end": 65,
+   "cached_tokens": [
+    65,
+    65
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "moderation5.targeted",
+   "block_end": 65,
+   "cached_tokens": [
+    65,
+    0
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "code0.bug",
+   "block_end": 59,
+   "cached_tokens": [
+    0,
+    59
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "code0.defect",
+   "block_end": 59,
+   "cached_tokens": [
+    59,
+    59
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "code0.risk",
+   "block_end": 59,
+   "cached_tokens": [
+    59,
+    59
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "code0.language",
+   "block_end": 59,
+   "cached_tokens": [
+    59,
+    59
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "code0.tests",
+   "block_end": 59,
+   "cached_tokens": [
+    59,
+    0
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "code1.bug",
+   "block_end": 69,
+   "cached_tokens": [
+    0,
+    69
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "code1.defect",
+   "block_end": 69,
+   "cached_tokens": [
+    69,
+    69
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "code1.risk",
+   "block_end": 69,
+   "cached_tokens": [
+    69,
+    69
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "code1.language",
+   "block_end": 69,
+   "cached_tokens": [
+    69,
+    69
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "code1.tests",
+   "block_end": 69,
+   "cached_tokens": [
+    69,
+    0
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "code2.bug",
+   "block_end": 69,
+   "cached_tokens": [
+    0,
+    69
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "code2.defect",
+   "block_end": 69,
+   "cached_tokens": [
+    69,
+    69
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "code2.risk",
+   "block_end": 69,
+   "cached_tokens": [
+    69,
+    69
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "code2.language",
+   "block_end": 69,
+   "cached_tokens": [
+    69,
+    69
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "code2.tests",
+   "block_end": 69,
+   "cached_tokens": [
+    69,
+    0
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "code3.bug",
+   "block_end": 74,
+   "cached_tokens": [
+    0,
+    74
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "code3.defect",
+   "block_end": 74,
+   "cached_tokens": [
+    74,
+    74
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "code3.risk",
+   "block_end": 74,
+   "cached_tokens": [
+    74,
+    74
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "code3.language",
+   "block_end": 74,
+   "cached_tokens": [
+    74,
+    74
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "code3.tests",
+   "block_end": 74,
+   "cached_tokens": [
+    74,
+    0
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "code4.bug",
+   "block_end": 67,
+   "cached_tokens": [
+    0,
+    67
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "code4.defect",
+   "block_end": 67,
+   "cached_tokens": [
+    67,
+    67
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "code4.risk",
+   "block_end": 67,
+   "cached_tokens": [
+    67,
+    67
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "code4.language",
+   "block_end": 67,
+   "cached_tokens": [
+    67,
+    67
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "code4.tests",
+   "block_end": 67,
+   "cached_tokens": [
+    67,
+    0
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "code5.bug",
+   "block_end": 81,
+   "cached_tokens": [
+    0,
+    81
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "code5.defect",
+   "block_end": 81,
+   "cached_tokens": [
+    81,
+    81
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "code5.risk",
+   "block_end": 81,
+   "cached_tokens": [
+    81,
+    81
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "code5.language",
+   "block_end": 81,
+   "cached_tokens": [
+    81,
+    81
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "code5.tests",
+   "block_end": 81,
+   "cached_tokens": [
+    81,
+    0
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "routing0.tool",
+   "block_end": 62,
+   "cached_tokens": [
+    0,
+    62
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "routing0.clarify",
+   "block_end": 62,
+   "cached_tokens": [
+    62,
+    62
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "routing0.destructive",
+   "block_end": 62,
+   "cached_tokens": [
+    62,
+    62
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "routing0.effort",
+   "block_end": 62,
+   "cached_tokens": [
+    62,
+    62
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "routing0.tier",
+   "block_end": 62,
+   "cached_tokens": [
+    62,
+    0
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "routing1.tool",
+   "block_end": 67,
+   "cached_tokens": [
+    0,
+    67
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "routing1.clarify",
+   "block_end": 67,
+   "cached_tokens": [
+    67,
+    67
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "routing1.destructive",
+   "block_end": 67,
+   "cached_tokens": [
+    67,
+    67
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "routing1.effort",
+   "block_end": 67,
+   "cached_tokens": [
+    67,
+    67
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "routing1.tier",
+   "block_end": 67,
+   "cached_tokens": [
+    67,
+    0
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "routing2.tool",
+   "block_end": 57,
+   "cached_tokens": [
+    0,
+    57
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "routing2.clarify",
+   "block_end": 57,
+   "cached_tokens": [
+    57,
+    57
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "routing2.destructive",
+   "block_end": 57,
+   "cached_tokens": [
+    57,
+    57
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "routing2.effort",
+   "block_end": 57,
+   "cached_tokens": [
+    57,
+    57
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "routing2.tier",
+   "block_end": 57,
+   "cached_tokens": [
+    57,
+    0
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "routing3.tool",
+   "block_end": 70,
+   "cached_tokens": [
+    0,
+    70
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "routing3.clarify",
+   "block_end": 70,
+   "cached_tokens": [
+    70,
+    70
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "routing3.destructive",
+   "block_end": 70,
+   "cached_tokens": [
+    70,
+    70
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "routing3.effort",
+   "block_end": 70,
+   "cached_tokens": [
+    70,
+    70
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "routing3.tier",
+   "block_end": 70,
+   "cached_tokens": [
+    70,
+    0
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "routing4.tool",
+   "block_end": 68,
+   "cached_tokens": [
+    0,
+    68
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "routing4.clarify",
+   "block_end": 68,
+   "cached_tokens": [
+    68,
+    68
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "routing4.destructive",
+   "block_end": 68,
+   "cached_tokens": [
+    68,
+    68
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "routing4.effort",
+   "block_end": 68,
+   "cached_tokens": [
+    68,
+    68
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "routing4.tier",
+   "block_end": 68,
+   "cached_tokens": [
+    68,
+    0
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "routing5.tool",
+   "block_end": 95,
+   "cached_tokens": [
+    0,
+    95
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "routing5.clarify",
+   "block_end": 95,
+   "cached_tokens": [
+    95,
+    95
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "routing5.destructive",
+   "block_end": 95,
+   "cached_tokens": [
+    95,
+    95
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "routing5.effort",
+   "block_end": 95,
+   "cached_tokens": [
+    95,
+    95
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "routing5.tier",
+   "block_end": 95,
+   "cached_tokens": [
+    95,
+    0
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "retrieval0.relevant",
+   "block_end": 89,
+   "cached_tokens": [
+    0,
+    89
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "retrieval0.grade",
+   "block_end": 89,
+   "cached_tokens": [
+    89,
+    89
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "retrieval0.complete",
+   "block_end": 89,
+   "cached_tokens": [
+    89,
+    89
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "retrieval0.topic",
+   "block_end": 89,
+   "cached_tokens": [
+    89,
+    89
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "retrieval0.numeric",
+   "block_end": 89,
+   "cached_tokens": [
+    89,
+    0
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "retrieval1.relevant",
+   "block_end": 91,
+   "cached_tokens": [
+    0,
+    91
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "retrieval1.grade",
+   "block_end": 91,
+   "cached_tokens": [
+    91,
+    91
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "retrieval1.complete",
+   "block_end": 91,
+   "cached_tokens": [
+    91,
+    91
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "retrieval1.topic",
+   "block_end": 91,
+   "cached_tokens": [
+    91,
+    91
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "retrieval1.numeric",
+   "block_end": 91,
+   "cached_tokens": [
+    91,
+    0
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "retrieval2.relevant",
+   "block_end": 95,
+   "cached_tokens": [
+    0,
+    95
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "retrieval2.grade",
+   "block_end": 95,
+   "cached_tokens": [
+    95,
+    95
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "retrieval2.complete",
+   "block_end": 95,
+   "cached_tokens": [
+    95,
+    95
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "retrieval2.topic",
+   "block_end": 95,
+   "cached_tokens": [
+    95,
+    95
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "retrieval2.numeric",
+   "block_end": 95,
+   "cached_tokens": [
+    95,
+    0
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "retrieval3.relevant",
+   "block_end": 86,
+   "cached_tokens": [
+    0,
+    86
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "retrieval3.grade",
+   "block_end": 86,
+   "cached_tokens": [
+    86,
+    86
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "retrieval3.complete",
+   "block_end": 86,
+   "cached_tokens": [
+    86,
+    86
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "retrieval3.topic",
+   "block_end": 86,
+   "cached_tokens": [
+    86,
+    86
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "retrieval3.numeric",
+   "block_end": 86,
+   "cached_tokens": [
+    86,
+    0
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "retrieval4.relevant",
+   "block_end": 93,
+   "cached_tokens": [
+    0,
+    93
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "retrieval4.grade",
+   "block_end": 93,
+   "cached_tokens": [
+    93,
+    93
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "retrieval4.complete",
+   "block_end": 93,
+   "cached_tokens": [
+    93,
+    93
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "retrieval4.topic",
+   "block_end": 93,
+   "cached_tokens": [
+    93,
+    93
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "retrieval4.numeric",
+   "block_end": 93,
+   "cached_tokens": [
+    93,
+    0
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "retrieval5.relevant",
+   "block_end": 80,
+   "cached_tokens": [
+    0,
+    80
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "retrieval5.grade",
+   "block_end": 80,
+   "cached_tokens": [
+    80,
+    80
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "retrieval5.complete",
+   "block_end": 80,
+   "cached_tokens": [
+    80,
+    80
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "retrieval5.topic",
+   "block_end": 80,
+   "cached_tokens": [
+    80,
+    80
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "retrieval5.numeric",
+   "block_end": 80,
+   "cached_tokens": [
+    80,
+    0
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "options20.colour",
+   "block_end": 63,
+   "cached_tokens": [
+    0,
+    63
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "options26.colour",
+   "block_end": 63,
+   "cached_tokens": [
+    63,
+    0
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "log4k.errors",
+   "block_end": 4021,
+   "cached_tokens": [
+    0,
+    4021
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "log4k.worst",
+   "block_end": 4021,
+   "cached_tokens": [
+    4021,
+    0
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "log12k.errors",
+   "block_end": 11980,
+   "cached_tokens": [
+    0,
+    11980
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "log12k.worst",
+   "block_end": 11980,
+   "cached_tokens": [
+    11980,
+    0
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "log16k.errors",
+   "block_end": 16236,
+   "cached_tokens": [
+    0,
+    16236
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  },
+  {
+   "id": "log16k.worst",
+   "block_end": 16236,
+   "cached_tokens": [
+    16236,
+    0
+   ],
+   "maximum_absolute_probability_delta": 0.0,
+   "argmax_agrees": true
+  }
+ ]
+}

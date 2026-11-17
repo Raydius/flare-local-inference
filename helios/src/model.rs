@@ -305,6 +305,21 @@ pub fn block_spans(tokens: &[u32], marker: &[u32]) -> Result<Vec<std::ops::Range
     Ok([0..end, end..tokens.len()].into_iter().filter(|span| !span.is_empty()).collect())
 }
 
+/// Spans of a request readmitted with its generated tokens appended. Its blocks follow the whole
+/// token history, as a fresh prompt's do, so the generated tokens join the last block. A history
+/// that repeats the marker, or whose last block outgrew one prefill submission, cannot continue.
+pub fn continued_block_spans(
+    tokens: &[u32],
+    marker: &[u32],
+    prefill_chunk: usize,
+) -> Result<Vec<std::ops::Range<usize>>> {
+    let spans = block_spans(tokens, marker)?;
+    if spans.iter().any(|span| span.len() > prefill_chunk) {
+        return Err("continued block exceeds the prefill chunk".into());
+    }
+    Ok(spans)
+}
+
 impl PromptData {
     pub fn is_image_position(&self, position: usize) -> bool {
         self.vision_token_indices.get(position).is_some_and(|index| *index >= 0)

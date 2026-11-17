@@ -4,27 +4,27 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
 
 ## Open
 
-- [ ] Serve Elephant-1 with its trained attention mask. The `elephant1` recipe runs the eight
-      full-attention layers causally; the checkpoint was trained with a mask that is bidirectional
-      inside the shared prefix and inside the question. On the probe set of
-      `qualify/elephant1_decision_parity.py` the causal BF16 forward agrees with the vendor runtime on
-      0.906 of argmax answers with a 0.032 mean probability delta, against bounds of 0.99 and 0.02.
-      Close when the report's mask comparison passes both bounds.
+- [ ] Decide what Elephant-1 does for an answer longer than one token. Decode after the question
+      block is causal. A request readmitted after preemption takes its generated tokens into the
+      question block, and ends with an error when they repeat the block-end marker; no test drives
+      a preempted marker prompt through the worker. The model was trained for a one-token read,
+      which none of this touches.
+      See the Elephant-1 section of [model preparation](model-preparation.md#elephant-1).
 
-- [ ] Reduce the Elephant-1 core's NVFP4 deviation. The served core differs from the BF16 causal
-      forward by a 0.017 mean probability delta against a 0.01 bound, and that comparison does not
+- [ ] Reduce the Elephant-1 core's NVFP4 deviation. The served core differs from the BF16 forward
+      under the served mask by a 0.021 mean probability delta against a 0.01 bound (0.956 argmax
+      agreement), and that comparison does not
       separate packed-weight rounding from the prepared kernels or from the BF16 logits: in
       `qualify/results/elephant1-decision-parity/stage-b-precision.json` every difference between two
       option log-probabilities on the core side is a multiple of 1/32, and the reference head is FP32.
       Measure which packed projections carry the error, and the share of the logit precision, before
       changing `packed_plan` in `ignition/recipes/elephant1/config.py`.
 
-- [ ] Export an Elephant-1 core with `pack_body_nvfp4` storing only the swizzled block scales, and
-      repeat the footprint measurement. Core `gb202-tp1-202611161942`, which the figures in the
-      Elephant-1 section of [model preparation](model-preparation.md#elephant-1) describe, also holds
-      each packed projection's row-major scales in persistent storage: 432,406,528 bytes that no
-      kernel reads. Close when `flare inspect` and the serving process are measured on a core without
-      them and that section states the measured values.
+- [ ] Run `flare inspect` on Elephant-1 core `gb202-tp1-202611171634` and state its fixed device
+      allocations in the Elephant-1 section of [model preparation](model-preparation.md#elephant-1).
+      That core was exported with `pack_body_nvfp4` storing only the swizzled block scales and with
+      the 16,384-token prefill chunk, so the serving process's 10,428 MiB does not isolate the
+      432,406,528 bytes of row-major scales the earlier core `gb202-tp1-202611161942` held.
 
 - [ ] Pin a FlashInfer revision whose Gated DeltaNet prefill and decode operators accept two value
       heads per key head. Elephant-1 preparation fails with the revision in `pyproject.toml`, which

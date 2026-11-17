@@ -41,6 +41,34 @@ fn block_end_marker_splits_a_prompt_into_two_atomic_spans() {
 }
 
 #[test]
+fn a_readmitted_request_keeps_its_generated_tokens_in_the_last_block() {
+    let mut config = config();
+    config.contract.frontend.block_end_marker = vec![7, 8];
+    let marker = config.contract.frontend.block_end_marker.clone();
+    let positions = |tokens: usize| (0..tokens).map(|p| [p as i64; 3]).collect();
+    // A prompt of five tokens was admitted with these spans and generated three more.
+    let admitted = PromptData { positions: positions(8), vision_token_indices: vec![], spans: vec![0..3, 3..5] };
+    let history = [1, 7, 8, 2, 3, 4, 5, 6];
+    assert_eq!(
+        validate_prompt_data(&config, &history, &admitted).unwrap_err().to_string(),
+        "prompt spans do not match the declared block-end marker"
+    );
+    let spans = continued_block_spans(&history, &marker, config.limits.prefill_chunk_size).unwrap();
+    assert_eq!(spans, [0..3, 3..8]);
+    validate_prompt_data(&config, &history, &PromptData { spans, ..admitted }).unwrap();
+    // Generated tokens that repeat the marker, or a block past one submission, end the request.
+    assert_eq!(
+        continued_block_spans(&[1, 7, 8, 2, 7, 8], &marker, 512).unwrap_err().to_string(),
+        "prompt holds the block-end marker more than once"
+    );
+    assert_eq!(
+        continued_block_spans(&history, &marker, 4).unwrap_err().to_string(),
+        "continued block exceeds the prefill chunk"
+    );
+    assert!(continued_block_spans(&history, &[], 4).unwrap().is_empty());
+}
+
+#[test]
 fn prompt_spans_follow_the_declared_block_end_marker() {
     let mut config = config();
     config.contract.frontend.block_end_marker = vec![7, 8];

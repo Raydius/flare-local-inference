@@ -1,0 +1,44 @@
+[
+ {
+  "id": "support0.refund",
+  "prompt_tokens": 118,
+  "cached_tokens": 0,
+  "seconds": 0.115
+ },
+ {
+  "id": "log16k.errors",
+  "prompt_tokens": 16301,
+  "cached_tokens": 0,
+  "seconds": 6.322
+ },
+ {
+  "id": "log16k.worst",
+  "prompt_tokens": 16293,
+  "cached_tokens": 16236,
+  "seconds": 0.068
+ },
+ {
+  "id": "log12k.errors",
+  "prompt_tokens": 12045,
+  "cached_tokens": 0,
+  "seconds": 4.625
+ },
+ {
+  "id": "log4k.errors",
+  "prompt_tokens": 4086,
+  "cached_tokens": 0,
+  "seconds": 1.48
+ },
+ {
+  "id": "log4k.worst",
+  "prompt_tokens": 4078,
+  "cached_tokens": 4021,
+  "seconds": 0.06
+ },
+ {
+  "id": "support0.team",
+  "prompt_tokens": 131,
+  "cached_tokens": 0,
+  "seconds": 0.113
+ }
+]

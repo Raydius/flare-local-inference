@@ -7,16 +7,18 @@ Elephant-1 answers a question by one prefill: the prompt ends at an answer line,
 probabilities are the next-token distribution restricted to the option letters. The vendor runtime
 (OneJev `qev.engine.DecisionEngine` at the commit and patch the checkpoint's `setup.sh` pins) runs
 the eight full-attention layers with the trained mask, bidirectional inside the shared prefix and
-inside the question suffix. A prepared `elephant-1-9b` core runs every layer causally and stores the
-body projections as NVFP4. Two stages separate those deviations on one fixed probe set:
+inside the question suffix. A prepared `elephant-1-9b` core takes those two blocks from the prompt's
+tokens, the first ending after the one rendered end of the state block, and stores the body
+projections as NVFP4. Two stages separate those deviations on one fixed probe set:
 
-  stage A  the BF16 checkpoint with causal attention against the vendor runtime as trained: the mask
-  stage B  the served core against the BF16 checkpoint with causal attention: storage precision and
+  stage A  the BF16 checkpoint under the served mask against the vendor runtime as trained: the mask
+  stage B  the served core against the BF16 checkpoint under the served mask: storage precision and
            the prepared kernels
 
-The BF16 causal forward is the vendor runtime's own Transformers model with the trained mask
-switched off, so both BF16 sides come from one loaded model and differ only in the mask. Every
-branch runs alone, without the vendor's batched prefix fork, whose BF16 rounding differs by batch.
+The BF16 forward under the served mask is the vendor runtime's own Transformers model with its
+block ids taken from the prompt's tokens by the core's rule, so both BF16 sides come from one loaded
+model and differ only in where the blocks lie. Every branch runs alone, without the vendor's
+batched prefix fork, whose BF16 rounding differs by batch.
 
 `reference` runs in the vendor environment and needs a GPU that holds the 18.8 GB BF16 checkpoint;
 `--render-only` writes the same prompts without loading weights. `--masks` scores the trained mask
@@ -28,6 +30,10 @@ twice and three ablations of it instead of the two stage A sides, for `masks` to
         --url http://127.0.0.1:8120 --output core.json
     python -m qualify.elephant1_decision_parity report --reference reference.json --core core.json \\
         --output qualify/results/elephant1-decision-parity
+
+`core --reverse` scores the branches in reverse order. Run once in each order, each on a freshly
+started core, the two files score a state's first and last question once with an empty prefix cache
+and once from the cached prefix; `report --recached` compares them.
     python -m qualify.elephant1_decision_parity masks --reference masks-reference.json \\
         --output qualify/results/elephant1-mask-feasibility/masks.json
 """
@@ -50,6 +56,7 @@ MASK_RUNS = (("trained", ("prefix", "suffix")), ("trained_repeat", ("prefix", "s
              ("suffix", ("suffix",)), ("prefix", ("prefix",)))
 MASK_BASELINE, MASK_NOISE_FLOOR = "trained", "trained_repeat"
 STATE_END = "</state>\n\n"
+EXTENDED = "+answer"
 
 _YES_NO = {"type": "noul"}
 
@@ -239,7 +246,7 @@ def _softmax(logits):
 
 
 def reference(args):
-    """Render every branch by the vendor rules and score it with the vendor mask and the causal mask."""
+    """Render every branch by the vendor rules and score it with the vendor mask and the served mask."""
     from qev.prompt import LETTERS, build_messages, render_question
     from qev.schema import SystemOneRequest
 
@@ -261,8 +268,9 @@ def reference(args):
     if any(len(ids) != 1 for ids in slot_ids):
         raise ValueError("an option letter is not a single token")
     slot_ids = [ids[0] for ids in slot_ids]
+    state_end = tokenizer.encode(STATE_END, add_special_tokens=False)
 
-    def decide(request, attention, whole_blocks=None):
+    def decide(request, attention, whole_blocks=None, served_prefix=None):
         engine.readout.config.attention = attention
         if whole_blocks is not None:
             import torch
@@ -270,6 +278,9 @@ def reference(args):
 
             def block_ids(prefixes, lengths, width):
                 # One branch per forward: `prefixes` holds the one prefix length, and no row is padded.
+                if served_prefix not in (None, prefixes[0]):
+                    raise RuntimeError(f"the served block ends at token {served_prefix} and the vendor split at"
+                                       f" {prefixes[0]}; the vendor engine cannot run the served mask")
                 position = torch.arange(width, device=engine.device)
                 prefix = torch.zeros_like(position) if "prefix" in whole_blocks else position
                 suffix = torch.full_like(position, prefixes[0]) if "suffix" in whole_blocks else position
@@ -298,8 +309,14 @@ def reference(args):
             prefix_tokens = len(engine._prefix_and_suffix_ids(
                 state, [render_question(qid, question) for qid, question in request.questions.items()])[0])
         elif engine is not None:
-            scored = {side: decide(request, attention)
-                      for side, attention in (("vendor", "noncausal"), ("causal", "causal"))}
+            ends = {_state_end(tokenizer.encode(tokenizer.apply_chat_template(
+                build_messages(state, render_question(qid, question).suffix), tokenize=False,
+                add_generation_prompt=True, enable_thinking=False), add_special_tokens=False), state_end)
+                for qid, question in request.questions.items()}
+            if len(ends) != 1 or None in ends:
+                raise ValueError(f"{name}: the served rule finds no single block end in its prompts")
+            scored = {"vendor": decide(request, "noncausal"),
+                      "served": decide(request, "noncausal", ("prefix", "suffix"), ends.pop())}
         for qid, question in request.questions.items():
             rendered = render_question(qid, question)
             prompt = tokenizer.apply_chat_template(build_messages(state, rendered.suffix), tokenize=False,
@@ -315,7 +332,7 @@ def reference(args):
         print(f"{name}: {len(request.questions)} questions, longest prompt"
               f" {max(len(b['tokens']) for b in branches[-len(request.questions):])} tokens", flush=True)
     meta = {"checkpoint": checkpoint, "rendered_only": engine is None, "masks": args.masks,
-            "state_end_ids": tokenizer.encode(STATE_END, add_special_tokens=False)}
+            "state_end_ids": state_end}
     if engine is not None:
         import torch
         meta.update(device=torch.cuda.get_device_name(engine.device), dtype=engine.info.dtype,
@@ -334,7 +351,8 @@ def core(args):
     logprobs whatever their rank. A second request for the twenty most likely tokens counts how many of
     the letters a caller reading only that list would receive.
     """
-    probes = json.loads(args.probes.read_text())["branches"]
+    source = json.loads(args.probes.read_text())
+    probes = source["branches"][::-1] if args.reverse else source["branches"]
     base = args.url.rstrip("/")
     with urllib.request.urlopen(f"{base}/v1/models", timeout=30) as response:
         model = json.load(response)["data"][0]
@@ -345,27 +363,51 @@ def core(args):
         request = urllib.request.Request(f"{base}/v1/completions", data=body,
                                          headers={"Content-Type": "application/json"})
         with urllib.request.urlopen(request, timeout=args.timeout) as response:
-            return json.load(response)["choices"][0]["logprobs"]["top_logprobs"][0]
+            completion = json.load(response)
+        return (completion["choices"][0]["logprobs"]["top_logprobs"],
+                completion["usage"]["prompt_tokens_details"]["cached_tokens"])
 
-    results = []
-    for branch in probes:
+    def letters_or_refusal(branch):
+        """The option letters' logprobs and the reused prompt tokens, or the core's refusal message."""
         try:
-            letters = alternatives(branch, logprob_token_ids=branch["slot_ids"])
+            (letters,), cached = alternatives(branch, logprob_token_ids=branch["slot_ids"])
         except urllib.error.HTTPError as error:
             message = error.read().decode(errors="replace")
             if error.code != 400:
                 raise RuntimeError(f"{branch['id']}: HTTP {error.code}: {message}") from error
+            return None, None, message
+        return letters, cached, None
+
+    # The first question of each state, in rendering order whichever order is scored.
+    states = {}
+    for branch in source["branches"]:
+        states.setdefault(branch["id"].split(".")[0], branch["id"])
+    first, marker, results = set(states.values()), source["meta"]["state_end_ids"], []
+    for branch in probes:
+        letters, cached, message = letters_or_refusal(branch)
+        if message is not None:
             results.append({"id": branch["id"], "refused": message})
             print(f"{branch['id']}: refused", flush=True)
             continue
         mass = [math.exp(letters[f"token_id:{slot}"]) for slot in branch["slot_ids"]]
         total = sum(mass)
-        top = alternatives(branch)
+        (top,), _ = alternatives(branch)
         results.append({"id": branch["id"], "probabilities": [value / total for value in mass],
                         "letters_in_top20": sum(f"token_id:{slot}" in top for slot in branch["slot_ids"]),
-                        "letter_mass": total})
-        print(f"{branch['id']}: {len(branch['tokens'])} tokens, letter mass {total:.4f}", flush=True)
+                        "letter_mass": total, "cached_tokens": cached,
+                        "block_end": _state_end(branch["tokens"], marker)})
+        print(f"{branch['id']}: {len(branch['tokens'])} tokens, {cached} cached, letter mass {total:.4f}", flush=True)
+        if branch["id"] in first and len(branch["tokens"]) + 2 <= TRAINED_CONTEXT:
+            # One prompt per state that extends a prompt just served by its most likely letter. Its second
+            # block holds that whole earlier prompt, so it must resume from the first block's end at most.
+            longer = dict(branch, tokens=[*branch["tokens"], branch["slot_ids"][mass.index(max(mass))]])
+            _, cached = alternatives(longer)
+            results.append({"id": branch["id"] + EXTENDED, "cached_tokens": cached,
+                            "block_end": _state_end(longer["tokens"], marker)})
+    ambiguous = letters_or_refusal(dict(probes[0], tokens=[*probes[0]["tokens"], *marker]))[2]
+    print(f"a prompt holding the block-end marker twice: {'refused' if ambiguous else 'answered'}", flush=True)
     meta = {"url": base, "served_model": model["id"], "max_model_len": model.get("max_model_len"),
+            "reversed": args.reverse, "ambiguous_block_end_refusal": ambiguous,
             "flare": {key: model.get("flare", {}).get(key) for key in ("max_top_logprobs", "max_concurrency")}}
     args.output.write_text(json.dumps({"meta": meta, "branches": results}))
     print(f"wrote {len(results)} branches to {args.output}")
@@ -422,26 +464,26 @@ def report(args):
     """Write the two stage reports and evaluate the acceptance thresholds."""
     source = json.loads(args.reference.read_text())
     served = json.loads(args.core.read_text())
-    if source["meta"]["rendered_only"] or source["meta"].get("masks"):
+    if source["meta"]["rendered_only"] or source["meta"].get("masks") or "served" not in source["branches"][0]:
         raise ValueError("the reference file holds no stage A sides; run `reference` with the checkpoint and"
                          " without --masks")
     by_id = {branch["id"]: branch for branch in served["branches"]}
     stage_a, stage_b, refusals, coverage = [], [], [], []
     for branch in source["branches"]:
         packed = by_id[branch["id"]]
-        vendor, causal = branch["vendor"], branch["causal"]
-        if branch["expects_refusal"] or any("refused" in side for side in (vendor, causal, packed)):
+        vendor, masked = branch["vendor"], branch["served"]
+        if branch["expects_refusal"] or any("refused" in side for side in (vendor, masked, packed)):
             refusals.append({"id": branch["id"], "tokens": len(branch["tokens"]),
                              "over_trained_context": len(branch["tokens"]) + 1 > TRAINED_CONTEXT,
                              "vendor_refused": "refused" in vendor, "core_refused": "refused" in packed})
-            if "refused" not in vendor and "refused" not in causal:
-                stage_a.append((branch, causal["probabilities"], vendor["probabilities"]))
+            if "refused" not in vendor and "refused" not in masked:
+                stage_a.append((branch, masked["probabilities"], vendor["probabilities"]))
             continue
-        stage_a.append((branch, causal["probabilities"], vendor["probabilities"]))
-        stage_b.append((branch, packed["probabilities"], causal["probabilities"]))
+        stage_a.append((branch, masked["probabilities"], vendor["probabilities"]))
+        stage_b.append((branch, packed["probabilities"], masked["probabilities"]))
         coverage.append({"id": branch["id"], "options": len(branch["labels"]),
                          "letters_in_top20": packed["letters_in_top20"],
-                         "letter_mass": {"core": packed["letter_mass"], "bf16_causal": causal["letter_mass"],
+                         "letter_mass": {"core": packed["letter_mass"], "bf16_served_mask": masked["letter_mass"],
                                          "vendor": vendor["letter_mass"]}})
     args.output.mkdir(parents=True, exist_ok=True)
     summary_a, rows_a = compare(stage_a)
@@ -450,8 +492,8 @@ def report(args):
         f"mean absolute probability delta <= {STAGE_A_MEAN_DELTA}":
             _verdict(summary_a["mean_absolute_probability_delta"] <= STAGE_A_MEAN_DELTA)}
     (args.output / "stage-a-mask.json").write_text(json.dumps({
-        "candidate": "BF16 checkpoint, causal attention in every layer (vendor Transformers model, one branch per"
-                     " forward)",
+        "candidate": "BF16 checkpoint under the served mask: blocks taken from the prompt's tokens by the core's"
+                     " rule (vendor Transformers model, one branch per forward)",
         "baseline": "vendor DecisionEngine with the trained block-bidirectional mask (one branch per forward)",
         "reference": source["meta"], "summary": summary_a, "questions": rows_a}, indent=1))
     summary_b, rows_b = compare(stage_b)
@@ -463,15 +505,54 @@ def report(args):
         "questions_with_at_most_20_options": len(complete), "all_letters_returned": sum(complete)}
     summary_b["mean_letter_mass"] = {
         side: sum(entry["letter_mass"][side] for entry in coverage) / len(coverage)
-        for side in ("core", "bf16_causal", "vendor")}
+        for side in ("core", "bf16_served_mask", "vendor")}
     agree = [entry["vendor_refused"] == entry["core_refused"] for entry in refusals]
     summary_b["length_refusals"] = {"probes": refusals, "agreement": sum(agree) / len(agree) if agree else None}
     (args.output / "stage-b-precision.json").write_text(json.dumps({
         "candidate": "served core, generation logprobs of the option letters at the answer position",
-        "baseline": "BF16 checkpoint, causal attention in every layer (vendor Transformers model, one branch per"
-                    " forward)",
+        "baseline": "BF16 checkpoint under the served mask: blocks taken from the prompt's tokens by the core's rule"
+                    " (vendor Transformers model, one branch per forward)",
         "core": served["meta"], "reference": source["meta"], "summary": summary_b, "coverage": coverage,
         "questions": rows_b}, indent=1))
+    if args.recached is not None:
+        other = json.loads(args.recached.read_text())
+        if other["meta"]["reversed"] == served["meta"]["reversed"]:
+            raise ValueError("--recached needs a core file scored in the opposite order")
+        again = {branch["id"]: branch for branch in other["branches"]}
+        rows = [{"id": branch["id"], "block_end": branch["block_end"],
+                 "cached_tokens": [branch["cached_tokens"], again[branch["id"]]["cached_tokens"]],
+                 "maximum_absolute_probability_delta": max(abs(a - b) for a, b in zip(
+                     branch["probabilities"], again[branch["id"]]["probabilities"])),
+                 "argmax_agrees": branch["probabilities"].index(max(branch["probabilities"]))
+                                  == again[branch["id"]]["probabilities"].index(
+                                      max(again[branch["id"]]["probabilities"]))}
+                for branch in served["branches"] if "probabilities" in branch and "probabilities" in again[branch["id"]]]
+        # A question served once from an empty cache and once from the cached first block.
+        recached = [row for row in rows if sorted(row["cached_tokens"]) == [0, row["block_end"]]]
+        extended = [branch for run in (served, other) for branch in run["branches"] if branch["id"].endswith(EXTENDED)]
+        cache = {
+            "method": "the probe set scored in both orders, each on a freshly started core: a state's first and"
+                      " last question run once with an empty prefix cache and once from the cached prefix block;"
+                      " an extended prompt appends the most likely letter to a prompt just served",
+            "cores": [served["meta"], other["meta"]],
+            "ambiguous_block_end_refused": [meta["ambiguous_block_end_refusal"] is not None
+                                            for meta in (served["meta"], other["meta"])],
+            **{kind: {"compared": len(entries),
+                      "identical": sum(row["maximum_absolute_probability_delta"] == 0 for row in entries),
+                      "argmax_agreement": sum(row["argmax_agrees"] for row in entries) / len(entries),
+                      "maximum_absolute_probability_delta": max(
+                          row["maximum_absolute_probability_delta"] for row in entries)}
+               for kind, entries in (("empty_cache_against_cached_block", recached), ("all_questions", rows))},
+            "extended_prompts": {"served": len(extended),
+                                 "resumed_at_or_before_the_first_block_end": sum(
+                                     branch["cached_tokens"] <= branch["block_end"] for branch in extended),
+                                 "resumed_at_the_first_block_end": sum(
+                                     branch["cached_tokens"] == branch["block_end"] for branch in extended)},
+            "rows": rows}
+        (args.output / "prefix-cache.json").write_text(json.dumps(cache, indent=1))
+        for kind in ("empty_cache_against_cached_block", "all_questions", "extended_prompts"):
+            print(f"prefix cache, {kind}: {cache[kind]}")
+        print(f"a prompt holding the block-end marker twice refused: {cache['ambiguous_block_end_refused']}")
     for stage, summary in (("stage A (mask)", summary_a), ("stage B (precision)", summary_b)):
         print(f"{stage}: {summary['questions']} questions, {summary['options']} options;"
               f" argmax agreement {summary['argmax_agreement']:.4f},"
@@ -488,11 +569,11 @@ def report(args):
 
 
 def _state_end(tokens, marker):
-    """The token index after the last rendered end of the state block, from the prompt's tokens alone."""
-    for start in range(len(tokens) - len(marker), -1, -1):
-        if tokens[start:start + len(marker)] == marker:
-            return start + len(marker)
-    return None
+    """The token index after the one rendered end of the state block, by the served core's rule: None when
+    the prompt's tokens hold the marker no times or more than once."""
+    ends = [start + len(marker) for start in range(len(tokens) - len(marker) + 1)
+            if tokens[start:start + len(marker)] == marker]
+    return ends[0] if len(ends) == 1 else None
 
 
 def masks(args):
@@ -525,7 +606,7 @@ def masks(args):
         "reference": source["meta"],
         "refused": [branch["id"] for branch in source["branches"] if "refused" in branch[MASK_BASELINE]],
         "prefix_boundary": {
-            "rule": f"the token after the last {STATE_END!r} in the prompt's tokens equals the vendor engine's"
+            "rule": f"the token after the one {STATE_END!r} in the prompt's tokens equals the vendor engine's"
                     " prefix length",
             "probes": len(boundaries), "matching": sum(vendor == found for _, vendor, found in boundaries),
             "differing": [{"id": name, "vendor": vendor, "from_tokens": found}
@@ -557,11 +638,14 @@ def main():
     command.add_argument("--probes", type=Path, required=True, help="file written by `reference`")
     command.add_argument("--url", required=True, help="base URL of `flare run` serving the core")
     command.add_argument("--timeout", type=float, default=300)
+    command.add_argument("--reverse", action="store_true", help="score the branches in reverse order")
     command.add_argument("--output", type=Path, required=True)
     command.set_defaults(run=core)
     command = commands.add_parser("report", help="write both stage reports and their verdicts")
     command.add_argument("--reference", type=Path, required=True)
     command.add_argument("--core", type=Path, required=True)
+    command.add_argument("--recached", type=Path,
+                         help="file written by `core` in the opposite order on a freshly started core")
     command.add_argument("--output", type=Path, required=True, help="report directory")
     command.set_defaults(run=report)
     command = commands.add_parser("masks", help="write the mask ablation report and its verdicts")

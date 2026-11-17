@@ -1,10 +1,12 @@
 {
  "candidate": "served core, generation logprobs of the option letters at the answer position",
- "baseline": "BF16 checkpoint, causal attention in every layer (vendor Transformers model, one branch per forward)",
+ "baseline": "BF16 checkpoint under the served mask: blocks taken from the prompt's tokens by the core's rule (vendor Transformers model, one branch per forward)",
  "core": {
   "url": "http://127.0.0.1:8120",
   "served_model": "Elephant-1",
   "max_model_len": 16384,
+  "reversed": false,
+  "ambiguous_block_end_refusal": "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"prompt holds the block-end marker more than once\",\"param\":null,\"code\":\"invalid_request_error\"}}",
   "flare": {
    "max_top_logprobs": 20,
    "max_concurrency": 2
@@ -13,6 +15,13 @@
  "reference": {
   "checkpoint": "/ckpt",
   "rendered_only": false,
+  "masks": false,
+  "state_end_ids": [
+   510,
+   2374,
+   29,
+   271
+  ],
   "device": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
   "dtype": "bfloat16",
   "head_dtype": "float32",
@@ -21,30 +30,30 @@
   "torch": "2.8.0+cu128",
   "vendor_fork_check": {
    "mode": "batched",
-   "max_probability_difference": 0.0020670902791223855
+   "max_probability_difference": 0.0028894491555703228
   },
   "branch_token_limit": 32768
  },
  "summary": {
   "questions": 158,
   "options": 595,
-  "argmax_agreement": 0.9683544303797469,
-  "mean_absolute_probability_delta": 0.01737235919571764,
-  "maximum_absolute_probability_delta": 0.3377400407214659,
+  "argmax_agreement": 0.9556962025316456,
+  "mean_absolute_probability_delta": 0.020909682323824404,
+  "maximum_absolute_probability_delta": 0.29807201010660567,
   "score_questions": 36,
-  "score_rank_agreement": 0.8611111111111112,
-  "score_mean_rank_correlation": 0.9750000000000001,
+  "score_rank_agreement": 0.8888888888888888,
+  "score_mean_rank_correlation": 0.9722222222222222,
   "verdicts": {
    "mean absolute probability delta <= 0.01": "failed acceptance"
   },
   "top20_letter_coverage": {
    "questions_with_at_most_20_options": 157,
-   "all_letters_returned": 138
+   "all_letters_returned": 132
   },
   "mean_letter_mass": {
-   "core": 0.6327938000128722,
-   "bf16_causal": 0.6120830558334724,
-   "vendor": 0.6063856137327001
+   "core": 0.6225372359398623,
+   "bf16_served_mask": 0.6067890608801118,
+   "vendor": 0.6067890608801118
   },
   "length_refusals": {
    "probes": [
@@ -72,9 +81,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.7793770358434282,
-    "bf16_causal": 0.8730835914611816,
-    "vendor": 0.7496392130851746
+    "core": 0.9049447494153638,
+    "bf16_served_mask": 0.7572896480560303,
+    "vendor": 0.7572896480560303
    }
   },
   {
@@ -82,9 +91,9 @@
    "options": 4,
    "letters_in_top20": 4,
    "letter_mass": {
-    "core": 0.9593916445076733,
-    "bf16_causal": 0.9776272177696228,
-    "vendor": 0.9908865094184875
+    "core": 0.969101485620923,
+    "bf16_served_mask": 0.9910869002342224,
+    "vendor": 0.9910869002342224
    }
   },
   {
@@ -92,9 +101,9 @@
    "options": 3,
    "letters_in_top20": 3,
    "letter_mass": {
-    "core": 0.31999366742843305,
-    "bf16_causal": 0.28438636660575867,
-    "vendor": 0.27249717712402344
+    "core": 0.326389286135546,
+    "bf16_served_mask": 0.2652234137058258,
+    "vendor": 0.2652234137058258
    }
   },
   {
@@ -102,9 +111,9 @@
    "options": 5,
    "letters_in_top20": 5,
    "letter_mass": {
-    "core": 0.5344830488264676,
-    "bf16_causal": 0.49142152070999146,
-    "vendor": 0.44017985463142395
+    "core": 0.505774078503229,
+    "bf16_served_mask": 0.43493255972862244,
+    "vendor": 0.43493255972862244
    }
   },
   {
@@ -112,9 +121,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.8554427300082937,
-    "bf16_causal": 0.881271481513977,
-    "vendor": 0.9325328469276428
+    "core": 0.9004671298441448,
+    "bf16_served_mask": 0.9334715604782104,
+    "vendor": 0.9334715604782104
    }
   },
   {
@@ -122,9 +131,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.7567751432895049,
-    "bf16_causal": 0.7215152978897095,
-    "vendor": 0.4502485394477844
+    "core": 0.6062268006390228,
+    "bf16_served_mask": 0.47174757719039917,
+    "vendor": 0.47174757719039917
    }
   },
   {
@@ -132,9 +141,9 @@
    "options": 4,
    "letters_in_top20": 4,
    "letter_mass": {
-    "core": 0.8991138903886337,
-    "bf16_causal": 0.9449633359909058,
-    "vendor": 0.9870855212211609
+    "core": 0.9322404429329705,
+    "bf16_served_mask": 0.9868991374969482,
+    "vendor": 0.9868991374969482
    }
   },
   {
@@ -142,9 +151,9 @@
    "options": 3,
    "letters_in_top20": 3,
    "letter_mass": {
-    "core": 0.3585293026134457,
-    "bf16_causal": 0.2971491813659668,
-    "vendor": 0.23000656068325043
+    "core": 0.2963644067585238,
+    "bf16_served_mask": 0.2302418351173401,
+    "vendor": 0.2302418351173401
    }
   },
   {
@@ -152,9 +161,9 @@
    "options": 5,
    "letters_in_top20": 4,
    "letter_mass": {
-    "core": 0.6145846197746477,
-    "bf16_causal": 0.526544988155365,
-    "vendor": 0.39798614382743835
+    "core": 0.4401513005601222,
+    "bf16_served_mask": 0.4005674421787262,
+    "vendor": 0.4005674421787262
    }
   },
   {
@@ -162,9 +171,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.920783496523163,
-    "bf16_causal": 0.89955073595047,
-    "vendor": 0.946359395980835
+    "core": 0.9222985425953906,
+    "bf16_served_mask": 0.9483035802841187,
+    "vendor": 0.9483035802841187
    }
   },
   {
@@ -172,9 +181,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.8383550211879646,
-    "bf16_causal": 0.8607559204101562,
-    "vendor": 0.8851907849311829
+    "core": 0.817437058156669,
+    "bf16_served_mask": 0.8849899172782898,
+    "vendor": 0.8849899172782898
    }
   },
   {
@@ -182,9 +191,9 @@
    "options": 4,
    "letters_in_top20": 4,
    "letter_mass": {
-    "core": 0.9472998265715267,
-    "bf16_causal": 0.9849697947502136,
-    "vendor": 0.9909753799438477
+    "core": 0.9670380626715516,
+    "bf16_served_mask": 0.9910603761672974,
+    "vendor": 0.9910603761672974
    }
   },
   {
@@ -192,9 +201,9 @@
    "options": 3,
    "letters_in_top20": 3,
    "letter_mass": {
-    "core": 0.5057040204067331,
-    "bf16_causal": 0.5305446982383728,
-    "vendor": 0.6627920269966125
+    "core": 0.5950054787949436,
+    "bf16_served_mask": 0.6634162068367004,
+    "vendor": 0.6634162068367004
    }
   },
   {
@@ -202,9 +211,9 @@
    "options": 5,
    "letters_in_top20": 3,
    "letter_mass": {
-    "core": 0.7193180361643077,
-    "bf16_causal": 0.750507652759552,
-    "vendor": 0.7769291996955872
+    "core": 0.8014391430600578,
+    "bf16_served_mask": 0.7731256484985352,
+    "vendor": 0.7731256484985352
    }
   },
   {
@@ -212,9 +221,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.8762589999646112,
-    "bf16_causal": 0.8646647930145264,
-    "vendor": 0.9184597134590149
+    "core": 0.8593964351609453,
+    "bf16_served_mask": 0.9182381629943848,
+    "vendor": 0.9182381629943848
    }
   },
   {
@@ -222,9 +231,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.9171178250060638,
-    "bf16_causal": 0.9015750885009766,
-    "vendor": 0.8701019883155823
+    "core": 0.8030405829563205,
+    "bf16_served_mask": 0.8737224340438843,
+    "vendor": 0.8737224340438843
    }
   },
   {
@@ -232,9 +241,9 @@
    "options": 4,
    "letters_in_top20": 4,
    "letter_mass": {
-    "core": 0.9689119632390005,
-    "bf16_causal": 0.9688700437545776,
-    "vendor": 0.9221001863479614
+    "core": 0.9180129966708072,
+    "bf16_served_mask": 0.9206520318984985,
+    "vendor": 0.9206520318984985
    }
   },
   {
@@ -242,9 +251,9 @@
    "options": 3,
    "letters_in_top20": 3,
    "letter_mass": {
-    "core": 0.7225255818769551,
-    "bf16_causal": 0.561019778251648,
-    "vendor": 0.4253150224685669
+    "core": 0.6976643873465984,
+    "bf16_served_mask": 0.4421825706958771,
+    "vendor": 0.4421825706958771
    }
   },
   {
@@ -252,9 +261,9 @@
    "options": 5,
    "letters_in_top20": 3,
    "letter_mass": {
-    "core": 0.5179963566528802,
-    "bf16_causal": 0.47942471504211426,
-    "vendor": 0.4258698523044586
+    "core": 0.4916684476756024,
+    "bf16_served_mask": 0.43463027477264404,
+    "vendor": 0.43463027477264404
    }
   },
   {
@@ -262,9 +271,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.9251664667595256,
-    "bf16_causal": 0.9182976484298706,
-    "vendor": 0.8837619423866272
+    "core": 0.8237084230193312,
+    "bf16_served_mask": 0.879320502281189,
+    "vendor": 0.879320502281189
    }
   },
   {
@@ -272,19 +281,19 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.919598956921616,
-    "bf16_causal": 0.8884596228599548,
-    "vendor": 0.904146134853363
+    "core": 0.8989323534677778,
+    "bf16_served_mask": 0.9124557375907898,
+    "vendor": 0.9124557375907898
    }
   },
   {
    "id": "support4.team",
    "options": 4,
-   "letters_in_top20": 4,
+   "letters_in_top20": 3,
    "letter_mass": {
-    "core": 0.7610734450394121,
-    "bf16_causal": 0.7409282922744751,
-    "vendor": 0.5562463402748108
+    "core": 0.6177863695168319,
+    "bf16_served_mask": 0.5642316341400146,
+    "vendor": 0.5642316341400146
    }
   },
   {
@@ -292,9 +301,9 @@
    "options": 3,
    "letters_in_top20": 3,
    "letter_mass": {
-    "core": 0.28962625530602243,
-    "bf16_causal": 0.2227725386619568,
-    "vendor": 0.15551939606666565
+    "core": 0.249934719564125,
+    "bf16_served_mask": 0.15280795097351074,
+    "vendor": 0.15280795097351074
    }
   },
   {
@@ -302,9 +311,9 @@
    "options": 5,
    "letters_in_top20": 5,
    "letter_mass": {
-    "core": 0.6250923301601081,
-    "bf16_causal": 0.4928610026836395,
-    "vendor": 0.39603325724601746
+    "core": 0.5081078880338973,
+    "bf16_served_mask": 0.39183202385902405,
+    "vendor": 0.39183202385902405
    }
   },
   {
@@ -312,9 +321,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.9848796442274004,
-    "bf16_causal": 0.9859405755996704,
-    "vendor": 0.9737228751182556
+    "core": 0.9768016682565639,
+    "bf16_served_mask": 0.972912609577179,
+    "vendor": 0.972912609577179
    }
   },
   {
@@ -322,9 +331,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.8376135291388325,
-    "bf16_causal": 0.8215881586074829,
-    "vendor": 0.7418007254600525
+    "core": 0.8227078040554071,
+    "bf16_served_mask": 0.7501363158226013,
+    "vendor": 0.7501363158226013
    }
   },
   {
@@ -332,9 +341,9 @@
    "options": 4,
    "letters_in_top20": 4,
    "letter_mass": {
-    "core": 0.7682373005874289,
-    "bf16_causal": 0.7659993767738342,
-    "vendor": 0.5995404124259949
+    "core": 0.7814860922089474,
+    "bf16_served_mask": 0.6152055263519287,
+    "vendor": 0.6152055263519287
    }
   },
   {
@@ -342,9 +351,9 @@
    "options": 3,
    "letters_in_top20": 3,
    "letter_mass": {
-    "core": 0.7122580779660518,
-    "bf16_causal": 0.6366378664970398,
-    "vendor": 0.6661143898963928
+    "core": 0.7621784928957246,
+    "bf16_served_mask": 0.6674134731292725,
+    "vendor": 0.6674134731292725
    }
   },
   {
@@ -352,9 +361,9 @@
    "options": 5,
    "letters_in_top20": 3,
    "letter_mass": {
-    "core": 0.8941060544227419,
-    "bf16_causal": 0.8523284196853638,
-    "vendor": 0.6890290975570679
+    "core": 0.6859384427774811,
+    "bf16_served_mask": 0.687301754951477,
+    "vendor": 0.687301754951477
    }
   },
   {
@@ -362,9 +371,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.9282069604355909,
-    "bf16_causal": 0.913418710231781,
-    "vendor": 0.8791309595108032
+    "core": 0.854867084208271,
+    "bf16_served_mask": 0.8761513233184814,
+    "vendor": 0.8761513233184814
    }
   },
   {
@@ -372,9 +381,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.4776845566787134,
-    "bf16_causal": 0.4451286494731903,
-    "vendor": 0.5701839923858643
+    "core": 0.5103459995231386,
+    "bf16_served_mask": 0.5693346858024597,
+    "vendor": 0.5693346858024597
    }
   },
   {
@@ -382,9 +391,9 @@
    "options": 6,
    "letters_in_top20": 6,
    "letter_mass": {
-    "core": 0.8302984665530907,
-    "bf16_causal": 0.8597525358200073,
-    "vendor": 0.8628039956092834
+    "core": 0.8457784153293634,
+    "bf16_served_mask": 0.8589707016944885,
+    "vendor": 0.8589707016944885
    }
   },
   {
@@ -392,9 +401,9 @@
    "options": 4,
    "letters_in_top20": 4,
    "letter_mass": {
-    "core": 0.33227970613674757,
-    "bf16_causal": 0.3032298982143402,
-    "vendor": 0.40127480030059814
+    "core": 0.38382043870902116,
+    "bf16_served_mask": 0.39085307717323303,
+    "vendor": 0.39085307717323303
    }
   },
   {
@@ -402,9 +411,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.2847642323315866,
-    "bf16_causal": 0.21406057476997375,
-    "vendor": 0.1739180088043213
+    "core": 0.19888297370731345,
+    "bf16_served_mask": 0.17007434368133545,
+    "vendor": 0.17007434368133545
    }
   },
   {
@@ -412,9 +421,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.1964051858559938,
-    "bf16_causal": 0.17826204001903534,
-    "vendor": 0.17544814944267273
+    "core": 0.19603304910443126,
+    "bf16_served_mask": 0.17820340394973755,
+    "vendor": 0.17820340394973755
    }
   },
   {
@@ -422,19 +431,19 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.5088757288241168,
-    "bf16_causal": 0.4305858910083771,
-    "vendor": 0.48958033323287964
+    "core": 0.5080570920228022,
+    "bf16_served_mask": 0.49236345291137695,
+    "vendor": 0.49236345291137695
    }
   },
   {
    "id": "moderation1.category",
    "options": 6,
-   "letters_in_top20": 6,
+   "letters_in_top20": 5,
    "letter_mass": {
-    "core": 0.9657759976395809,
-    "bf16_causal": 0.9702681303024292,
-    "vendor": 0.9592477083206177
+    "core": 0.956541719810203,
+    "bf16_served_mask": 0.9590446352958679,
+    "vendor": 0.9590446352958679
    }
   },
   {
@@ -442,9 +451,9 @@
    "options": 4,
    "letters_in_top20": 4,
    "letter_mass": {
-    "core": 0.58551176666664,
-    "bf16_causal": 0.6023101210594177,
-    "vendor": 0.6160098314285278
+    "core": 0.5691087287713512,
+    "bf16_served_mask": 0.6190215349197388,
+    "vendor": 0.6190215349197388
    }
   },
   {
@@ -452,9 +461,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.2981859870576379,
-    "bf16_causal": 0.2529442608356476,
-    "vendor": 0.24741588532924652
+    "core": 0.3001440350593757,
+    "bf16_served_mask": 0.24375388026237488,
+    "vendor": 0.24375388026237488
    }
   },
   {
@@ -462,9 +471,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.8102110152886983,
-    "bf16_causal": 0.8249720931053162,
-    "vendor": 0.8665130734443665
+    "core": 0.8466492654898082,
+    "bf16_served_mask": 0.8678469657897949,
+    "vendor": 0.8678469657897949
    }
   },
   {
@@ -472,19 +481,19 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.9334390622421496,
-    "bf16_causal": 0.9287856221199036,
-    "vendor": 0.8643951416015625
+    "core": 0.8710151494600789,
+    "bf16_served_mask": 0.8684331774711609,
+    "vendor": 0.8684331774711609
    }
   },
   {
    "id": "moderation2.category",
    "options": 6,
-   "letters_in_top20": 5,
+   "letters_in_top20": 6,
    "letter_mass": {
-    "core": 0.9817599428867416,
-    "bf16_causal": 0.9802393317222595,
-    "vendor": 0.9619006514549255
+    "core": 0.9779523240571634,
+    "bf16_served_mask": 0.9603992104530334,
+    "vendor": 0.9603992104530334
    }
   },
   {
@@ -492,9 +501,9 @@
    "options": 4,
    "letters_in_top20": 4,
    "letter_mass": {
-    "core": 0.7055155789326653,
-    "bf16_causal": 0.66022127866745,
-    "vendor": 0.480265349149704
+    "core": 0.6095011052062101,
+    "bf16_served_mask": 0.48212066292762756,
+    "vendor": 0.48212066292762756
    }
   },
   {
@@ -502,9 +511,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.5513750467253596,
-    "bf16_causal": 0.5589402318000793,
-    "vendor": 0.42533165216445923
+    "core": 0.531088002506024,
+    "bf16_served_mask": 0.4207955300807953,
+    "vendor": 0.4207955300807953
    }
   },
   {
@@ -512,9 +521,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.7042668341851996,
-    "bf16_causal": 0.6509463787078857,
-    "vendor": 0.7505012154579163
+    "core": 0.7615079808528629,
+    "bf16_served_mask": 0.7501226663589478,
+    "vendor": 0.7501226663589478
    }
   },
   {
@@ -522,9 +531,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.6338928617326884,
-    "bf16_causal": 0.5328274369239807,
-    "vendor": 0.4184708297252655
+    "core": 0.44776359597114973,
+    "bf16_served_mask": 0.4200337529182434,
+    "vendor": 0.4200337529182434
    }
   },
   {
@@ -532,9 +541,9 @@
    "options": 6,
    "letters_in_top20": 6,
    "letter_mass": {
-    "core": 0.921583022469763,
-    "bf16_causal": 0.9179929494857788,
-    "vendor": 0.5892335772514343
+    "core": 0.624867556245707,
+    "bf16_served_mask": 0.6059287786483765,
+    "vendor": 0.6059287786483765
    }
   },
   {
@@ -542,9 +551,9 @@
    "options": 4,
    "letters_in_top20": 4,
    "letter_mass": {
-    "core": 0.6590886981584968,
-    "bf16_causal": 0.6222929954528809,
-    "vendor": 0.461173415184021
+    "core": 0.5102277781918545,
+    "bf16_served_mask": 0.46558767557144165,
+    "vendor": 0.46558767557144165
    }
   },
   {
@@ -552,9 +561,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.46315942653335035,
-    "bf16_causal": 0.33167946338653564,
-    "vendor": 0.26906833052635193
+    "core": 0.36107494957617825,
+    "bf16_served_mask": 0.27159640192985535,
+    "vendor": 0.27159640192985535
    }
   },
   {
@@ -562,9 +571,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.5301474200012866,
-    "bf16_causal": 0.4614039361476898,
-    "vendor": 0.5071964263916016
+    "core": 0.43038206187526895,
+    "bf16_served_mask": 0.497675359249115,
+    "vendor": 0.497675359249115
    }
   },
   {
@@ -572,9 +581,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.4789386679176568,
-    "bf16_causal": 0.4277552664279938,
-    "vendor": 0.517235517501831
+    "core": 0.5006659769756971,
+    "bf16_served_mask": 0.514106810092926,
+    "vendor": 0.514106810092926
    }
   },
   {
@@ -582,9 +591,9 @@
    "options": 6,
    "letters_in_top20": 6,
    "letter_mass": {
-    "core": 0.9129102341607612,
-    "bf16_causal": 0.908689558506012,
-    "vendor": 0.9296824336051941
+    "core": 0.9160304780377224,
+    "bf16_served_mask": 0.9272978901863098,
+    "vendor": 0.9272978901863098
    }
   },
   {
@@ -592,9 +601,9 @@
    "options": 4,
    "letters_in_top20": 4,
    "letter_mass": {
-    "core": 0.5185089631887608,
-    "bf16_causal": 0.49751541018486023,
-    "vendor": 0.4624497890472412
+    "core": 0.4952822941351697,
+    "bf16_served_mask": 0.4691471755504608,
+    "vendor": 0.4691471755504608
    }
   },
   {
@@ -602,9 +611,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.3187144980673924,
-    "bf16_causal": 0.2879972457885742,
-    "vendor": 0.27653932571411133
+    "core": 0.30067519054270403,
+    "bf16_served_mask": 0.26717716455459595,
+    "vendor": 0.26717716455459595
    }
   },
   {
@@ -612,9 +621,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.26272893163163197,
-    "bf16_causal": 0.20211392641067505,
-    "vendor": 0.36628901958465576
+    "core": 0.4336931820164256,
+    "bf16_served_mask": 0.3623846769332886,
+    "vendor": 0.3623846769332886
    }
   },
   {
@@ -622,9 +631,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.46599165597017406,
-    "bf16_causal": 0.33723923563957214,
-    "vendor": 0.43046149611473083
+    "core": 0.5505163207364229,
+    "bf16_served_mask": 0.43000441789627075,
+    "vendor": 0.43000441789627075
    }
   },
   {
@@ -632,9 +641,9 @@
    "options": 6,
    "letters_in_top20": 6,
    "letter_mass": {
-    "core": 0.7250637910855051,
-    "bf16_causal": 0.5860297083854675,
-    "vendor": 0.6837348341941833
+    "core": 0.7683361420701283,
+    "bf16_served_mask": 0.6849128007888794,
+    "vendor": 0.6849128007888794
    }
   },
   {
@@ -642,9 +651,9 @@
    "options": 4,
    "letters_in_top20": 4,
    "letter_mass": {
-    "core": 0.3064581479877043,
-    "bf16_causal": 0.27690455317497253,
-    "vendor": 0.3039777874946594
+    "core": 0.34611875038963896,
+    "bf16_served_mask": 0.3101521134376526,
+    "vendor": 0.3101521134376526
    }
   },
   {
@@ -652,9 +661,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.18881656078984949,
-    "bf16_causal": 0.16559138894081116,
-    "vendor": 0.2135467380285263
+    "core": 0.216363472183118,
+    "bf16_served_mask": 0.21456663310527802,
+    "vendor": 0.21456663310527802
    }
   },
   {
@@ -662,9 +671,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.34282129937848,
-    "bf16_causal": 0.309141606092453,
-    "vendor": 0.3051270842552185
+    "core": 0.31306027798929437,
+    "bf16_served_mask": 0.3060360252857208,
+    "vendor": 0.3060360252857208
    }
   },
   {
@@ -672,9 +681,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.2973481032876718,
-    "bf16_causal": 0.35401132702827454,
-    "vendor": 0.31633415818214417
+    "core": 0.3143456255130899,
+    "bf16_served_mask": 0.3174789845943451,
+    "vendor": 0.3174789845943451
    }
   },
   {
@@ -682,9 +691,9 @@
    "options": 5,
    "letters_in_top20": 5,
    "letter_mass": {
-    "core": 0.8497959081469835,
-    "bf16_causal": 0.8603677153587341,
-    "vendor": 0.8464201092720032
+    "core": 0.8362828707717529,
+    "bf16_served_mask": 0.8468835949897766,
+    "vendor": 0.8468835949897766
    }
   },
   {
@@ -692,9 +701,9 @@
    "options": 4,
    "letters_in_top20": 4,
    "letter_mass": {
-    "core": 0.3428335086078677,
-    "bf16_causal": 0.3220132887363434,
-    "vendor": 0.29183200001716614
+    "core": 0.40306377796565984,
+    "bf16_served_mask": 0.2930273115634918,
+    "vendor": 0.2930273115634918
    }
   },
   {
@@ -702,9 +711,9 @@
    "options": 6,
    "letters_in_top20": 6,
    "letter_mass": {
-    "core": 0.7325501637834412,
-    "bf16_causal": 0.7744058966636658,
-    "vendor": 0.9395340085029602
+    "core": 0.9215835577339307,
+    "bf16_served_mask": 0.9410809278488159,
+    "vendor": 0.9410809278488159
    }
   },
   {
@@ -712,9 +721,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.2314543361159579,
-    "bf16_causal": 0.2313718944787979,
-    "vendor": 0.3243788778781891
+    "core": 0.29598494576185563,
+    "bf16_served_mask": 0.3262082636356354,
+    "vendor": 0.3262082636356354
    }
   },
   {
@@ -722,19 +731,19 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.2721864137813705,
-    "bf16_causal": 0.3316623866558075,
-    "vendor": 0.31431275606155396
+    "core": 0.3281579060733305,
+    "bf16_served_mask": 0.3138323128223419,
+    "vendor": 0.3138323128223419
    }
   },
   {
    "id": "code1.defect",
    "options": 5,
-   "letters_in_top20": 5,
+   "letters_in_top20": 4,
    "letter_mass": {
-    "core": 0.76958413383835,
-    "bf16_causal": 0.8505582213401794,
-    "vendor": 0.8708615303039551
+    "core": 0.7695637992621202,
+    "bf16_served_mask": 0.8761413097381592,
+    "vendor": 0.8761413097381592
    }
   },
   {
@@ -742,9 +751,9 @@
    "options": 4,
    "letters_in_top20": 4,
    "letter_mass": {
-    "core": 0.3293733601562157,
-    "bf16_causal": 0.2761513888835907,
-    "vendor": 0.26554054021835327
+    "core": 0.29189905583593057,
+    "bf16_served_mask": 0.2651394307613373,
+    "vendor": 0.2651394307613373
    }
   },
   {
@@ -752,9 +761,9 @@
    "options": 6,
    "letters_in_top20": 6,
    "letter_mass": {
-    "core": 0.49597946188346564,
-    "bf16_causal": 0.4766905903816223,
-    "vendor": 0.41195395588874817
+    "core": 0.45312945817169914,
+    "bf16_served_mask": 0.41169866919517517,
+    "vendor": 0.41169866919517517
    }
   },
   {
@@ -762,9 +771,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.22070228391228264,
-    "bf16_causal": 0.18548838794231415,
-    "vendor": 0.21155740320682526
+    "core": 0.21753638301062017,
+    "bf16_served_mask": 0.2082636058330536,
+    "vendor": 0.2082636058330536
    }
   },
   {
@@ -772,9 +781,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.49189780932331345,
-    "bf16_causal": 0.48922237753868103,
-    "vendor": 0.5537248253822327
+    "core": 0.5424538781659506,
+    "bf16_served_mask": 0.5533679723739624,
+    "vendor": 0.5533679723739624
    }
   },
   {
@@ -782,9 +791,9 @@
    "options": 5,
    "letters_in_top20": 5,
    "letter_mass": {
-    "core": 0.9399897812657353,
-    "bf16_causal": 0.9548083543777466,
-    "vendor": 0.9695031642913818
+    "core": 0.9693133726806671,
+    "bf16_served_mask": 0.9719304442405701,
+    "vendor": 0.9719304442405701
    }
   },
   {
@@ -792,9 +801,9 @@
    "options": 4,
    "letters_in_top20": 4,
    "letter_mass": {
-    "core": 0.7646364715986909,
-    "bf16_causal": 0.6950129270553589,
-    "vendor": 0.8018583655357361
+    "core": 0.7742455670073368,
+    "bf16_served_mask": 0.8016335964202881,
+    "vendor": 0.8016335964202881
    }
   },
   {
@@ -802,9 +811,9 @@
    "options": 6,
    "letters_in_top20": 6,
    "letter_mass": {
-    "core": 0.8697242971730035,
-    "bf16_causal": 0.8918705582618713,
-    "vendor": 0.722104549407959
+    "core": 0.709174994619867,
+    "bf16_served_mask": 0.7292110919952393,
+    "vendor": 0.7292110919952393
    }
   },
   {
@@ -812,9 +821,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.26944192434547476,
-    "bf16_causal": 0.30444806814193726,
-    "vendor": 0.37831294536590576
+    "core": 0.26074253962320654,
+    "bf16_served_mask": 0.3817392587661743,
+    "vendor": 0.3817392587661743
    }
   },
   {
@@ -822,9 +831,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.3260209290145648,
-    "bf16_causal": 0.27863168716430664,
-    "vendor": 0.22356726229190826
+    "core": 0.28014156645470256,
+    "bf16_served_mask": 0.22779503464698792,
+    "vendor": 0.22779503464698792
    }
   },
   {
@@ -832,9 +841,9 @@
    "options": 5,
    "letters_in_top20": 5,
    "letter_mass": {
-    "core": 0.5680013515906892,
-    "bf16_causal": 0.6301023364067078,
-    "vendor": 0.5961866974830627
+    "core": 0.5022508368140911,
+    "bf16_served_mask": 0.5986828207969666,
+    "vendor": 0.5986828207969666
    }
   },
   {
@@ -842,9 +851,9 @@
    "options": 4,
    "letters_in_top20": 4,
    "letter_mass": {
-    "core": 0.3441835789784215,
-    "bf16_causal": 0.3135421574115753,
-    "vendor": 0.29687073826789856
+    "core": 0.3131615486816408,
+    "bf16_served_mask": 0.31191492080688477,
+    "vendor": 0.31191492080688477
    }
   },
   {
@@ -852,9 +861,9 @@
    "options": 6,
    "letters_in_top20": 6,
    "letter_mass": {
-    "core": 0.988237828045884,
-    "bf16_causal": 0.9927820563316345,
-    "vendor": 0.9945693016052246
+    "core": 0.9911478121842713,
+    "bf16_served_mask": 0.9944270253181458,
+    "vendor": 0.9944270253181458
    }
   },
   {
@@ -862,9 +871,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.8037839510169777,
-    "bf16_causal": 0.7978940010070801,
-    "vendor": 0.872294545173645
+    "core": 0.8296282794751045,
+    "bf16_served_mask": 0.8741874694824219,
+    "vendor": 0.8741874694824219
    }
   },
   {
@@ -872,9 +881,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.34457029689624863,
-    "bf16_causal": 0.2963429093360901,
-    "vendor": 0.2473852038383484
+    "core": 0.23006706307523261,
+    "bf16_served_mask": 0.23923583328723907,
+    "vendor": 0.23923583328723907
    }
   },
   {
@@ -882,9 +891,9 @@
    "options": 5,
    "letters_in_top20": 5,
    "letter_mass": {
-    "core": 0.5397780595461139,
-    "bf16_causal": 0.5129187703132629,
-    "vendor": 0.49504533410072327
+    "core": 0.5401331790310752,
+    "bf16_served_mask": 0.5044771432876587,
+    "vendor": 0.5044771432876587
    }
   },
   {
@@ -892,19 +901,19 @@
    "options": 4,
    "letters_in_top20": 4,
    "letter_mass": {
-    "core": 0.5761965036859495,
-    "bf16_causal": 0.5143721699714661,
-    "vendor": 0.32500189542770386
+    "core": 0.33829056049377454,
+    "bf16_served_mask": 0.3269704282283783,
+    "vendor": 0.3269704282283783
    }
   },
   {
    "id": "code4.language",
    "options": 6,
-   "letters_in_top20": 6,
+   "letters_in_top20": 5,
    "letter_mass": {
-    "core": 0.9563246759906663,
-    "bf16_causal": 0.9762771725654602,
-    "vendor": 0.9614320397377014
+    "core": 0.9252034778661108,
+    "bf16_served_mask": 0.9618355631828308,
+    "vendor": 0.9618355631828308
    }
   },
   {
@@ -912,9 +921,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.29161453586875596,
-    "bf16_causal": 0.37956297397613525,
-    "vendor": 0.4040951132774353
+    "core": 0.39872303120473507,
+    "bf16_served_mask": 0.40849557518959045,
+    "vendor": 0.40849557518959045
    }
   },
   {
@@ -922,19 +931,19 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.24092938967668842,
-    "bf16_causal": 0.20771059393882751,
-    "vendor": 0.2160223424434662
+    "core": 0.2379829657028606,
+    "bf16_served_mask": 0.21605820953845978,
+    "vendor": 0.21605820953845978
    }
   },
   {
    "id": "code5.defect",
    "options": 5,
-   "letters_in_top20": 4,
+   "letters_in_top20": 3,
    "letter_mass": {
-    "core": 0.6835536894858437,
-    "bf16_causal": 0.7147679924964905,
-    "vendor": 0.7536714673042297
+    "core": 0.5964973953914109,
+    "bf16_served_mask": 0.7519010305404663,
+    "vendor": 0.7519010305404663
    }
   },
   {
@@ -942,19 +951,19 @@
    "options": 4,
    "letters_in_top20": 4,
    "letter_mass": {
-    "core": 0.3319880466942014,
-    "bf16_causal": 0.313259094953537,
-    "vendor": 0.33225661516189575
+    "core": 0.3605738133586849,
+    "bf16_served_mask": 0.32789719104766846,
+    "vendor": 0.32789719104766846
    }
   },
   {
    "id": "code5.language",
    "options": 6,
-   "letters_in_top20": 6,
+   "letters_in_top20": 5,
    "letter_mass": {
-    "core": 0.9856518618560257,
-    "bf16_causal": 0.9874998331069946,
-    "vendor": 0.9940231442451477
+    "core": 0.9936691579651636,
+    "bf16_served_mask": 0.9940345287322998,
+    "vendor": 0.9940345287322998
    }
   },
   {
@@ -962,19 +971,19 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.25063727587182616,
-    "bf16_causal": 0.2047869861125946,
-    "vendor": 0.21735627949237823
+    "core": 0.2386368309038735,
+    "bf16_served_mask": 0.2160973697900772,
+    "vendor": 0.2160973697900772
    }
   },
   {
    "id": "routing0.tool",
    "options": 8,
-   "letters_in_top20": 6,
+   "letters_in_top20": 7,
    "letter_mass": {
-    "core": 0.7218952336819212,
-    "bf16_causal": 0.7871571183204651,
-    "vendor": 0.7810574173927307
+    "core": 0.7257972572540426,
+    "bf16_served_mask": 0.7796606421470642,
+    "vendor": 0.7796606421470642
    }
   },
   {
@@ -982,9 +991,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.6757141315604276,
-    "bf16_causal": 0.675556480884552,
-    "vendor": 0.8193870186805725
+    "core": 0.823117586803354,
+    "bf16_served_mask": 0.8241519331932068,
+    "vendor": 0.8241519331932068
    }
   },
   {
@@ -992,19 +1001,19 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.7594938783922623,
-    "bf16_causal": 0.8382512927055359,
-    "vendor": 0.9366827607154846
+    "core": 0.8690721790883491,
+    "bf16_served_mask": 0.9342516660690308,
+    "vendor": 0.9342516660690308
    }
   },
   {
    "id": "routing0.effort",
    "options": 5,
-   "letters_in_top20": 5,
+   "letters_in_top20": 4,
    "letter_mass": {
-    "core": 0.5780573559881678,
-    "bf16_causal": 0.48252132534980774,
-    "vendor": 0.5386395454406738
+    "core": 0.5437532235385251,
+    "bf16_served_mask": 0.5368236899375916,
+    "vendor": 0.5368236899375916
    }
   },
   {
@@ -1012,9 +1021,9 @@
    "options": 3,
    "letters_in_top20": 3,
    "letter_mass": {
-    "core": 0.4120797092641707,
-    "bf16_causal": 0.3290007412433624,
-    "vendor": 0.38764137029647827
+    "core": 0.4350271748056487,
+    "bf16_served_mask": 0.39016300439834595,
+    "vendor": 0.39016300439834595
    }
   },
   {
@@ -1022,9 +1031,9 @@
    "options": 8,
    "letters_in_top20": 4,
    "letter_mass": {
-    "core": 0.6305203056641315,
-    "bf16_causal": 0.621494710445404,
-    "vendor": 0.6426899433135986
+    "core": 0.5508276077782578,
+    "bf16_served_mask": 0.6469453573226929,
+    "vendor": 0.6469453573226929
    }
   },
   {
@@ -1032,9 +1041,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.33453892080966807,
-    "bf16_causal": 0.30380013585090637,
-    "vendor": 0.2065083384513855
+    "core": 0.2922556758687414,
+    "bf16_served_mask": 0.20292918384075165,
+    "vendor": 0.20292918384075165
    }
   },
   {
@@ -1042,9 +1051,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.8514944819925837,
-    "bf16_causal": 0.9186979532241821,
-    "vendor": 0.8464547991752625
+    "core": 0.7684606771218927,
+    "bf16_served_mask": 0.8416853547096252,
+    "vendor": 0.8416853547096252
    }
   },
   {
@@ -1052,9 +1061,9 @@
    "options": 5,
    "letters_in_top20": 5,
    "letter_mass": {
-    "core": 0.35185180460474297,
-    "bf16_causal": 0.2623603045940399,
-    "vendor": 0.2430257350206375
+    "core": 0.26097182410311953,
+    "bf16_served_mask": 0.2408083975315094,
+    "vendor": 0.2408083975315094
    }
   },
   {
@@ -1062,9 +1071,9 @@
    "options": 3,
    "letters_in_top20": 3,
    "letter_mass": {
-    "core": 0.2442311567428273,
-    "bf16_causal": 0.2300293892621994,
-    "vendor": 0.22351182997226715
+    "core": 0.21292612810614958,
+    "bf16_served_mask": 0.22548234462738037,
+    "vendor": 0.22548234462738037
    }
   },
   {
@@ -1072,9 +1081,9 @@
    "options": 8,
    "letters_in_top20": 7,
    "letter_mass": {
-    "core": 0.5307524722756495,
-    "bf16_causal": 0.4708975851535797,
-    "vendor": 0.46964314579963684
+    "core": 0.4536395210243261,
+    "bf16_served_mask": 0.46564897894859314,
+    "vendor": 0.46564897894859314
    }
   },
   {
@@ -1082,9 +1091,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.3553714281910757,
-    "bf16_causal": 0.26111501455307007,
-    "vendor": 0.23425200581550598
+    "core": 0.27537853420797886,
+    "bf16_served_mask": 0.2342958003282547,
+    "vendor": 0.2342958003282547
    }
   },
   {
@@ -1092,9 +1101,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.35259151389420773,
-    "bf16_causal": 0.26033174991607666,
-    "vendor": 0.3818703591823578
+    "core": 0.3363104670915644,
+    "bf16_served_mask": 0.3823021650314331,
+    "vendor": 0.3823021650314331
    }
   },
   {
@@ -1102,9 +1111,9 @@
    "options": 5,
    "letters_in_top20": 5,
    "letter_mass": {
-    "core": 0.5474839921762121,
-    "bf16_causal": 0.4656236469745636,
-    "vendor": 0.4303157925605774
+    "core": 0.5294622032662366,
+    "bf16_served_mask": 0.43580198287963867,
+    "vendor": 0.43580198287963867
    }
   },
   {
@@ -1112,9 +1121,9 @@
    "options": 3,
    "letters_in_top20": 3,
    "letter_mass": {
-    "core": 0.26303721981009553,
-    "bf16_causal": 0.2666800022125244,
-    "vendor": 0.19246342778205872
+    "core": 0.23031639334754322,
+    "bf16_served_mask": 0.1880410760641098,
+    "vendor": 0.1880410760641098
    }
   },
   {
@@ -1122,9 +1131,9 @@
    "options": 8,
    "letters_in_top20": 5,
    "letter_mass": {
-    "core": 0.7736058560868021,
-    "bf16_causal": 0.85245281457901,
-    "vendor": 0.9129127860069275
+    "core": 0.8163594304552538,
+    "bf16_served_mask": 0.9127560257911682,
+    "vendor": 0.9127560257911682
    }
   },
   {
@@ -1132,9 +1141,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.22263034361461848,
-    "bf16_causal": 0.21769899129867554,
-    "vendor": 0.16244028508663177
+    "core": 0.18629253396078568,
+    "bf16_served_mask": 0.1607532501220703,
+    "vendor": 0.1607532501220703
    }
   },
   {
@@ -1142,9 +1151,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.21091020174099012,
-    "bf16_causal": 0.20650872588157654,
-    "vendor": 0.17525935173034668
+    "core": 0.16953738710882083,
+    "bf16_served_mask": 0.17549081146717072,
+    "vendor": 0.17549081146717072
    }
   },
   {
@@ -1152,9 +1161,9 @@
    "options": 5,
    "letters_in_top20": 5,
    "letter_mass": {
-    "core": 0.5178047088092105,
-    "bf16_causal": 0.43604767322540283,
-    "vendor": 0.3731730580329895
+    "core": 0.4354580196416139,
+    "bf16_served_mask": 0.3738117218017578,
+    "vendor": 0.3738117218017578
    }
   },
   {
@@ -1162,19 +1171,19 @@
    "options": 3,
    "letters_in_top20": 3,
    "letter_mass": {
-    "core": 0.6392098888804586,
-    "bf16_causal": 0.5988421440124512,
-    "vendor": 0.42784178256988525
+    "core": 0.5210371913689709,
+    "bf16_served_mask": 0.4218273460865021,
+    "vendor": 0.4218273460865021
    }
   },
   {
    "id": "routing4.tool",
    "options": 8,
-   "letters_in_top20": 4,
+   "letters_in_top20": 5,
    "letter_mass": {
-    "core": 0.8996361491377224,
-    "bf16_causal": 0.9251399636268616,
-    "vendor": 0.8988518714904785
+    "core": 0.879844044342588,
+    "bf16_served_mask": 0.8991391658782959,
+    "vendor": 0.8991391658782959
    }
   },
   {
@@ -1182,9 +1191,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.9134083887958704,
-    "bf16_causal": 0.9345760941505432,
-    "vendor": 0.9292392730712891
+    "core": 0.937392585293997,
+    "bf16_served_mask": 0.934849739074707,
+    "vendor": 0.934849739074707
    }
   },
   {
@@ -1192,19 +1201,19 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.84420121907787,
-    "bf16_causal": 0.8716185092926025,
-    "vendor": 0.9508237838745117
+    "core": 0.9177678005406196,
+    "bf16_served_mask": 0.949419379234314,
+    "vendor": 0.949419379234314
    }
   },
   {
    "id": "routing4.effort",
    "options": 5,
-   "letters_in_top20": 5,
+   "letters_in_top20": 4,
    "letter_mass": {
-    "core": 0.7345077715834836,
-    "bf16_causal": 0.6593209505081177,
-    "vendor": 0.5968653559684753
+    "core": 0.6970432697971317,
+    "bf16_served_mask": 0.5935990810394287,
+    "vendor": 0.5935990810394287
    }
   },
   {
@@ -1212,19 +1221,19 @@
    "options": 3,
    "letters_in_top20": 3,
    "letter_mass": {
-    "core": 0.6283624175560573,
-    "bf16_causal": 0.503061830997467,
-    "vendor": 0.4038408398628235
+    "core": 0.5012541328591987,
+    "bf16_served_mask": 0.4075694680213928,
+    "vendor": 0.4075694680213928
    }
   },
   {
    "id": "routing5.tool",
    "options": 8,
-   "letters_in_top20": 5,
+   "letters_in_top20": 4,
    "letter_mass": {
-    "core": 0.971273416265485,
-    "bf16_causal": 0.9718053340911865,
-    "vendor": 0.9558706879615784
+    "core": 0.9478591641519863,
+    "bf16_served_mask": 0.9530143737792969,
+    "vendor": 0.9530143737792969
    }
   },
   {
@@ -1232,9 +1241,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.41645817127498147,
-    "bf16_causal": 0.283273845911026,
-    "vendor": 0.34877389669418335
+    "core": 0.42518532442769574,
+    "bf16_served_mask": 0.3464972972869873,
+    "vendor": 0.3464972972869873
    }
   },
   {
@@ -1242,19 +1251,19 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.32978144688027644,
-    "bf16_causal": 0.2517765462398529,
-    "vendor": 0.21610146760940552
+    "core": 0.324315084648927,
+    "bf16_served_mask": 0.21794722974300385,
+    "vendor": 0.21794722974300385
    }
   },
   {
    "id": "routing5.effort",
    "options": 5,
-   "letters_in_top20": 5,
+   "letters_in_top20": 4,
    "letter_mass": {
-    "core": 0.49402012715838506,
-    "bf16_causal": 0.42102232575416565,
-    "vendor": 0.40953123569488525
+    "core": 0.45009351499124006,
+    "bf16_served_mask": 0.41618913412094116,
+    "vendor": 0.41618913412094116
    }
   },
   {
@@ -1262,9 +1271,9 @@
    "options": 3,
    "letters_in_top20": 3,
    "letter_mass": {
-    "core": 0.42457493706562555,
-    "bf16_causal": 0.4290561079978943,
-    "vendor": 0.2930041253566742
+    "core": 0.28280046554899774,
+    "bf16_served_mask": 0.2857988178730011,
+    "vendor": 0.2857988178730011
    }
   },
   {
@@ -1272,9 +1281,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.2823129802753592,
-    "bf16_causal": 0.24385827779769897,
-    "vendor": 0.2779673933982849
+    "core": 0.28576306276584384,
+    "bf16_served_mask": 0.27861785888671875,
+    "vendor": 0.27861785888671875
    }
   },
   {
@@ -1282,9 +1291,9 @@
    "options": 4,
    "letters_in_top20": 4,
    "letter_mass": {
-    "core": 0.37776084087347944,
-    "bf16_causal": 0.31600338220596313,
-    "vendor": 0.3305332362651825
+    "core": 0.36717241791218713,
+    "bf16_served_mask": 0.3256164789199829,
+    "vendor": 0.3256164789199829
    }
   },
   {
@@ -1292,19 +1301,19 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.2333869493811712,
-    "bf16_causal": 0.19774025678634644,
-    "vendor": 0.1855563372373581
+    "core": 0.21810655236744367,
+    "bf16_served_mask": 0.1813720464706421,
+    "vendor": 0.1813720464706421
    }
   },
   {
    "id": "retrieval0.topic",
    "options": 7,
-   "letters_in_top20": 6,
+   "letters_in_top20": 7,
    "letter_mass": {
-    "core": 0.947804070866005,
-    "bf16_causal": 0.9577357769012451,
-    "vendor": 0.9531116485595703
+    "core": 0.9410084419370615,
+    "bf16_served_mask": 0.9531779885292053,
+    "vendor": 0.9531779885292053
    }
   },
   {
@@ -1312,9 +1321,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.8888674713574568,
-    "bf16_causal": 0.8781020045280457,
-    "vendor": 0.9554204940795898
+    "core": 0.9393525083015637,
+    "bf16_served_mask": 0.9544223546981812,
+    "vendor": 0.9544223546981812
    }
   },
   {
@@ -1322,9 +1331,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.6232631877186906,
-    "bf16_causal": 0.4940318167209625,
-    "vendor": 0.693329393863678
+    "core": 0.8074011261680324,
+    "bf16_served_mask": 0.6857061982154846,
+    "vendor": 0.6857061982154846
    }
   },
   {
@@ -1332,9 +1341,9 @@
    "options": 4,
    "letters_in_top20": 4,
    "letter_mass": {
-    "core": 0.7161250974397051,
-    "bf16_causal": 0.6953988075256348,
-    "vendor": 0.7172446846961975
+    "core": 0.7577607851237429,
+    "bf16_served_mask": 0.7203196883201599,
+    "vendor": 0.7203196883201599
    }
   },
   {
@@ -1342,9 +1351,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.9024371051466131,
-    "bf16_causal": 0.9086818099021912,
-    "vendor": 0.9322429299354553
+    "core": 0.9236685504822939,
+    "bf16_served_mask": 0.9367533326148987,
+    "vendor": 0.9367533326148987
    }
   },
   {
@@ -1352,9 +1361,9 @@
    "options": 7,
    "letters_in_top20": 7,
    "letter_mass": {
-    "core": 0.8934741912114029,
-    "bf16_causal": 0.8914361000061035,
-    "vendor": 0.8143172860145569
+    "core": 0.8323126268891228,
+    "bf16_served_mask": 0.8185185790061951,
+    "vendor": 0.8185185790061951
    }
   },
   {
@@ -1362,9 +1371,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.8557351790847154,
-    "bf16_causal": 0.8218405246734619,
-    "vendor": 0.9250331521034241
+    "core": 0.9274711534212722,
+    "bf16_served_mask": 0.9250507950782776,
+    "vendor": 0.9250507950782776
    }
   },
   {
@@ -1372,9 +1381,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.8350971166651144,
-    "bf16_causal": 0.8501608967781067,
-    "vendor": 0.9132410287857056
+    "core": 0.8159821087957788,
+    "bf16_served_mask": 0.9038538336753845,
+    "vendor": 0.9038538336753845
    }
   },
   {
@@ -1382,9 +1391,9 @@
    "options": 4,
    "letters_in_top20": 4,
    "letter_mass": {
-    "core": 0.7322014991681745,
-    "bf16_causal": 0.720923125743866,
-    "vendor": 0.6716289520263672
+    "core": 0.7152893535923355,
+    "bf16_served_mask": 0.6689045429229736,
+    "vendor": 0.6689045429229736
    }
   },
   {
@@ -1392,19 +1401,19 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.5514142231550164,
-    "bf16_causal": 0.5700714588165283,
-    "vendor": 0.5668225288391113
+    "core": 0.5460270435799317,
+    "bf16_served_mask": 0.5605518221855164,
+    "vendor": 0.5605518221855164
    }
   },
   {
    "id": "retrieval2.topic",
    "options": 7,
-   "letters_in_top20": 5,
+   "letters_in_top20": 4,
    "letter_mass": {
-    "core": 0.9861090844230026,
-    "bf16_causal": 0.9854846596717834,
-    "vendor": 0.9779703617095947
+    "core": 0.9795745707251137,
+    "bf16_served_mask": 0.9798954129219055,
+    "vendor": 0.9798954129219055
    }
   },
   {
@@ -1412,9 +1421,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.8437495594546307,
-    "bf16_causal": 0.7632430195808411,
-    "vendor": 0.8617464303970337
+    "core": 0.8787182153619653,
+    "bf16_served_mask": 0.8558340668678284,
+    "vendor": 0.8558340668678284
    }
   },
   {
@@ -1422,9 +1431,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.3184816226114093,
-    "bf16_causal": 0.299151748418808,
-    "vendor": 0.4283631145954132
+    "core": 0.4274057651174154,
+    "bf16_served_mask": 0.43726029992103577,
+    "vendor": 0.43726029992103577
    }
   },
   {
@@ -1432,9 +1441,9 @@
    "options": 4,
    "letters_in_top20": 4,
    "letter_mass": {
-    "core": 0.6764792945389173,
-    "bf16_causal": 0.6435841917991638,
-    "vendor": 0.6644635200500488
+    "core": 0.7633621403851772,
+    "bf16_served_mask": 0.6606130599975586,
+    "vendor": 0.6606130599975586
    }
   },
   {
@@ -1442,9 +1451,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.7899408795926779,
-    "bf16_causal": 0.8226333260536194,
-    "vendor": 0.8840249180793762
+    "core": 0.9046166735032086,
+    "bf16_served_mask": 0.880963146686554,
+    "vendor": 0.880963146686554
    }
   },
   {
@@ -1452,9 +1461,9 @@
    "options": 7,
    "letters_in_top20": 7,
    "letter_mass": {
-    "core": 0.9749104980005524,
-    "bf16_causal": 0.9791368842124939,
-    "vendor": 0.9800551533699036
+    "core": 0.9771769239608495,
+    "bf16_served_mask": 0.9796459078788757,
+    "vendor": 0.9796459078788757
    }
   },
   {
@@ -1462,9 +1471,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.46112603572474853,
-    "bf16_causal": 0.42702895402908325,
-    "vendor": 0.2927418351173401
+    "core": 0.339099200333512,
+    "bf16_served_mask": 0.2901846170425415,
+    "vendor": 0.2901846170425415
    }
   },
   {
@@ -1472,9 +1481,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.5362808452356167,
-    "bf16_causal": 0.4752974510192871,
-    "vendor": 0.6509122848510742
+    "core": 0.6903134374768636,
+    "bf16_served_mask": 0.647515058517456,
+    "vendor": 0.647515058517456
    }
   },
   {
@@ -1482,9 +1491,9 @@
    "options": 4,
    "letters_in_top20": 4,
    "letter_mass": {
-    "core": 0.5272003960261508,
-    "bf16_causal": 0.4218735992908478,
-    "vendor": 0.5933279991149902
+    "core": 0.7482080474378228,
+    "bf16_served_mask": 0.5889835953712463,
+    "vendor": 0.5889835953712463
    }
   },
   {
@@ -1492,9 +1501,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.2622266688268127,
-    "bf16_causal": 0.23539097607135773,
-    "vendor": 0.3527414798736572
+    "core": 0.43389055358782425,
+    "bf16_served_mask": 0.3502956032752991,
+    "vendor": 0.3502956032752991
    }
   },
   {
@@ -1502,9 +1511,9 @@
    "options": 7,
    "letters_in_top20": 4,
    "letter_mass": {
-    "core": 0.9918250751361658,
-    "bf16_causal": 0.9895097017288208,
-    "vendor": 0.9931324124336243
+    "core": 0.9954199682166478,
+    "bf16_served_mask": 0.993022620677948,
+    "vendor": 0.993022620677948
    }
   },
   {
@@ -1512,9 +1521,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.3405356294921422,
-    "bf16_causal": 0.3462538421154022,
-    "vendor": 0.28850606083869934
+    "core": 0.30957517816266417,
+    "bf16_served_mask": 0.28905606269836426,
+    "vendor": 0.28905606269836426
    }
   },
   {
@@ -1522,9 +1531,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.40550983830665555,
-    "bf16_causal": 0.4469394385814667,
-    "vendor": 0.42485329508781433
+    "core": 0.4470953749671257,
+    "bf16_served_mask": 0.4239030182361603,
+    "vendor": 0.4239030182361603
    }
   },
   {
@@ -1532,9 +1541,9 @@
    "options": 4,
    "letters_in_top20": 4,
    "letter_mass": {
-    "core": 0.5361753378017189,
-    "bf16_causal": 0.5101658701896667,
-    "vendor": 0.4175073802471161
+    "core": 0.4647618937210504,
+    "bf16_served_mask": 0.4168703556060791,
+    "vendor": 0.4168703556060791
    }
   },
   {
@@ -1542,9 +1551,9 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.6564528895069733,
-    "bf16_causal": 0.6048001646995544,
-    "vendor": 0.6338940262794495
+    "core": 0.5804125787389821,
+    "bf16_served_mask": 0.6396076679229736,
+    "vendor": 0.6396076679229736
    }
   },
   {
@@ -1552,9 +1561,9 @@
    "options": 7,
    "letters_in_top20": 7,
    "letter_mass": {
-    "core": 0.9784595247495472,
-    "bf16_causal": 0.9797617793083191,
-    "vendor": 0.9770371913909912
+    "core": 0.9700000215133406,
+    "bf16_served_mask": 0.9767810106277466,
+    "vendor": 0.9767810106277466
    }
   },
   {
@@ -1562,29 +1571,29 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.7641634335763686,
-    "bf16_causal": 0.7560737729072571,
-    "vendor": 0.8467285633087158
+    "core": 0.840208450428038,
+    "bf16_served_mask": 0.8542594313621521,
+    "vendor": 0.8542594313621521
    }
   },
   {
    "id": "options20.colour",
    "options": 20,
-   "letters_in_top20": 7,
+   "letters_in_top20": 5,
    "letter_mass": {
-    "core": 0.9806556094621417,
-    "bf16_causal": 0.9801823496818542,
-    "vendor": 0.9077368378639221
+    "core": 0.9646568818467578,
+    "bf16_served_mask": 0.9080312252044678,
+    "vendor": 0.9080312252044678
    }
   },
   {
    "id": "options26.colour",
    "options": 26,
-   "letters_in_top20": 7,
+   "letters_in_top20": 6,
    "letter_mass": {
-    "core": 0.9781216709347763,
-    "bf16_causal": 0.9796057343482971,
-    "vendor": 0.8910782933235168
+    "core": 0.9487600429646694,
+    "bf16_served_mask": 0.8788367509841919,
+    "vendor": 0.8788367509841919
    }
   },
   {
@@ -1592,19 +1601,19 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.9656636611302801,
-    "bf16_causal": 0.973690390586853,
-    "vendor": 0.9908770322799683
+    "core": 0.9835910945615033,
+    "bf16_served_mask": 0.9909412860870361,
+    "vendor": 0.9909412860870361
    }
   },
   {
    "id": "log4k.worst",
    "options": 5,
-   "letters_in_top20": 2,
+   "letters_in_top20": 1,
    "letter_mass": {
-    "core": 0.9962487676584828,
-    "bf16_causal": 0.9968635439872742,
-    "vendor": 0.9988124370574951
+    "core": 0.9980092530214746,
+    "bf16_served_mask": 0.9988048672676086,
+    "vendor": 0.9988048672676086
    }
   },
   {
@@ -1612,19 +1621,19 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.9483551649200505,
-    "bf16_causal": 0.9703227281570435,
-    "vendor": 0.9913666844367981
+    "core": 0.9819293712923001,
+    "bf16_served_mask": 0.9910320043563843,
+    "vendor": 0.9910320043563843
    }
   },
   {
    "id": "log12k.worst",
    "options": 5,
-   "letters_in_top20": 2,
+   "letters_in_top20": 1,
    "letter_mass": {
-    "core": 0.9959761566537979,
-    "bf16_causal": 0.9972515106201172,
-    "vendor": 0.999088704586029
+    "core": 0.998112512687893,
+    "bf16_served_mask": 0.999077320098877,
+    "vendor": 0.999077320098877
    }
   },
   {
@@ -1632,19 +1641,19 @@
    "options": 2,
    "letters_in_top20": 2,
    "letter_mass": {
-    "core": 0.9401179956018105,
-    "bf16_causal": 0.9627275466918945,
-    "vendor": 0.9906125068664551
+    "core": 0.9790788424857053,
+    "bf16_served_mask": 0.9905917048454285,
+    "vendor": 0.9905917048454285
    }
   },
   {
    "id": "log16k.worst",
    "options": 5,
-   "letters_in_top20": 3,
+   "letters_in_top20": 1,
    "letter_mass": {
-    "core": 0.99531175159394,
-    "bf16_causal": 0.9970118403434753,
-    "vendor": 0.9990410804748535
+    "core": 0.9978544412717145,
+    "bf16_served_mask": 0.9990029335021973,
+    "vendor": 0.9990029335021973
    }
   }
  ],
@@ -1659,16 +1668,16 @@
    "tokens": 118,
    "token_sha256": "cecf5109d5221e7a6e9fcd5393b5b6054675bae1ad5ddacfa0e3f58145c2d8da",
    "candidate": [
-    0.9820137900379085,
-    0.01798620996209156
+    0.995668497979436,
+    0.00433150202056399
    ],
    "baseline": [
-    0.9924694949781002,
-    0.007530505021899699
+    0.9918938227198261,
+    0.00810617728017387
    ],
    "absolute_delta": [
-    0.010455704940191768,
-    0.01045570494019186
+    0.0037746752596099498,
+    0.0037746752596098795
    ],
    "argmax_agrees": true
   },
@@ -1684,22 +1693,22 @@
    "tokens": 131,
    "token_sha256": "97b499d7b4e7d5b55bf869a0086ddf46c28581c66d3e705c15b1f366cf84fdb4",
    "candidate": [
-    0.9910855993340778,
-    0.0007492376225744278,
-    0.007108568641647462,
-    0.0010565944017003016
+    0.9962158872856699,
+    0.00047128795064001113,
+    0.002978631564183028,
+    0.00033419319950708337
    ],
    "baseline": [
-    0.996346722114733,
-    0.0003388423189491674,
-    0.003080923831708654,
-    0.000233511734609237
+    0.9992279656820441,
+    7.157027989774491e-05,
+    0.0006837573486642312,
+    1.6706689393962248e-05
    ],
    "absolute_delta": [
-    0.005261122780655159,
-    0.00041039530362526044,
-    0.004027644809938807,
-    0.0008230826670910646
+    0.003012078396374185,
+    0.0003997176707422662,
+    0.0022948742155187965,
+    0.00031748651011312114
    ],
    "argmax_agrees": true
   },
@@ -1714,19 +1723,19 @@
    "tokens": 119,
    "token_sha256": "15fcde26415f322513e77142a0770fd6e476e14a0a5cf46d5640534b001704b8",
    "candidate": [
-    0.3365507785440646,
-    0.5906650111873748,
-    0.07278421026856059
+    0.28101589616585887,
+    0.6332790977696579,
+    0.08570500606448318
    ],
    "baseline": [
-    0.3476390415944916,
-    0.5713224054090463,
-    0.08103855299646215
+    0.24613883448394316,
+    0.6435017826621015,
+    0.11035938285395541
    ],
    "absolute_delta": [
-    0.011088263050426983,
-    0.01934260577832847,
-    0.008254342727901556
+    0.034877061681915705,
+    0.010222684892443601,
+    0.02465437678947223
    ],
    "argmax_agrees": true,
    "rank_agrees": true,
@@ -1745,29 +1754,29 @@
    "tokens": 138,
    "token_sha256": "d5fcb8f5af2997c7689260b9d1642ff77fe38f93d639d35a70c3e4f5c64da863",
    "candidate": [
-    0.0027412646742659263,
-    0.009567953850363006,
-    0.5737360078369061,
-    0.3943226070426388,
-    0.019632166595826204
+    0.001993568606627068,
+    0.007179116335313439,
+    0.5032949109719912,
+    0.4728018138146339,
+    0.014730590271434415
    ],
    "baseline": [
-    0.0028797796662959176,
-    0.01067330916112857,
-    0.5565020253118996,
-    0.4086708919953604,
-    0.021273993865315404
+    0.002641312699556683,
+    0.009949741874277584,
+    0.3473582960396016,
+    0.6023890185233747,
+    0.03766163086318952
    ],
    "absolute_delta": [
-    0.0001385149920299913,
-    0.0011053553107655632,
-    0.01723398252500652,
-    0.014348284952721613,
-    0.0016418272694892003
+    0.000647744092929615,
+    0.0027706255389641455,
+    0.15593661493238958,
+    0.1295872047087408,
+    0.022931040591755106
    ],
-   "argmax_agrees": true,
-   "rank_agrees": true,
-   "rank_correlation": 1.0
+   "argmax_agrees": false,
+   "rank_agrees": false,
+   "rank_correlation": 0.9
   },
   {
    "id": "support0.english",
@@ -1779,16 +1788,16 @@
    "tokens": 117,
    "token_sha256": "58f47b6fa58c95cc394d7bbd13249ca379cfef76944a61f8ffabeaf359c199fe",
    "candidate": [
-    0.9890130573694069,
-    0.01098694263059318
+    0.9940889311437562,
+    0.005911068856243797
    ],
    "baseline": [
-    0.992754927140855,
-    0.007245072859144936
+    0.9966234132926847,
+    0.0033765867073153677
    ],
    "absolute_delta": [
-    0.003741869771448081,
-    0.003741869771448244
+    0.0025344821489284852,
+    0.002534482148928429
    ],
    "argmax_agrees": true
   },
@@ -1802,16 +1811,16 @@
    "tokens": 128,
    "token_sha256": "97e3a6a32ba5473ce9c214641f33f00c07395c3e2dec075103e2c2f2cddfcb45",
    "candidate": [
-    0.016914913266726513,
-    0.9830850867332734
+    0.03963883910097002,
+    0.9603611608990299
    ],
    "baseline": [
-    0.013889356691410898,
-    0.9861106433085891
+    0.037307769981489616,
+    0.9626922300185105
    ],
    "absolute_delta": [
-    0.003025556575315615,
-    0.003025556575315669
+    0.002331069119480403,
+    0.0023310691194805555
    ],
    "argmax_agrees": true
   },
@@ -1827,22 +1836,22 @@
    "tokens": 141,
    "token_sha256": "c756c1c4e8a6b3b970ed7e22f2cf64ed7e795decbe8616c8f5ba19de08a0d293",
    "candidate": [
-    0.0006843590011939583,
-    0.9942387376082648,
-    0.00075162132164723,
-    0.004325282068894113
+    0.00036800584226225346,
+    0.9988389303548388,
+    0.0003350731324281682,
+    0.0004579906704707723
    ],
    "baseline": [
-    0.0002680999445145133,
-    0.9977403792899306,
-    0.0004936330676230526,
-    0.0014978876979318994
+    3.29018530424439e-05,
+    0.9999083032232251,
+    3.4046192446054005e-05,
+    2.4748731286541512e-05
    ],
    "absolute_delta": [
-    0.000416259056679445,
-    0.00350164168166589,
-    0.00025798825402417735,
-    0.0028273943709622136
+    0.00033510398921980953,
+    0.0010693728683862647,
+    0.0003010269399821142,
+    0.0004332419391842308
    ],
    "argmax_agrees": true
   },
@@ -1857,19 +1866,19 @@
    "tokens": 129,
    "token_sha256": "64afcc407e6711059bc210860504458110125b4096218e0e4aa16c59ebb48a88",
    "candidate": [
-    0.061604037590527835,
-    0.2760901419581639,
-    0.6623058204513083
+    0.05431098438978278,
+    0.34325599066466905,
+    0.6024330249455482
    ],
    "baseline": [
-    0.0826605268482711,
-    0.28804497895524583,
-    0.629294494196483
+    0.10179623442524506,
+    0.3561563062743188,
+    0.5420474593004361
    ],
    "absolute_delta": [
-    0.02105648925774327,
-    0.011954836997081941,
-    0.03301132625482528
+    0.04748525003546228,
+    0.01290031560964977,
+    0.060385565645112105
    ],
    "argmax_agrees": true,
    "rank_agrees": true,
@@ -1888,25 +1897,25 @@
    "tokens": 148,
    "token_sha256": "966afefb13af739cac5bd2d37d8dfd2a001a42b21148ae852b30b588e307bcc5",
    "candidate": [
-    0.001806759434528178,
-    0.0013218534400476119,
-    0.04242699664680623,
-    0.7520365097644712,
-    0.20240788071414667
+    0.0038681189221598656,
+    0.0028299762580763963,
+    0.08803798087764422,
+    0.650517579541497,
+    0.2547463444006224
    ],
    "baseline": [
-    0.002753653499006733,
-    0.002351593283698143,
-    0.056651920149529585,
-    0.7286342057149281,
-    0.20960862735283742
+    0.003302980233640479,
+    0.0032558093478011465,
+    0.10225659226452782,
+    0.635364485338595,
+    0.2558201328154355
    ],
    "absolute_delta": [
-    0.0009468940644785551,
-    0.0010297398436505312,
-    0.014224923502723356,
-    0.023402304049543132,
-    0.007200746638690747
+    0.0005651386885193867,
+    0.0004258330897247502,
+    0.0142186113868836,
+    0.015153094202902007,
+    0.0010737884148130927
    ],
    "argmax_agrees": true,
    "rank_agrees": true,
@@ -1922,16 +1931,16 @@
    "tokens": 127,
    "token_sha256": "c946370fa5f92f3e78a9124e1c636c79f355c39bfc78d727c1bec64295fbc752",
    "candidate": [
-    0.9953904278206258,
-    0.004609572179374209
+    0.9959298622841039,
+    0.004070137715896127
    ],
    "baseline": [
-    0.9946286827632168,
-    0.005371317236783058
+    0.9978417505114383,
+    0.002158249488561715
    ],
    "absolute_delta": [
-    0.0007617450574090023,
-    0.0007617450574088488
+    0.0019118882273344573,
+    0.0019118882273344118
    ],
    "argmax_agrees": true
   },
@@ -1945,16 +1954,16 @@
    "tokens": 121,
    "token_sha256": "8cd20325081bd09e14fc0bb6af9d315927708a4a80d93854cc930e66ed2cd1a3",
    "candidate": [
-    0.00538493796177796,
-    0.994615062038222
+    0.006488269596656705,
+    0.9935117304033434
    ],
    "baseline": [
-    0.0031898696121615134,
-    0.9968101303878386
+    0.0018241214316949911,
+    0.998175878568305
    ],
    "absolute_delta": [
-    0.002195068349616446,
-    0.00219506834961658
+    0.0046641481649617135,
+    0.0046641481649616345
    ],
    "argmax_agrees": true
   },
@@ -1970,22 +1979,22 @@
    "tokens": 134,
    "token_sha256": "8c38c00b017ce95bf636fa5eaeb94a67c028892c77fc3b354650bf13695c73d6",
    "candidate": [
-    0.00021599183930699759,
-    0.0019251143084739375,
-    0.9972339007420262,
-    0.000624993110192927
+    6.200445241985542e-05,
+    0.0003248801014639636,
+    0.9991959611384603,
+    0.0004171543076558216
    ],
    "baseline": [
-    4.8746291102295545e-05,
-    0.00022594269839515678,
-    0.9996750517003248,
-    5.0259310177869034e-05
+    1.6962398422612605e-05,
+    5.156595646120759e-05,
+    0.9999135504673401,
+    1.7921177776201366e-05
    ],
    "absolute_delta": [
-    0.00016724554820470204,
-    0.0016991716100787807,
-    0.0024411509582985547,
-    0.0005747338000150579
+    4.5042053997242814e-05,
+    0.000273314145002756,
+    0.0007175893288797752,
+    0.0003992331298796202
    ],
    "argmax_agrees": true
   },
@@ -2000,19 +2009,19 @@
    "tokens": 122,
    "token_sha256": "fae9d1443dc41d345a70309d72b81206b4bc3034f5953713698328dc39d5a7c3",
    "candidate": [
-    0.01117693339558081,
-    0.18038656587711874,
-    0.8084365007273003
+    0.0024490902946124153,
+    0.1256143686139038,
+    0.8719365410914838
    ],
    "baseline": [
-    0.006368225175153842,
-    0.1449301159026601,
-    0.848701658922186
+    0.0017498239872491225,
+    0.09069790256417921,
+    0.9075522734485717
    ],
    "absolute_delta": [
-    0.0048087082204269676,
-    0.035456449974458626,
-    0.04026515819488563
+    0.0006992663073632928,
+    0.03491646604972458,
+    0.035615732357087926
    ],
    "argmax_agrees": true,
    "rank_agrees": true,
@@ -2031,25 +2040,25 @@
    "tokens": 141,
    "token_sha256": "ae7a516391aee30ca0b52b2a27c538132b3627470c33a17d85ec7f5245a04d9d",
    "candidate": [
-    0.0008922164287344123,
-    0.000864765815075187,
-    0.017920646022819675,
-    0.11685729123427033,
-    0.8634650804991003
+    0.00037064835557795554,
+    0.0003824139973679389,
+    0.01266381235816947,
+    0.041523042143299466,
+    0.9450600831455852
    ],
    "baseline": [
-    0.0006568712443044163,
-    0.0006346603317689954,
-    0.009189651248804024,
-    0.07795634939028326,
-    0.9115624677848393
+    0.00038707840821522015,
+    0.0004619995440376378,
+    0.010561663697417152,
+    0.052126875743719076,
+    0.9364623826066109
    ],
    "absolute_delta": [
-    0.000235345184429996,
-    0.0002301054833061916,
-    0.00873099477401565,
-    0.03890094184398707,
-    0.04809738728573898
+    1.6430052637264614e-05,
+    7.958554666969889e-05,
+    0.0021021486607523173,
+    0.01060383360041961,
+    0.008597700538974351
    ],
    "argmax_agrees": true,
    "rank_agrees": true,
@@ -2065,16 +2074,16 @@
    "tokens": 120,
    "token_sha256": "2d0edf548d9d750c838a35be6daf94578ccd1badd1374f3c797c7f70f2044db4",
    "candidate": [
-    0.9908743626108194,
-    0.009125637389180518
+    0.9924227587321393,
+    0.007577241267860811
    ],
    "baseline": [
-    0.9901330756121448,
-    0.009866924387855188
+    0.9970115246525184,
+    0.002988475347481473
    ],
    "absolute_delta": [
-    0.0007412869986745951,
-    0.0007412869986746697
+    0.004588765920379156,
+    0.004588765920379339
    ],
    "argmax_agrees": true
   },
@@ -2088,16 +2097,16 @@
    "tokens": 122,
    "token_sha256": "a46074ad290e272112d4646c2dc45c8911823d7a88ae1da45b7c98bfb35dc6f6",
    "candidate": [
-    0.001410358496618023,
-    0.9985896415033819
+    0.002115703400593114,
+    0.9978842965994069
    ],
    "baseline": [
-    0.0015677260409561339,
-    0.9984322739590439
+    0.0012837804009733743,
+    0.9987162195990268
    ],
    "absolute_delta": [
-    0.00015736754433811088,
-    0.00015736754433803846
+    0.0008319229996197395,
+    0.0008319229996198718
    ],
    "argmax_agrees": true
   },
@@ -2113,22 +2122,22 @@
    "tokens": 135,
    "token_sha256": "4ca8c0c1466c0fbc25b0de7cfb2453a0a25af9a0eb8ff9b633c0fa180800aaaa",
    "candidate": [
-    0.00031434603797508246,
-    0.0011679372187633824,
-    0.001030700977971952,
-    0.9974870157652896
+    0.00040141200670122597,
+    0.006684110007918106,
+    0.0009045959211062744,
+    0.9920098820642744
    ],
    "baseline": [
-    0.0003710078192791797,
-    0.0017831912781355165,
-    0.0008541195208751824,
-    0.99699168138171
+    0.0004242188335021087,
+    0.008450243740277006,
+    0.0005493536390809485,
+    0.9905761837871399
    ],
    "absolute_delta": [
-    5.666178130409722e-05,
-    0.0006152540593721341,
-    0.0001765814570967696,
-    0.0004953343835796264
+    2.2806826800882748e-05,
+    0.0017661337323588997,
+    0.0003552422820253259,
+    0.0014336982771345763
    ],
    "argmax_agrees": true
   },
@@ -2143,19 +2152,19 @@
    "tokens": 123,
    "token_sha256": "7644177dce67ac84079112e71d1bb8f67dc3afa18823ffe03efd308cf52a9585",
    "candidate": [
-    0.9864388193878235,
-    0.01095834542976716,
-    0.002602835182409266
+    0.9827172592054378,
+    0.014921773399376595,
+    0.0023609673951856054
    ],
    "baseline": [
-    0.9557912315438436,
-    0.03208180731765883,
-    0.01212696113849752
+    0.9293024297034436,
+    0.06024151236450459,
+    0.010456057932051847
    ],
    "absolute_delta": [
-    0.030647587843979918,
-    0.021123461887891666,
-    0.009524125956088253
+    0.053414829501994276,
+    0.045319738965128,
+    0.008095090536866242
    ],
    "argmax_agrees": true,
    "rank_agrees": true,
@@ -2174,29 +2183,29 @@
    "tokens": 142,
    "token_sha256": "39319d7af0189388dc685b7ae3ac53103e4dceb6b3bf9a3ea32c40b7d6ae5edc",
    "candidate": [
-    0.5566680826579856,
-    0.38259200505596025,
-    0.05867238425049148,
-    0.0012563606398083742,
-    0.0008111673957542805
+    0.6329886308315732,
+    0.31828667207870537,
+    0.04585354262288266,
+    0.001723233488634549,
+    0.0011479209782041862
    ],
    "baseline": [
-    0.45657712727833805,
-    0.4776785229093139,
-    0.06366174314084254,
-    0.0012880061814130768,
-    0.0007946004900923475
+    0.5637648697496038,
+    0.3709052301022038,
+    0.06151355469050029,
+    0.0023790091128615093,
+    0.0014373363448306259
    ],
    "absolute_delta": [
-    0.10009095537964757,
-    0.09508651785335365,
-    0.004989358890351056,
-    3.164554160470256e-05,
-    1.6566905661933012e-05
+    0.06922376108196937,
+    0.05261855802349841,
+    0.015660012067617628,
+    0.0006557756242269602,
+    0.0002894153666264396
    ],
-   "argmax_agrees": false,
-   "rank_agrees": false,
-   "rank_correlation": 0.9
+   "argmax_agrees": true,
+   "rank_agrees": true,
+   "rank_correlation": 1.0
   },
   {
    "id": "support3.english",
@@ -2208,16 +2217,16 @@
    "tokens": 121,
    "token_sha256": "9154664477f90070d5374c3dcd8fa131f9df444d05207bce5a06e1ddc28a4b53",
    "candidate": [
-    0.9968273171575148,
-    0.0031726828424851897
+    0.9924227587321393,
+    0.007577241267860811
    ],
    "baseline": [
-    0.9967633291445707,
-    0.0032366708554293143
+    0.995494202304683,
+    0.0045057976953169826
    ],
    "absolute_delta": [
-    6.398801294416057e-05,
-    6.398801294412457e-05
+    0.0030714435725437417,
+    0.0030714435725438284
    ],
    "argmax_agrees": true
   },
@@ -2231,16 +2240,16 @@
    "tokens": 123,
    "token_sha256": "68e0d6233f503b9f5b972419ecde45be20bafb3aef73cfc1a5202cb54c85c8fa",
    "candidate": [
-    0.001700722411435288,
-    0.9982992775885647
+    0.0014550629385328433,
+    0.9985449370614672
    ],
    "baseline": [
-    0.002085585140345579,
-    0.9979144148596544
+    0.0008592288279528306,
+    0.9991407711720471
    ],
    "absolute_delta": [
-    0.000384862728910291,
-    0.00038486272891036233
+    0.0005958341105800127,
+    0.0005958341105799514
    ],
    "argmax_agrees": true
   },
@@ -2256,22 +2265,22 @@
    "tokens": 136,
    "token_sha256": "81ae1f32729d36e8bd22d3d2a3bac1d6d00046ddf938f8017d3f48f0fc1b56d8",
    "candidate": [
-    0.9086166788552283,
-    0.08996523426967633,
-    0.0006868930400707879,
-    0.000731193835024597
+    0.7967119042380172,
+    0.20144031584037014,
+    0.0008232405293316055,
+    0.0010245393922811868
    ],
    "baseline": [
-    0.9016825968463588,
-    0.09685647062561617,
-    0.000769170102908266,
-    0.0006917624251168135
+    0.8446720159321844,
+    0.15284367506245716,
+    0.001339187780501312,
+    0.0011451212248570967
    ],
    "absolute_delta": [
-    0.00693408200886958,
-    0.006891236355939842,
-    8.227706283747813e-05,
-    3.9431409907783534e-05
+    0.04796011169416725,
+    0.04859664077791298,
+    0.0005159472511697065,
+    0.00012058183257590994
    ],
    "argmax_agrees": true
   },
@@ -2286,23 +2295,23 @@
    "tokens": 124,
    "token_sha256": "72951242a6d84d92c1e8a1a072e15ce0ce0b0ee0e9c5bc1b2a401770ad2b0ac0",
    "candidate": [
-    0.5217580873523335,
-    0.38172637123627434,
-    0.09651554141139221
+    0.5418549767833657,
+    0.37241111620273837,
+    0.085733907013896
    ],
    "baseline": [
-    0.469376705080562,
-    0.38823844422451986,
-    0.1423848506949182
+    0.39213719004995207,
+    0.4069792234790011,
+    0.2008835864710468
    ],
    "absolute_delta": [
-    0.052381382271771526,
-    0.006512072988245521,
-    0.045869309283526005
+    0.14971778673341363,
+    0.03456810727626275,
+    0.1151496794571508
    ],
-   "argmax_agrees": true,
-   "rank_agrees": true,
-   "rank_correlation": 1.0
+   "argmax_agrees": false,
+   "rank_agrees": false,
+   "rank_correlation": 0.5
   },
   {
    "id": "support4.mood",
@@ -2317,25 +2326,25 @@
    "tokens": 143,
    "token_sha256": "b6e40e82dfe4c95cec8a0e879302d06c3817b4a3a8e38492ee9671a6e2e000bb",
    "candidate": [
-    0.0017165469830776978,
-    0.0020068467416327483,
-    0.7605673781757092,
-    0.23195994478733906,
-    0.0037492833122414106
+    0.003168593218732854,
+    0.00522412703792104,
+    0.7753291972510475,
+    0.20867702250324865,
+    0.007601059989049928
    ],
    "baseline": [
-    0.0033505905328997747,
-    0.004830570835289359,
-    0.6749110128380927,
-    0.30476201154032323,
-    0.012145814253394968
+    0.005062097429166905,
+    0.011652632390293825,
+    0.6101317199197712,
+    0.34672906439330026,
+    0.02642448586746771
    ],
    "absolute_delta": [
-    0.001634043549822077,
-    0.0028237240936566104,
-    0.08565636533761645,
-    0.07280206675298417,
-    0.008396530941153557
+    0.001893504210434051,
+    0.006428505352372785,
+    0.16519747733127632,
+    0.1380520418900516,
+    0.01882342587841778
    ],
    "argmax_agrees": true,
    "rank_agrees": true,
@@ -2351,16 +2360,16 @@
    "tokens": 122,
    "token_sha256": "bbb7a605489fa95f60b41f1cb0fab24d6eeef374377fa008b24aab1917e63765",
    "candidate": [
-    7.254361823018917e-05,
-    0.9999274563817698
+    0.00010889691002655443,
+    0.9998911030899734
    ],
    "baseline": [
-    8.622014286430896e-05,
-    0.9999137798571358
+    0.00016892659879939344,
+    0.9998310734012006
    ],
    "absolute_delta": [
-    1.3676524634119794e-05,
-    1.3676524634020915e-05
+    6.0029688772839007e-05,
+    6.0029688772833545e-05
    ],
    "argmax_agrees": true
   },
@@ -2374,16 +2383,16 @@
    "tokens": 134,
    "token_sha256": "bb09391eb04ea56eef5868d316581e230fc61f7fdb95a0dfad517e0ffdf36983",
    "candidate": [
-    0.0044683842664911206,
-    0.9955316157335088
+    0.0034834241930806684,
+    0.9965165758069193
    ],
    "baseline": [
-    0.005069419754752777,
-    0.9949305802452472
+    0.005422898953449344,
+    0.9945771010465507
    ],
    "absolute_delta": [
-    0.0006010354882616566,
-    0.0006010354882616253
+    0.001939474760368676,
+    0.001939474760368598
    ],
    "argmax_agrees": true
   },
@@ -2399,22 +2408,22 @@
    "tokens": 147,
    "token_sha256": "ebd44194c7fe4c4d5c1a26865738a285db99db600be4d4373dedb74b09d46d68",
    "candidate": [
-    0.0021602047520932976,
-    0.9875261819978249,
-    0.007539855443144444,
-    0.0027737578069374357
+    0.0014706635512432597,
+    0.9781995561327623,
+    0.01907185511939714,
+    0.0012579251965972621
    ],
    "baseline": [
-    0.0020589623076282594,
-    0.9778299140925752,
-    0.01791673751178831,
-    0.0021943860880082994
+    0.0044186808273029695,
+    0.9285872444676565,
+    0.06490052908282645,
+    0.002093545622214129
    ],
    "absolute_delta": [
-    0.00010124244446503821,
-    0.00969626790524969,
-    0.010376882068643869,
-    0.0005793717189291362
+    0.0029480172760597096,
+    0.049612311665105824,
+    0.04582867396342931,
+    0.0008356204256168666
    ],
    "argmax_agrees": true
   },
@@ -2429,19 +2438,19 @@
    "tokens": 135,
    "token_sha256": "821a6672730dcfb1ea099995f20f752a2cbc3d524718da16452ee34481e6a1ed",
    "candidate": [
-    0.0018851661639700907,
-    0.021574584268700556,
-    0.9765402495673294
+    0.0009032437244932039,
+    0.008569737853840118,
+    0.9905270184216666
    ],
    "baseline": [
-    0.003381303679765918,
-    0.03333902879017036,
-    0.9632796675300637
+    0.0021821962786312188,
+    0.022770397265542086,
+    0.9750474064558268
    ],
    "absolute_delta": [
-    0.0014961375157958273,
-    0.011764444521469804,
-    0.013260582037265767
+    0.0012789525541380149,
+    0.014200659411701969,
+    0.015479611965839801
    ],
    "argmax_agrees": true,
    "rank_agrees": true,
@@ -2460,25 +2469,25 @@
    "tokens": 154,
    "token_sha256": "1c97f5e234d66187e1a2bdf9bfeea858bc12a1d2a16ce015cd21a6091a75275e",
    "candidate": [
-    0.00021872126400101819,
-    0.0001600198951261094,
-    0.0005413403273988782,
-    0.02031364592077067,
-    0.9787662725927034
+    0.0012150722955762664,
+    0.0010073303137270269,
+    0.002825127729487651,
+    0.05007658720247057,
+    0.9448758824587384
    ],
    "baseline": [
-    0.00035702284773191453,
-    0.00027195882957480467,
-    0.0005873459256715751,
-    0.024859240718857513,
-    0.9739244316781642
+    0.0013024096531313763,
+    0.0011165925136543654,
+    0.002372476204919763,
+    0.03631086524676069,
+    0.9588976563815338
    ],
    "absolute_delta": [
-    0.00013830158373089635,
-    0.00011193893444869527,
-    4.6005598272696904e-05,
-    0.004545594798086843,
-    0.004841840914539208
+    8.733735755510992e-05,
+    0.00010926219992733852,
+    0.0004526515245678879,
+    0.013765721955709874,
+    0.014021773922795355
    ],
    "argmax_agrees": true,
    "rank_agrees": true,
@@ -2494,16 +2503,16 @@
    "tokens": 133,
    "token_sha256": "ee3c59f2d20c88e0ba2fbaaa7cbd0bd1584447aa80e287fd71acbd7ef72a61f6",
    "candidate": [
-    0.9970189672701452,
-    0.0029810327298548972
+    0.9933071490757152,
+    0.0066928509242848554
    ],
    "baseline": [
-    0.9966965307368013,
-    0.003303469263198714
+    0.9948324821877965,
+    0.0051675178122035795
    ],
    "absolute_delta": [
-    0.0003224365333438506,
-    0.00032243653334381676
+    0.0015253331120813618,
+    0.001525333112081276
    ],
    "argmax_agrees": true
   },
@@ -2517,16 +2526,16 @@
    "tokens": 128,
    "token_sha256": "5276d7f0a54edb138f92dbbe8b74c6b4064fb3a1eb2cb84a87003049726c56ab",
    "candidate": [
-    0.9465966702001757,
-    0.053403329799824234
+    0.9648551535992067,
+    0.03514484640079327
    ],
    "baseline": [
-    0.9443950099968094,
-    0.05560499000319056
+    0.9747548057695742,
+    0.02524519423042585
    ],
    "absolute_delta": [
-    0.002201660203366318,
-    0.002201660203366325
+    0.009899652170367479,
+    0.009899652170367416
    ],
    "argmax_agrees": true
   },
@@ -2544,28 +2553,28 @@
    "tokens": 163,
    "token_sha256": "affd5a852489b3c60d33370e3377fd49d011168033c1545fda46308105a05101",
    "candidate": [
-    0.9846727061466924,
-    0.00122729100798695,
-    0.0016258964219060979,
-    0.004854030097938918,
-    0.0011895312333149242,
-    0.006430545092160661
+    0.9886760644582784,
+    0.0010874839655013614,
+    0.001849872540159145,
+    0.0047238150173104804,
+    0.0010540256013240453,
+    0.0026087384174265835
    ],
    "baseline": [
-    0.9861274877912003,
-    0.0008813771515387015,
-    0.0011021066111512523,
-    0.00541899352937139,
-    0.0008202034011251692,
-    0.005649831515613294
+    0.9898434498754309,
+    0.0008392191515096828,
+    0.0011606876098460362,
+    0.005346546082498235,
+    0.0006643684759663494,
+    0.002145728804748813
    ],
    "absolute_delta": [
-    0.001454781644507852,
-    0.00034591385644824847,
-    0.0005237898107548456,
-    0.0005649634314324721,
-    0.00036932783218975496,
-    0.0007807135765473669
+    0.0011673854171525555,
+    0.0002482648139916785,
+    0.0006891849303131089,
+    0.0006227310651877541,
+    0.00038965712535769597,
+    0.0004630096126777704
    ],
    "argmax_agrees": true
   },
@@ -2581,22 +2590,22 @@
    "tokens": 126,
    "token_sha256": "7c34cdee10aab6444b0e96a99a00984cd43006255f928ad825b5b478ea61ec24",
    "candidate": [
-    0.036652966352162815,
-    0.12399538688350534,
-    0.40656522139773266,
-    0.43278642536659917
+    0.012131033211214974,
+    0.10157189750257029,
+    0.4017246475152904,
+    0.48457242177092436
    ],
    "baseline": [
-    0.030830981598907486,
-    0.13076770443113603,
-    0.3637369156347171,
-    0.47466439833523943
+    0.009753687912600312,
+    0.07561490546797037,
+    0.3333468270290915,
+    0.5812845795903379
    ],
    "absolute_delta": [
-    0.0058219847532553284,
-    0.006772317547630691,
-    0.04282830576301555,
-    0.041877972968640265
+    0.002377345298614662,
+    0.02595699203459992,
+    0.06837782048619889,
+    0.0967121578194135
    ],
    "argmax_agrees": true,
    "rank_agrees": true,
@@ -2612,16 +2621,16 @@
    "tokens": 120,
    "token_sha256": "dc6ee7c281d41d74974a026fc61a3882932c78ef8c13e99aa5130f317df521bc",
    "candidate": [
-    0.7981867777396211,
-    0.20181322226037882
+    0.6926419831347362,
+    0.30735801686526387
    ],
    "baseline": [
-    0.7305799877694462,
-    0.26942001223055384
+    0.5492404492662377,
+    0.4507595507337623
    ],
    "absolute_delta": [
-    0.06760678997017489,
-    0.06760678997017502
+    0.14340153386849852,
+    0.1434015338684984
    ],
    "argmax_agrees": true
   },
@@ -2635,16 +2644,16 @@
    "tokens": 120,
    "token_sha256": "186a5fadea9f09b633af25950a47d55053f30a5ca280f020438524e080c7763b",
    "candidate": [
-    0.5156199157230157,
-    0.48438008427698437
+    0.4225046348141882,
+    0.5774953651858117
    ],
    "baseline": [
-    0.49236619190871334,
-    0.5076338080912867
+    0.5114775995209841,
+    0.48852240047901585
    ],
    "absolute_delta": [
-    0.02325372381430235,
-    0.023253723814302296
+    0.08897296470679594,
+    0.08897296470679583
    ],
    "argmax_agrees": false
   },
@@ -2658,16 +2667,16 @@
    "tokens": 140,
    "token_sha256": "61bced3e4a5b7781d6d2fea262966f3f2d1219f48fe403fb84c6389fe628805f",
    "candidate": [
-    0.9615338079816756,
-    0.03846619201832428
+    0.9740426428022032,
+    0.02595735719779685
    ],
    "baseline": [
-    0.948946609674174,
-    0.05105339032582613
+    0.9807591824409941,
+    0.019240817559005984
    ],
    "absolute_delta": [
-    0.012587198307501657,
-    0.012587198307501844
+    0.00671653963879093,
+    0.0067165396387908645
    ],
    "argmax_agrees": true
   },
@@ -2685,28 +2694,28 @@
    "tokens": 175,
    "token_sha256": "86ca78747cabe8c0fc7ce09179579c6ab251860dc9d7610d2d8ce0c58bb97849",
    "candidate": [
-    0.00010210114232242625,
-    9.591514682586504e-05,
-    0.9979554483632835,
-    0.00027753967983996204,
-    0.00024492790780308675,
-    0.0013240677599251718
+    6.004381843588924e-05,
+    0.00010538018316758604,
+    0.9983154654018608,
+    0.00019687610119630973,
+    0.00015332726177973117,
+    0.0011689072335596953
    ],
    "baseline": [
-    6.809877663807018e-05,
-    6.231815247964552e-05,
-    0.9975489819028784,
-    0.0003799590709161031,
-    0.0002106219492497537,
-    0.0017300201478382129
+    4.2340908627213344e-05,
+    8.626304029078907e-05,
+    0.9982226543937277,
+    0.00034593601580691375,
+    0.0001522625895048315,
+    0.001150543052042569
    ],
    "absolute_delta": [
-    3.400236568435608e-05,
-    3.359699434621952e-05,
-    0.00040646646040509715,
-    0.00010241939107614106,
-    3.430595855333305e-05,
-    0.0004059523879130411
+    1.7702909808675895e-05,
+    1.911714287679697e-05,
+    9.281100813307575e-05,
+    0.00014905991461060402,
+    1.064672274899678e-06,
+    1.8364181517126297e-05
    ],
    "argmax_agrees": true
   },
@@ -2722,22 +2731,22 @@
    "tokens": 138,
    "token_sha256": "e884b563d14c2d70b19b7050575975f805c00345473c200ea7552bdb50352171",
    "candidate": [
-    0.02149716963360246,
-    0.016742012544468422,
-    0.20395946671300832,
-    0.7578013511089208
+    0.01585634165781963,
+    0.026972545757637054,
+    0.19316978648523853,
+    0.7640013260993048
    ],
    "baseline": [
-    0.014377908364278845,
-    0.011969627084461368,
-    0.15099983622827035,
-    0.8226526283229895
+    0.008935011791326022,
+    0.01383616449270373,
+    0.15234528739057285,
+    0.8248835363253975
    ],
    "absolute_delta": [
-    0.007119261269323614,
-    0.004772385460007054,
-    0.05295963048473798,
-    0.06485127721406869
+    0.00692132986649361,
+    0.013136381264933324,
+    0.04082449909466568,
+    0.06088221022609264
    ],
    "argmax_agrees": true,
    "rank_agrees": true,
@@ -2754,15 +2763,15 @@
    "token_sha256": "8ffb66bd537c3a02bf8cd8ba0d39131c824bc7518c28ae2ce410b344fce6fff3",
    "candidate": [
     0.7879311956428947,
-    0.21206880435710532
+    0.21206880435710537
    ],
    "baseline": [
-    0.7486373903747737,
-    0.2513626096252263
+    0.7391163603561788,
+    0.2608836396438213
    ],
    "absolute_delta": [
-    0.039293805268120985,
-    0.03929380526812096
+    0.04881483528671593,
+    0.0488148352867159
    ],
    "argmax_agrees": true
   },
@@ -2776,16 +2785,16 @@
    "tokens": 132,
    "token_sha256": "6cfb95f8322c109f75bad2f2f04720e4335cac572676d8d517f3a75749f559b8",
    "candidate": [
-    0.01495708659314999,
-    0.98504291340685
+    0.00912563738918052,
+    0.9908743626108194
    ],
    "baseline": [
-    0.011414028324965419,
-    0.9885859716750347
+    0.005437998384352573,
+    0.9945620016156476
    ],
    "absolute_delta": [
-    0.0035430582681845717,
-    0.0035430582681846845
+    0.0036876390048279474,
+    0.003687639004828158
    ],
    "argmax_agrees": true
   },
@@ -2799,16 +2808,16 @@
    "tokens": 136,
    "token_sha256": "eeca9b2c5ade9613aa0da5f0ae19c76dce8a51c13b8eab9a34cd84c37508508d",
    "candidate": [
-    0.0029810327298548972,
-    0.9970189672701452
+    0.002472623156634774,
+    0.9975273768433652
    ],
    "baseline": [
-    0.002046748332409404,
-    0.9979532516675906
+    0.0016611550028276473,
+    0.9983388449971724
    ],
    "absolute_delta": [
-    0.0009342843974454933,
-    0.0009342843974454729
+    0.0008114681538071266,
+    0.0008114681538071711
    ],
    "argmax_agrees": true
   },
@@ -2826,28 +2835,28 @@
    "tokens": 171,
    "token_sha256": "eab9dec1639dc833746560d546088c9aa8f9db1ae386a10b4ad2023e213a058d",
    "candidate": [
-    0.00010551559306992394,
-    6.602997090710341e-05,
-    0.0001535242820250871,
-    3.534329655280354e-05,
-    4.132049994832167e-05,
-    0.9995982663574968
+    7.027142433791438e-05,
+    0.00010883851114273781,
+    0.00033524621583301393,
+    5.8257056952141884e-05,
+    7.250207879621516e-05,
+    0.999354884712938
    ],
    "baseline": [
-    8.058894015318684e-05,
-    6.797322423454247e-05,
-    0.00018667367716168113,
-    4.5679411568581964e-05,
-    4.6008206896205115e-05,
-    0.9995730765399857
+    0.00011527302746933175,
+    0.0002444905071947973,
+    0.000540416822876488,
+    0.00012839538401179272,
+    0.00012596129457564042,
+    0.998845462963872
    ],
    "absolute_delta": [
-    2.49266529167371e-05,
-    1.9432533274390547e-06,
-    3.314939513659402e-05,
-    1.0336115015778427e-05,
-    4.6877069478834434e-06,
-    2.518981751109539e-05
+    4.5001603131417366e-05,
+    0.0001356519960520595,
+    0.0002051706070434741,
+    7.013832705965084e-05,
+    5.3459215779425257e-05,
+    0.0005094217490659858
    ],
    "argmax_agrees": true
   },
@@ -2863,26 +2872,26 @@
    "tokens": 134,
    "token_sha256": "1ec8fc3862e380cc1548a2b538a520c23f6fc33dd723324c88f3269c0bdb5644",
    "candidate": [
-    0.8251389320857184,
-    0.17295851614686292,
-    0.0009661383599005606,
-    0.0009364134075180905
+    0.8203199769100409,
+    0.17194840826787022,
+    0.004582269868761866,
+    0.0031493449533269457
    ],
    "baseline": [
-    0.7668506554457207,
-    0.23081996629630858,
-    0.0010992439871594906,
-    0.0012301342708113225
+    0.6967635057131669,
+    0.28242681899885286,
+    0.012299473996806,
+    0.008510201291174392
    ],
    "absolute_delta": [
-    0.058288276639997694,
-    0.05786145014944566,
-    0.00013310562725893003,
-    0.00029372086329323196
+    0.12355647119687396,
+    0.11047841073098263,
+    0.007717204128044134,
+    0.005360856337847447
    ],
    "argmax_agrees": true,
-   "rank_agrees": false,
-   "rank_correlation": 0.8
+   "rank_agrees": true,
+   "rank_correlation": 1.0
   },
   {
    "id": "moderation2.review",
@@ -2894,16 +2903,16 @@
    "tokens": 128,
    "token_sha256": "87805cc795633eb09c36b6a0343e632541e441bd7927b7c1359831bf1ebc13f4",
    "candidate": [
-    0.06008665017400762,
-    0.9399133498259924
+    0.044680870272650205,
+    0.9553191297273498
    ],
    "baseline": [
-    0.04281586232483253,
-    0.9571841376751675
+    0.06035034992649278,
+    0.9396496500735072
    ],
    "absolute_delta": [
-    0.017270787849175087,
-    0.01727078784917513
+    0.015669479653842577,
+    0.015669479653842577
    ],
    "argmax_agrees": true
   },
@@ -2917,16 +2926,16 @@
    "tokens": 128,
    "token_sha256": "552fd35cd33bf1300346eec5cce683c62cfeb1242114af7d916d44e180468499",
    "candidate": [
-    0.02442309005410721,
-    0.9755769099458929
+    0.01322282175230515,
+    0.9867771782476948
    ],
    "baseline": [
-    0.027607470207879303,
-    0.9723925297921208
+    0.012794969384405098,
+    0.987205030615595
    ],
    "absolute_delta": [
-    0.003184380153772093,
-    0.003184380153772093
+    0.00042785236790005184,
+    0.0004278523679001056
    ],
    "argmax_agrees": true
   },
@@ -2940,16 +2949,16 @@
    "tokens": 135,
    "token_sha256": "a8c5bb953812fec2bfcb45719328390c4d006f73596f6cf31f267f5b01e3fea3",
    "candidate": [
-    0.9669140216112958,
-    0.033085978388704126
+    0.9579122720843812,
+    0.042087727915618836
    ],
    "baseline": [
-    0.9598621150616397,
-    0.04013788493836024
+    0.9571841767592647,
+    0.04281582324073524
    ],
    "absolute_delta": [
-    0.007051906549656151,
-    0.007051906549656116
+    0.000728095325116529,
+    0.0007280953251164041
    ],
    "argmax_agrees": true
   },
@@ -2967,28 +2976,28 @@
    "tokens": 170,
    "token_sha256": "100af0d13e715d5dcbc45ab75ef54603e9001805c05c4ab551aeb6a931b67b6a",
    "candidate": [
-    0.00039911410889141303,
-    0.9863310849748667,
-    0.0003868346586859681,
-    0.008533435916565824,
-    0.0005628411072648459,
-    0.0037866892337253587
+    0.0019986837033182073,
+    0.9426912490906162,
+    0.0018775895793295375,
+    0.036552106413385174,
+    0.0025663606749801596,
+    0.014314010538370746
    ],
    "baseline": [
-    0.0003892782107965519,
-    0.9840754757890054,
-    0.000348601642833327,
-    0.01198242865596863,
-    0.00037621825168961424,
-    0.0028279974497064497
+    0.002462066214886839,
+    0.9304293051633117,
+    0.002115902898154538,
+    0.04597320217072017,
+    0.002534339413589994,
+    0.016485184139337087
    ],
    "absolute_delta": [
-    9.83589809486115e-06,
-    0.002255609185861207,
-    3.823301585264107e-05,
-    0.003448992739402806,
-    0.00018662285557523165,
-    0.000958691784018909
+    0.00046338251156863167,
+    0.012261943927304508,
+    0.00023831331882500045,
+    0.009421095757334998,
+    3.202126139016572e-05,
+    0.002171173600966341
    ],
    "argmax_agrees": true
   },
@@ -3004,22 +3013,22 @@
    "tokens": 133,
    "token_sha256": "845d66280db01a68e35f0d8e78da3c72499fb39ebb937e4987a9106b97908c69",
    "candidate": [
-    0.0034882756599511166,
-    0.006316451215239347,
-    0.16290342391138996,
-    0.8272918492134196
+    0.011184767478467793,
+    0.01787320753934735,
+    0.13625836225830648,
+    0.8346836627238784
    ],
    "baseline": [
-    0.0034893363812302275,
-    0.009054634174983929,
-    0.1335886037480842,
-    0.8538674256957017
+    0.016392292255516742,
+    0.02357064049811581,
+    0.12288288524056405,
+    0.8371541820058035
    ],
    "absolute_delta": [
-    1.060721279110867e-06,
-    0.002738182959744582,
-    0.02931482016330575,
-    0.02657557648228215
+    0.005207524777048949,
+    0.005697432958768459,
+    0.01337547701774243,
+    0.0024705192819250987
    ],
    "argmax_agrees": true,
    "rank_agrees": true,
@@ -3035,16 +3044,16 @@
    "tokens": 127,
    "token_sha256": "84b2b3c0710ae4dd747a176021dffd1acfc3ebeac85b33a474fffdb06b2122d0",
    "candidate": [
-    0.9241418199787564,
-    0.07585818002124355
+    0.9362850057480347,
+    0.06371499425196535
    ],
    "baseline": [
-    0.8775639119480967,
-    0.12243608805190322
+    0.9003980667941389,
+    0.0996019332058611
    ],
    "absolute_delta": [
-    0.046577908030659754,
-    0.04657790803065967
+    0.03588693895389583,
+    0.03588693895389575
    ],
    "argmax_agrees": true
   },
@@ -3058,16 +3067,16 @@
    "tokens": 127,
    "token_sha256": "612401611e045efb8a7f09fcf49d7b37ceed9365f87c3240631ae6474153fe5e",
    "candidate": [
-    0.07159119944455246,
+    0.07159119944455247,
     0.9284088005554475
    ],
    "baseline": [
-    0.07418629323909118,
-    0.9258137067609088
+    0.052628081939556294,
+    0.9473719180604437
    ],
    "absolute_delta": [
-    0.0025950937945387192,
-    0.0025950937945387054
+    0.01896311750499618,
+    0.01896311750499624
    ],
    "argmax_agrees": true
   },
@@ -3081,16 +3090,16 @@
    "tokens": 135,
    "token_sha256": "d7164a92dbdda46f364c90847298897325744c892957fc7e713960de27e6abb8",
    "candidate": [
-    0.9433475746920261,
-    0.05665242530797384
+    0.9553191297273498,
+    0.0446808702726502
    ],
    "baseline": [
-    0.9434813421964968,
-    0.05651865780350321
+    0.9669347463940935,
+    0.033065253605906515
    ],
    "absolute_delta": [
-    0.0001337675044706943,
-    0.00013376750447063185
+    0.011615616666743711,
+    0.011615616666743683
    ],
    "argmax_agrees": true
   },
@@ -3108,28 +3117,28 @@
    "tokens": 170,
    "token_sha256": "6850ecd71cf1d068331643503a44e9eb558e4eef42a18e518107e52657b748af",
    "candidate": [
-    0.006648322730573361,
-    0.0011919785838205917,
-    0.00042501305277749295,
-    0.9866985791778609,
-    0.00046678552030238624,
-    0.004569320934665392
+    0.0029656143959374106,
+    0.0004994909631500619,
+    0.00034329478382601414,
+    0.9918622404735941,
+    0.0002758451082339086,
+    0.004053514275258462
    ],
    "baseline": [
-    0.005243469079632633,
-    0.0010552947112139838,
-    0.0003291533967936152,
-    0.9900595585175759,
-    0.0003024065450541135,
-    0.0030101177497297697
+    0.0014665213162025877,
+    0.00033558043197687764,
+    0.00019996519975653605,
+    0.9959314963777655,
+    0.00015066444461816998,
+    0.0019157722296803048
    ],
    "absolute_delta": [
-    0.0014048536509407286,
-    0.00013668387260660792,
-    9.585965598387774e-05,
-    0.00336097933971502,
-    0.00016437897524827273,
-    0.0015592031849356223
+    0.0014990930797348229,
+    0.00016391053117318423,
+    0.0001433295840694781,
+    0.004069255904171398,
+    0.0001251806636157386,
+    0.0021377420455781573
    ],
    "argmax_agrees": true
   },
@@ -3145,22 +3154,22 @@
    "tokens": 133,
    "token_sha256": "4f8ba5e6ace94120aaaa0b2164421c29577fe64fe9de8b43f0bca2d5169545f4",
    "candidate": [
-    0.02121234943024081,
-    0.017585655342687054,
-    0.32160803851447367,
-    0.6395939567125986
+    0.02089333589238282,
+    0.03236023166966254,
+    0.3167713598378625,
+    0.6299750726000922
    ],
    "baseline": [
-    0.01489707151242531,
-    0.012327642352109617,
-    0.29420084516929346,
-    0.6785744409661717
+    0.013271062260086324,
+    0.019291850740277464,
+    0.22533636844158597,
+    0.7421007185580504
    ],
    "absolute_delta": [
-    0.0063152779178155,
-    0.005258012990577437,
-    0.027407193345180214,
-    0.038980484253573144
+    0.007622273632296495,
+    0.013068380929385073,
+    0.0914349913962765,
+    0.11212564595795815
    ],
    "argmax_agrees": true,
    "rank_agrees": true,
@@ -3176,16 +3185,16 @@
    "tokens": 127,
    "token_sha256": "2198ff8c44a24b5eed4be2365701e823ffb979810b8c1197e76a516f560a39d4",
    "candidate": [
-    0.8438951025545426,
-    0.15610489744545739
+    0.8596637505099168,
+    0.1403362494900832
    ],
    "baseline": [
-    0.8667635224576432,
-    0.1332364775423568
+    0.8818873077218736,
+    0.11811269227812635
    ],
    "absolute_delta": [
-    0.022868419903100623,
-    0.022868419903100595
+    0.02222355721195679,
+    0.022223557211956846
    ],
    "argmax_agrees": true
   },
@@ -3199,16 +3208,16 @@
    "tokens": 127,
    "token_sha256": "af89464f2e056932c55afa48d72bbde58f7a55c7b21ac9dffddfc84049e9fefb",
    "candidate": [
-    0.7549149868676283,
-    0.24508501313237172
+    0.9149009549929797,
+    0.08509904500702024
    ],
    "baseline": [
-    0.6862505563998201,
-    0.31374944360017987
+    0.8941713473231128,
+    0.10582865267688715
    ],
    "absolute_delta": [
-    0.06866443046780812,
-    0.06866443046780815
+    0.02072960766986698,
+    0.02072960766986691
    ],
    "argmax_agrees": true
   },
@@ -3222,16 +3231,16 @@
    "tokens": 136,
    "token_sha256": "776429a224c05d993cccaa6a58464a022fd3a5e7a10a88350207ce79faabc8db",
    "candidate": [
-    0.0675466911396291,
-    0.9324533088603709
+    0.06371499425196533,
+    0.9362850057480346
    ],
    "baseline": [
-    0.10930235948889912,
-    0.8906976405111008
+    0.0762656661906569,
+    0.9237343338093431
    ],
    "absolute_delta": [
-    0.04175566834927001,
-    0.041755668349270136
+    0.012550671938691568,
+    0.012550671938691527
    ],
    "argmax_agrees": true
   },
@@ -3249,28 +3258,28 @@
    "tokens": 171,
    "token_sha256": "fe23ad031baf8be43e9d160e464176daa5da8a9638552f2435b921666b317da7",
    "candidate": [
-    0.059198849701754284,
-    0.0011908318672204806,
-    0.0012676339241590095,
-    0.01129829818170549,
-    0.001018572473235811,
-    0.9260258138519248
+    0.08432702432552802,
+    0.0007766250446481891,
+    0.0007295717118506078,
+    0.006921983675718447,
+    0.0006438447759215023,
+    0.9066009504663332
    ],
    "baseline": [
-    0.12024774818421234,
-    0.001935246125193827,
-    0.0012792714642359535,
-    0.02671075227735963,
-    0.0014413300271128484,
-    0.8483856519218854
+    0.12728146444066152,
+    0.0010822555709902822,
+    0.0007530558272802186,
+    0.009426610783885693,
+    0.0007218282035166757,
+    0.8607347851736655
    ],
    "absolute_delta": [
-    0.06104889848245806,
-    0.0007444142579733463,
-    1.1637540076943993e-05,
-    0.01541245409565414,
-    0.0004227575538770375,
-    0.07764016193003942
+    0.042954440115133496,
+    0.00030563052634209316,
+    2.3484115429610796e-05,
+    0.0025046271081672457,
+    7.798342759517346e-05,
+    0.04586616529266763
    ],
    "argmax_agrees": true
   },
@@ -3286,26 +3295,26 @@
    "tokens": 134,
    "token_sha256": "99d398acd17d35055b47a9cdb588bf1c689447ec14a6953c3a3422877833571f",
    "candidate": [
-    0.23235249486102233,
-    0.4340916092233963,
-    0.19262698392164934,
-    0.14092891199393215
+    0.32257335291811967,
+    0.44090549758013114,
+    0.15237286272404293,
+    0.08414828677770626
    ],
    "baseline": [
-    0.1793346340365635,
-    0.46961551839278437,
-    0.21383007131286094,
-    0.13721977625779125
+    0.21538410263819774,
+    0.5404298601757934,
+    0.1788446409907317,
+    0.06534139619527714
    ],
    "absolute_delta": [
-    0.053017860824458835,
-    0.03552390916938808,
-    0.0212030873912116,
-    0.0037091357361409005
+    0.10718925027992193,
+    0.09952436259566227,
+    0.026471778266688756,
+    0.018806890582429125
    ],
    "argmax_agrees": true,
-   "rank_agrees": false,
-   "rank_correlation": 0.8
+   "rank_agrees": true,
+   "rank_correlation": 1.0
   },
   {
    "id": "moderation5.review",
@@ -3317,16 +3326,16 @@
    "tokens": 128,
    "token_sha256": "aec74c55a1eccb7feb4e35c33c8af3e8357cd56e1c9514a0d10df008a7bfe31f",
    "candidate": [
-    0.40733340004593027,
-    0.5926665999540698
+    0.334589441253186,
+    0.665410558746814
    ],
    "baseline": [
-    0.4109268676557786,
-    0.5890731323442214
+    0.26117594781649184,
+    0.7388240521835082
    ],
    "absolute_delta": [
-    0.0035934676098483553,
-    0.0035934676098483553
+    0.07341349343669418,
+    0.07341349343669423
    ],
    "argmax_agrees": true
   },
@@ -3340,16 +3349,16 @@
    "tokens": 128,
    "token_sha256": "8f03593e74cd1474697143b982ee3920ef34493e68a0f2ab69cbdc520700eb0d",
    "candidate": [
-    0.14804719803168948,
-    0.8519528019683106
+    0.23370635691404026,
+    0.7662936430859596
    ],
    "baseline": [
-    0.18150322685599576,
-    0.8184967731440043
+    0.20038189478517857,
+    0.7996181052148214
    ],
    "absolute_delta": [
-    0.03345602882430629,
-    0.033456028824306316
+    0.0333244621288617,
+    0.033324462128861754
    ],
    "argmax_agrees": true
   },
@@ -3363,16 +3372,16 @@
    "tokens": 130,
    "token_sha256": "3ce8579189b8ff990a0083188a853ebba4d986fe4d930f55c031af55abc8845d",
    "candidate": [
-    0.5774953651858118,
-    0.42250463481418826
+    0.679178699175393,
+    0.320821300824607
    ],
    "baseline": [
-    0.7918608407833807,
-    0.20813915921661935
+    0.8174775927220547,
+    0.18252240727794533
    ],
    "absolute_delta": [
-    0.2143654755975689,
-    0.2143654755975689
+    0.1382988935466617,
+    0.1382988935466617
    ],
    "argmax_agrees": true
   },
@@ -3389,25 +3398,25 @@
    "tokens": 149,
    "token_sha256": "df24ecc8cd3ec981a2e6aca91c1ece73253dda90acac738b42c352b63dd98c92",
    "candidate": [
-    0.00190970625012401,
-    0.012848144891307377,
-    0.0008743272324905388,
-    0.9588162344661127,
-    0.02555158715996528
+    0.0005593458105649595,
+    0.007253706839826434,
+    0.00039663557239207064,
+    0.9500481109857902,
+    0.041742200791426265
    ],
    "baseline": [
-    0.001685220380637313,
-    0.005063132779631038,
-    0.0004965910728896934,
-    0.9803848099570254,
-    0.012370245809816594
+    0.00039934759485113627,
+    0.002416303183927667,
+    0.0002961120714863643,
+    0.9778295227665051,
+    0.01905871438322961
    ],
    "absolute_delta": [
-    0.00022448586948669701,
-    0.007785012111676339,
-    0.0003777361596008454,
-    0.021568575490912623,
-    0.013181341350148687
+    0.00015999821571382322,
+    0.004837403655898766,
+    0.00010052350090570633,
+    0.027781411780714915,
+    0.022683486408196656
    ],
    "argmax_agrees": true
   },
@@ -3423,22 +3432,22 @@
    "tokens": 130,
    "token_sha256": "50ee79e365700f70b90a11c4caf647c6001d12cf18d7ce7dd17a0c52f0e558e7",
    "candidate": [
-    0.6043391627071719,
-    0.2088540260517102,
-    0.08178841175595247,
-    0.10501839948516543
+    0.7635506573127563,
+    0.1813591775458013,
+    0.024544295660720153,
+    0.030545869480722344
    ],
    "baseline": [
-    0.506306133154471,
-    0.2992007541973063,
-    0.08844884581012895,
-    0.10604426683809368
+    0.4654786472061506,
+    0.3645557729776608,
+    0.07829621019740966,
+    0.09166936961877896
    ],
    "absolute_delta": [
-    0.09803302955270088,
-    0.0903467281455961,
-    0.006660434054176476,
-    0.001025867352928242
+    0.29807201010660567,
+    0.18319659543185948,
+    0.05375191453668951,
+    0.06112350013805662
    ],
    "argmax_agrees": true,
    "rank_agrees": true,
@@ -3458,28 +3467,28 @@
    "tokens": 120,
    "token_sha256": "eedac6970a1d53e2497845079d41c00950b88f962cc2b23c62331fa3125014b1",
    "candidate": [
-    0.8788446760182375,
-    0.0012030478078717934,
-    0.003072090199727125,
-    0.10496302830226163,
-    0.008093879645470502,
-    0.003823278026431567
+    0.981055460599459,
+    0.00019347228489786288,
+    0.0006967204621518663,
+    0.015857284628089937,
+    0.0015217773983439385,
+    0.0006752846270573066
    ],
    "baseline": [
-    0.8760387711622307,
-    0.0006628493747700456,
-    0.0014731271433080547,
-    0.11599691292472562,
-    0.00352494215924821,
-    0.0023033972357174074
+    0.9784015415712832,
+    0.00010470615176648323,
+    0.00023228601901754823,
+    0.020038023869564,
+    0.0008307244584432658,
+    0.0003927179299254681
    ],
    "absolute_delta": [
-    0.0028059048560067357,
-    0.0005401984331017478,
-    0.0015989630564190703,
-    0.01103388462246399,
-    0.004568937486222292,
-    0.0015198807907141594
+    0.0026539190281757996,
+    8.876613313137964e-05,
+    0.0004644344431343181,
+    0.004180739241474062,
+    0.0006910529399006728,
+    0.0002825666971318385
    ],
    "argmax_agrees": true
   },
@@ -3493,16 +3502,16 @@
    "tokens": 126,
    "token_sha256": "000b0574eb4fdc559a99ef55301a7c48eea9a33dc895dc40d94ea50e5ed11a45",
    "candidate": [
-    0.334589441253186,
-    0.6654105587468141
+    0.7057850278370112,
+    0.2942149721629888
    ],
    "baseline": [
-    0.37067689125198555,
-    0.6293231087480144
+    0.805265309505591,
+    0.1947346904944089
    ],
    "absolute_delta": [
-    0.03608744999879954,
-    0.03608744999879965
+    0.0994802816685798,
+    0.09948028166857992
    ],
    "argmax_agrees": true
   },
@@ -3516,16 +3525,16 @@
    "tokens": 140,
    "token_sha256": "de884900a380135a3a1b024638257ee4b06228f616d9e1f837ef5d9ad4baa77e",
    "candidate": [
-    0.5,
-    0.5
+    0.8596637505099168,
+    0.14033624949008322
    ],
    "baseline": [
-    0.8377400407214659,
-    0.16225995927853412
+    0.8820523550262517,
+    0.11794764497374836
    ],
    "absolute_delta": [
-    0.3377400407214659,
-    0.3377400407214659
+    0.022388604516334842,
+    0.022388604516334856
    ],
    "argmax_agrees": true
   },
@@ -3542,25 +3551,25 @@
    "tokens": 159,
    "token_sha256": "9476b87568b4ef6873956ea8dcbe255faf8683402c0dd8735d83225517907e58",
    "candidate": [
-    0.9609299454566113,
-    0.0009040699970390411,
-    0.002037353188403222,
-    0.007111061353005614,
-    0.029017570004940894
+    0.9795394189938991,
+    0.0005089438822818903,
+    0.0008391066043108546,
+    0.005140151123893928,
+    0.013972379395614205
    ],
    "baseline": [
-    0.9821003126892099,
-    0.0004057289914075507,
-    0.0013792476451882757,
-    0.0028044334976877762,
-    0.013310277176506584
+    0.9926101132030036,
+    0.00018765299852272556,
+    0.0004362409716408824,
+    0.001179072300742889,
+    0.005586920526089943
    ],
    "absolute_delta": [
-    0.021170367232598686,
-    0.0004983410056314905,
-    0.0006581055432149461,
-    0.004306627855317838,
-    0.015707292828434312
+    0.01307069420910456,
+    0.00032129088375916476,
+    0.00040286563266997216,
+    0.003961078823151039,
+    0.008385458869524262
    ],
    "argmax_agrees": true
   },
@@ -3576,24 +3585,24 @@
    "tokens": 140,
    "token_sha256": "35a4dfb3da484c7a64df8bad9baa89feb4b569697997293b82779560f3068be7",
    "candidate": [
-    0.49651960501491715,
-    0.2657677930679694,
-    0.13363643876222153,
-    0.10407616315489197
+    0.1945912605361817,
+    0.24986012439376354,
+    0.3208267503383532,
+    0.23472186473170148
    ],
    "baseline": [
-    0.350655827198455,
-    0.3894624839001931,
-    0.1338868013330129,
-    0.125994887568339
+    0.1067658141166296,
+    0.2178344466115738,
+    0.39116865021180414,
+    0.2842310890599924
    ],
    "absolute_delta": [
-    0.14586377781646215,
-    0.12369469083222373,
-    0.0002503625707913626,
-    0.021918724413447013
+    0.0878254464195521,
+    0.03202567778218973,
+    0.07034189987345096,
+    0.04950922432829091
    ],
-   "argmax_agrees": false,
+   "argmax_agrees": true,
    "rank_agrees": false,
    "rank_correlation": 0.8
   },
@@ -3611,28 +3620,28 @@
    "tokens": 130,
    "token_sha256": "8255ed05e4e8c33a03ee1fea9579b87c206561fbb57c1f2869ae4bc74b792d43",
    "candidate": [
-    0.0038168581998964508,
-    0.37735169231330207,
-    0.029098238027233762,
-    0.08962888304531282,
-    0.015575164453842747,
-    0.4845291639604121
+    0.0034976452517640946,
+    0.45810112508164275,
+    0.07960603900452268,
+    0.06199724551393506,
+    0.04002843020866041,
+    0.356769514939475
    ],
    "baseline": [
-    0.0026860796343399123,
-    0.2910020078151701,
-    0.026313129324821754,
-    0.0878648132650551,
-    0.020418058857935403,
-    0.5717159111026777
+    0.0029773279254405086,
+    0.41168140706918205,
+    0.09162449857398558,
+    0.07516375771284266,
+    0.04395153955493499,
+    0.37460146916361436
    ],
    "absolute_delta": [
-    0.0011307785655565385,
-    0.08634968449813196,
-    0.0027851087024120084,
-    0.0017640697802577127,
-    0.0048428944040926555,
-    0.0871867471422656
+    0.000520317326323586,
+    0.0464197180124607,
+    0.012018459569462903,
+    0.013166512198907597,
+    0.0039231093462745795,
+    0.017831954224139357
    ],
    "argmax_agrees": true
   },
@@ -3646,16 +3655,16 @@
    "tokens": 136,
    "token_sha256": "fa2b27a5bf85c2a9e8c1f1794566e4d3dcc5188cbedd162c6b5db66af331f764",
    "candidate": [
-    0.39233683016710835,
-    0.6076631698328917
+    0.665410558746814,
+    0.334589441253186
    ],
    "baseline": [
-    0.47083069802601935,
-    0.5291693019739807
+    0.6989771806018755,
+    0.3010228193981244
    ],
    "absolute_delta": [
-    0.07849386785891099,
-    0.07849386785891099
+    0.03356662185506154,
+    0.033566621855061596
    ],
    "argmax_agrees": true
   },
@@ -3669,16 +3678,16 @@
    "tokens": 140,
    "token_sha256": "ff2531e55d0aaf863fa5db2d6c4aeb84741b563532544bcb0b30c481788fc25c",
    "candidate": [
-    0.9579122720843812,
-    0.042087727915618836
+    0.9763105287006256,
+    0.02368947129937443
    ],
    "baseline": [
-    0.9646595634871667,
-    0.03534043651283327
+    0.9814727378943617,
+    0.01852726210563822
    ],
    "absolute_delta": [
-    0.006747291402785516,
-    0.006747291402785564
+    0.005162209193736111,
+    0.005162209193736212
    ],
    "argmax_agrees": true
   },
@@ -3695,25 +3704,25 @@
    "tokens": 159,
    "token_sha256": "050834ff741d878823ff7ec626a51a1f93db532065dd02790a4b8224611f7f20",
    "candidate": [
-    0.0003241830817434763,
-    0.9970522186118902,
-    0.0004716836007012286,
-    0.0009091939368683016,
-    0.0012427207687967681
+    6.005940478740333e-05,
+    0.9985746110753213,
+    9.302182585266219e-05,
+    0.0008554127938118883,
+    0.000416894900226767
    ],
    "baseline": [
-    0.00022333209119044148,
-    0.9987539664991609,
-    0.0002144054453944456,
-    0.0003111196479370294,
-    0.0004971763163174681
+    5.5259728487347506e-05,
+    0.9993132817439255,
+    8.820930555483969e-05,
+    0.00031602752385357936,
+    0.00022722169817855707
    ],
    "absolute_delta": [
-    0.00010085099055303484,
-    0.0017017478872707326,
-    0.000257278155306783,
-    0.0005980742889312722,
-    0.0007455444524793
+    4.799676300055826e-06,
+    0.0007386706686042244,
+    4.812520297822507e-06,
+    0.000539385269958309,
+    0.00018967320204820993
    ],
    "argmax_agrees": true
   },
@@ -3729,22 +3738,22 @@
    "tokens": 140,
    "token_sha256": "627f8b3180f260693824c8ad97b8bd44a11e220b40474b9489ea67cf12ae6575",
    "candidate": [
-    0.0017899563556766677,
-    0.0016815083823886656,
-    0.12548562839728744,
-    0.8710429068646471
+    0.0011018883981098791,
+    0.0019338743645532668,
+    0.08484070449504974,
+    0.9121235327422872
    ],
    "baseline": [
-    0.0025369970207055324,
-    0.002183552973253876,
-    0.12575730149418432,
-    0.8695221485118564
+    0.0005752226034569456,
+    0.001008037638104692,
+    0.06906718003386891,
+    0.9293495597245695
    ],
    "absolute_delta": [
-    0.0007470406650288647,
-    0.0005020445908652104,
-    0.00027167309689687946,
-    0.001520758352790752
+    0.0005266657946529336,
+    0.0009258367264485749,
+    0.015773524461180827,
+    0.01722602698228226
    ],
    "argmax_agrees": true,
    "rank_agrees": true,
@@ -3764,28 +3773,28 @@
    "tokens": 130,
    "token_sha256": "f89cec16ba18f162d929f4a449cccc6b8616e04da0468a7ea674f132d5eb6a12",
    "candidate": [
-    0.9783054295789225,
-    0.00097977916109044,
-    0.0011818392618596005,
-    0.009590968951263242,
-    0.0029250802653780677,
-    0.007016902781486169
+    0.8903139418185484,
+    0.003016430395802935,
+    0.002923624589096838,
+    0.056915866102972876,
+    0.012308919278026957,
+    0.03452121781555205
    ],
    "baseline": [
-    0.9821709716578545,
-    0.0008113260036019866,
-    0.0008469172040540568,
-    0.007501421298450693,
-    0.0021321711346079155,
-    0.00653719270143086
+    0.9271116799732341,
+    0.003058734684387614,
+    0.0025769142999018365,
+    0.030433715403734175,
+    0.011743838333935634,
+    0.025075117304806546
    ],
    "absolute_delta": [
-    0.0038655420789319717,
-    0.00016845315748845353,
-    0.00033492205780554364,
-    0.0020895476528125486,
-    0.0007929091307701521,
-    0.0004797100800553091
+    0.03679773815468568,
+    4.2304288584678676e-05,
+    0.00034671028919500135,
+    0.0264821506992387,
+    0.0005650809440913233,
+    0.009446100510745504
    ],
    "argmax_agrees": true
   },
@@ -3799,16 +3808,16 @@
    "tokens": 136,
    "token_sha256": "d8b8c780c99ea89455a6ef4e957b3c20ea8e0510e6b03b41f6dd968a67fe1d38",
    "candidate": [
-    0.16451646289656316,
-    0.8354835371034368
+    0.2450850131323717,
+    0.7549149868676283
    ],
    "baseline": [
-    0.10300856611145727,
-    0.8969914338885427
+    0.0700118817169587,
+    0.9299881182830412
    ],
    "absolute_delta": [
-    0.06150789678510589,
-    0.06150789678510593
+    0.17507313141541297,
+    0.17507313141541292
    ],
    "argmax_agrees": true
   },
@@ -3822,18 +3831,18 @@
    "tokens": 145,
    "token_sha256": "5842330f2b684d85056d7dda7187e392d983987af0ae65950857e2b1748bc7a0",
    "candidate": [
-    0.29421497216298875,
-    0.7057850278370112
+    0.45326184801538616,
+    0.546738151984614
    ],
    "baseline": [
-    0.40728965721665733,
-    0.5927103427833428
+    0.5343049973954378,
+    0.46569500260456215
    ],
    "absolute_delta": [
-    0.11307468505366858,
-    0.11307468505366847
+    0.08104314938005164,
+    0.0810431493800518
    ],
-   "argmax_agrees": true
+   "argmax_agrees": false
   },
   {
    "id": "code3.defect",
@@ -3848,25 +3857,25 @@
    "tokens": 164,
    "token_sha256": "c27b0d446ee70fa14cf9849884b1e1a208b46bae2715672e26f9c396c8d80978",
    "candidate": [
-    0.12179351991904755,
-    0.0064548200818199605,
-    0.0064548200818199605,
-    0.019882245572756307,
-    0.8454145943445562
+    0.12080102459716786,
+    0.004986053759980096,
+    0.0051443280962955775,
+    0.03054328223194716,
+    0.8385253113146093
    ],
    "baseline": [
-    0.1040568873699362,
-    0.004939909498853868,
-    0.0033389958170017067,
-    0.009998500677891835,
-    0.8776657066363165
+    0.07364613347949207,
+    0.0016127458684032819,
+    0.003237987806746644,
+    0.02465345402604096,
+    0.8968496788193171
    ],
    "absolute_delta": [
-    0.017736632549111356,
-    0.0015149105829660925,
-    0.003115824264818254,
-    0.009883744894864472,
-    0.03225111229176025
+    0.04715489111767579,
+    0.003373307891576814,
+    0.0019063402895489333,
+    0.0058898282059062015,
+    0.05832436750470782
    ],
    "argmax_agrees": true
   },
@@ -3882,22 +3891,22 @@
    "tokens": 145,
    "token_sha256": "08a00b8d384a0b246a6575af5cc04dc184d61dd745e7b8d740fbc2598d0ffd05",
    "candidate": [
-    0.28141066483141647,
-    0.24834404006799676,
-    0.2058844405429294,
-    0.2643608545576574
+    0.2986334267609958,
+    0.2635430741248024,
+    0.20524755250144136,
+    0.23257594661276051
    ],
    "baseline": [
-    0.2864625278904457,
-    0.2303047050262851,
-    0.18323497690566942,
-    0.29999779017759975
+    0.3049784015585904,
+    0.3059980776200918,
+    0.16257186218021083,
+    0.2264516586411069
    ],
    "absolute_delta": [
-    0.005051863059029216,
-    0.01803933504171165,
-    0.022649463637259976,
-    0.035636935619942356
+    0.006344974797594605,
+    0.04245500349528941,
+    0.04267569032123053,
+    0.006124287971653625
    ],
    "argmax_agrees": false,
    "rank_agrees": false,
@@ -3917,28 +3926,28 @@
    "tokens": 135,
    "token_sha256": "ddecd89ba9b3643784217eeb549a68b9e8c8d6ae42727417ae9bd3f340928765",
    "candidate": [
-    1.7773386134968344e-05,
-    4.132436086280494e-05,
-    0.9996916670527657,
-    2.586012423507312e-05,
-    0.0001686291925661769,
-    5.474588343525562e-05
+    1.1476201954546177e-05,
+    1.568610825204659e-05,
+    0.999764965616038,
+    1.2216353390036712e-05,
+    0.00014882565139594166,
+    4.6830068969399355e-05
    ],
    "baseline": [
-    8.49789323352138e-06,
-    1.5490483665287775e-05,
-    0.9998200499667851,
-    1.5696520066207967e-05,
-    0.00011164662990131463,
-    2.861850634838906e-05
+    3.953118249439581e-06,
+    7.808043771686407e-06,
+    0.9998320139691241,
+    5.4255968327119114e-06,
+    0.00012961547461832294,
+    2.1183797403444314e-05
    ],
    "absolute_delta": [
-    9.275492901446965e-06,
-    2.5833877197517167e-05,
-    0.00012838291401939816,
-    1.0163604168865152e-05,
-    5.698256266486227e-05,
-    2.612737708686656e-05
+    7.523083705106595e-06,
+    7.878064480360184e-06,
+    6.704835308612989e-05,
+    6.790756557324801e-06,
+    1.921017677761872e-05,
+    2.564627156595504e-05
    ],
    "argmax_agrees": true
   },
@@ -3952,16 +3961,16 @@
    "tokens": 141,
    "token_sha256": "332157f48e2846c315c4e01c215f449914386af19f3362a97116e7d28de6471a",
    "candidate": [
-    0.005220125693558398,
-    0.9947798743064417
+    0.0037072528743862213,
+    0.9962927471256138
    ],
    "baseline": [
-    0.0032300625995279083,
-    0.996769937400472
+    0.0011146946368531445,
+    0.9988853053631469
    ],
    "absolute_delta": [
-    0.00199006309403049,
-    0.001990063094030381
+    0.0025925582375330766,
+    0.002592558237533127
    ],
    "argmax_agrees": true
   },
@@ -3975,16 +3984,16 @@
    "tokens": 138,
    "token_sha256": "727d0fc497a4ec32390a3eefbc19b1066cfde5ece937dbea7f168e92da630e2f",
    "candidate": [
-    0.14804719803168948,
-    0.8519528019683106
+    0.37754066879814546,
+    0.6224593312018546
    ],
    "baseline": [
-    0.14852621511243805,
-    0.8514737848875619
+    0.23118255814084668,
+    0.7688174418591533
    ],
    "absolute_delta": [
-    0.00047901708074857274,
-    0.0004790170807487115
+    0.14635811065729878,
+    0.14635811065729876
    ],
    "argmax_agrees": true
   },
@@ -4001,27 +4010,27 @@
    "tokens": 157,
    "token_sha256": "ae72b5b48491579cb1915fcd1c85dde02b94d96deb0de3811c0d67f5c92d968f",
    "candidate": [
-    0.003835331521812815,
-    0.010756453257086908,
-    0.005580374436452207,
-    0.3143496424646967,
-    0.6654781983199514
+    0.0018334004107051407,
+    0.003022766254839916,
+    0.0020135964273117206,
+    0.5583144815083415,
+    0.43481575539880174
    ],
    "baseline": [
-    0.0035928287081908464,
-    0.00686923404387786,
-    0.007152873380353213,
-    0.24584816290685638,
-    0.7365369009607218
+    0.0027056155251050647,
+    0.0030826987633932436,
+    0.0025175759370161723,
+    0.327217833396749,
+    0.6644762763777367
    ],
    "absolute_delta": [
-    0.00024250281362196875,
-    0.0038872192132090484,
-    0.0015724989439010063,
-    0.06850147955784033,
-    0.07105870264077041
+    0.000872215114399924,
+    5.993250855332744e-05,
+    0.0005039795097044517,
+    0.23109664811159253,
+    0.2296605209789349
    ],
-   "argmax_agrees": true
+   "argmax_agrees": false
   },
   {
    "id": "code4.risk",
@@ -4035,22 +4044,22 @@
    "tokens": 138,
    "token_sha256": "97244d92704d2b970641d7d4e6b5d76b29254187a62cb13f1d2315d23b189237",
    "candidate": [
-    0.8699947326621061,
-    0.09761070377376604,
-    0.021779891965241358,
-    0.01061467159888633
+    0.5753196135264036,
+    0.25529653093922805,
+    0.07546551039943727,
+    0.09391834513493104
    ],
    "baseline": [
-    0.840042776680018,
-    0.1300446663081496,
-    0.017332526089877193,
-    0.01258003092195528
+    0.6136765674651565,
+    0.2982529286383729,
+    0.03955975049387093,
+    0.04851075340259974
    ],
    "absolute_delta": [
-    0.029951955982088108,
-    0.03243396253438355,
-    0.004447365875364165,
-    0.00196535932306895
+    0.038356953938752936,
+    0.04295639769914483,
+    0.035905759905566347,
+    0.0454075917323313
    ],
    "argmax_agrees": true,
    "rank_agrees": true,
@@ -4070,28 +4079,28 @@
    "tokens": 128,
    "token_sha256": "25b1ed98cebfd0e31b02e75ae62bbfed8b2b7ac552aa69ef55e3d7a092e682a0",
    "candidate": [
-    0.0021783460252964427,
-    0.0001436774941385204,
-    0.000604904844491873,
-    0.9958193691346097,
-    0.0005682555126748196,
-    0.000685446988788595
+    0.006655669577136086,
+    0.0001773675863997195,
+    0.002448484004658593,
+    0.9877889478856766,
+    0.0011932958008264859,
+    0.0017362351453024882
    ],
    "baseline": [
-    0.00047752141727022815,
-    4.518002148438069e-05,
-    0.0003458995311314975,
-    0.9984215469503747,
-    0.00033148483467763446,
-    0.0003783672450618146
+    0.0015056741936964576,
+    4.937732242956098e-05,
+    0.0008024573943786736,
+    0.9964791885801129,
+    0.0005254579952373452,
+    0.0006378445141449376
    ],
    "absolute_delta": [
-    0.0017008246080262145,
-    9.84974726541397e-05,
-    0.0002590053133603755,
-    0.0026021778157649944,
-    0.00023677067799718517,
-    0.0003070797437267804
+    0.005149995383439628,
+    0.00012799026397015853,
+    0.0016460266102799191,
+    0.008690240694436246,
+    0.0006678378055891407,
+    0.0010983906311575506
    ],
    "argmax_agrees": true
   },
@@ -4105,16 +4114,16 @@
    "tokens": 134,
    "token_sha256": "11bee2bb782bbddb88578a2a5c13607dbf585e6d98b802f327d8c413a611646e",
    "candidate": [
-    0.7662936430859597,
-    0.23370635691404024
+    0.8991213772699435,
+    0.10087862273005653
    ],
    "baseline": [
-    0.9008758236405905,
-    0.09912417635940944
+    0.9073952760780207,
+    0.09260472392197922
    ],
    "absolute_delta": [
-    0.13458218055463078,
-    0.13458218055463078
+    0.008273898808077274,
+    0.008273898808077315
    ],
    "argmax_agrees": true
   },
@@ -4128,18 +4137,18 @@
    "tokens": 152,
    "token_sha256": "4b2287bb3c0dea7b621a3a455b0e152bebd046857b8bbe889126e5cd818cd9be",
    "candidate": [
-    0.5467381519846138,
-    0.4532618480153861
+    0.6513548646660542,
+    0.34864513533394575
    ],
    "baseline": [
-    0.38803947985735615,
-    0.6119605201426438
+    0.7481065292372885,
+    0.25189347076271157
    ],
    "absolute_delta": [
-    0.1586986721272577,
-    0.1586986721272577
+    0.0967516645712343,
+    0.09675166457123419
    ],
-   "argmax_agrees": false
+   "argmax_agrees": true
   },
   {
    "id": "code5.defect",
@@ -4154,25 +4163,25 @@
    "tokens": 171,
    "token_sha256": "df6e5f59cb169564a6eeaa7658f02a5062fb8949933dc803fdffce119bb45538",
    "candidate": [
-    0.0012034728140541333,
-    0.0007074851698096338,
-    0.9070625296474923,
-    0.0511729662112421,
-    0.039853546157401894
+    0.0009743388497610657,
+    0.000807755277426322,
+    0.8321426323080897,
+    0.06028021010224047,
+    0.10579506346248237
    ],
    "baseline": [
-    0.0009862769037196095,
-    0.0006341290151678803,
-    0.9488633545057819,
-    0.01794110830763263,
-    0.03157513126769796
+    0.00041335611721669737,
+    0.0003176838657918051,
+    0.9584297951482733,
+    0.01434710846231561,
+    0.02649205640640256
    ],
    "absolute_delta": [
-    0.0002171959103345238,
-    7.335615464175351e-05,
-    0.04180082485828951,
-    0.03323185790360947,
-    0.008278414889703933
+    0.0005609827325443683,
+    0.000490071411634517,
+    0.1262871628401836,
+    0.04593310163992485,
+    0.0793030070560798
    ],
    "argmax_agrees": true
   },
@@ -4188,22 +4197,22 @@
    "tokens": 152,
    "token_sha256": "feee498e7f999b8dd5b4cb9aaafd26fa46e2c1ad21a88211b457664d9f462316",
    "candidate": [
-    0.13770858621620258,
-    0.14659002697255996,
-    0.42417230750382856,
-    0.29152907930740884
+    0.0935242485152154,
+    0.11281177761341804,
+    0.44617923571012236,
+    0.34748473816124426
    ],
    "baseline": [
-    0.10497849083668796,
-    0.14521141486428057,
-    0.4698276740527722,
-    0.2799824202462593
+    0.05765198916432131,
+    0.10552887885149556,
+    0.46149816590848025,
+    0.3753209660757028
    ],
    "absolute_delta": [
-    0.032730095379514615,
-    0.0013786121082793867,
-    0.04565536654894364,
-    0.011546659061149545
+    0.035872259350894095,
+    0.007282898761922479,
+    0.015318930198357894,
+    0.027836227914458556
    ],
    "argmax_agrees": true,
    "rank_agrees": true,
@@ -4223,28 +4232,28 @@
    "tokens": 142,
    "token_sha256": "a3e1ec152b3b68ab880be3d0ee5c3b3c4685a4d7726f51b34a48f623a65893da",
    "candidate": [
-    9.601821351432197e-05,
-    0.00015343666830827492,
-    0.000519069558141724,
-    4.535579251811099e-05,
-    0.999027812496522,
-    0.00015830727099568916
+    2.668205168044785e-05,
+    1.833828805611845e-05,
+    0.00013980395469849764,
+    1.428187309829404e-05,
+    0.999730595989319,
+    7.02978431476235e-05
    ],
    "baseline": [
-    7.029746099719666e-05,
-    0.00015916472624496206,
-    0.0002794636334779824,
-    2.841349732485098e-05,
-    0.9993476813403764,
-    0.0001149793415785481
+    1.7387080187395384e-05,
+    1.057081913534669e-05,
+    7.878238426069532e-05,
+    8.781943695883334e-06,
+    0.9998444949060145,
+    3.998286670607921e-05
    ],
    "absolute_delta": [
-    2.572075251712532e-05,
-    5.728057936687142e-06,
-    0.00023960592466374156,
-    1.6942295193260008e-05,
-    0.0003198688438544872,
-    4.3327929417141055e-05
+    9.294971493052467e-06,
+    7.76746892077176e-06,
+    6.1021570437802325e-05,
+    5.499929402410707e-06,
+    0.00011389891669544294,
+    3.0314976441544294e-05
    ],
    "argmax_agrees": true
   },
@@ -4258,16 +4267,16 @@
    "tokens": 148,
    "token_sha256": "6989291cd6b94d8a6237989a7b8f5bb3f2d023f523b5d683041c443798cbb25f",
    "candidate": [
-    0.334589441253186,
-    0.665410558746814
+    0.7549149868676283,
+    0.24508501313237172
    ],
    "baseline": [
-    0.3597642745724163,
-    0.6402357254275837
+    0.7169453108830544,
+    0.2830546891169457
    ],
    "absolute_delta": [
-    0.02517483331923026,
-    0.025174833319230316
+    0.0379696759845739,
+    0.037969675984573986
    ],
    "argmax_agrees": true
   },
@@ -4287,34 +4296,34 @@
    "tokens": 189,
    "token_sha256": "4c3b2f6afe9d5994f2fec2f90eccb36ed745b7dd32d349675918d3b60d3b314f",
    "candidate": [
-    0.9307132301749855,
-    0.001234852100694091,
-    0.018146019155619347,
-    0.0007259321007894781,
-    0.001023728348121637,
-    0.0008225888370411486,
-    0.003803612246479764,
-    0.043530037036268954
+    0.9346664828069006,
+    0.0012794621096489944,
+    0.021981248802782592,
+    0.0008260828257151953,
+    0.0010943819369551647,
+    0.0010280766872827953,
+    0.0028833123730152097,
+    0.03624095245769939
    ],
    "baseline": [
-    0.9494218256902306,
-    0.0007149078021768332,
-    0.016582782896215682,
-    0.0003775681659230288,
-    0.0007188642238642981,
-    0.0004175221257548214,
-    0.0023436342061921183,
-    0.029422894889642726
+    0.9599049936127899,
+    0.0008098560806775858,
+    0.014862294238855298,
+    0.0004058334592227782,
+    0.0008086235941715468,
+    0.0005791952005245905,
+    0.0020084466657210804,
+    0.02062075714803691
    ],
    "absolute_delta": [
-    0.018708595515245063,
-    0.0005199442985172577,
-    0.0015632362594036643,
-    0.0003483639348664493,
-    0.00030486412425733886,
-    0.0004050667112863272,
-    0.0014599780402876458,
-    0.014107142146626228
+    0.025238510805889347,
+    0.0004696060289714086,
+    0.007118954563927294,
+    0.0004202493664924171,
+    0.0002857583427836179,
+    0.00044888148675820475,
+    0.0008748657072941294,
+    0.015620195309662483
    ],
    "argmax_agrees": true
   },
@@ -4328,16 +4337,16 @@
    "tokens": 129,
    "token_sha256": "914bf1ade1da2812e164389ea12c7d04e189283bdfe4ed343c613c08b44dff6f",
    "candidate": [
-    0.025957357197796845,
-    0.9740426428022031
+    0.010328152519305191,
+    0.9896718474806948
    ],
    "baseline": [
-    0.01959963968100636,
-    0.9804003603189937
+    0.008848208133956688,
+    0.9911517918660433
    ],
    "absolute_delta": [
-    0.006357717516790484,
-    0.006357717516790595
+    0.0014799443853485035,
+    0.0014799443853484862
    ],
    "argmax_agrees": true
   },
@@ -4351,16 +4360,16 @@
    "tokens": 127,
    "token_sha256": "8dc2379f544d31b419580efa48ff5e01b3d57cc4df4288fa1f34804f92ac3767",
    "candidate": [
-    0.01798620996209156,
-    0.9820137900379085
+    0.0019267346633274752,
+    0.9980732653366725
    ],
    "baseline": [
-    0.005419610591504443,
-    0.9945803894084955
+    0.0005268721602247848,
+    0.9994731278397754
    ],
    "absolute_delta": [
-    0.012566599370587116,
-    0.012566599370587017
+    0.0013998625031026906,
+    0.0013998625031028666
    ],
    "argmax_agrees": true
   },
@@ -4377,25 +4386,25 @@
    "tokens": 144,
    "token_sha256": "811faa538d45f109831f207cea73efccb1d0278e2cf661bc48cf125e6b16e1f0",
    "candidate": [
-    0.809362062174108,
-    0.14971692729282915,
-    0.035560887203047925,
-    0.003748089935933176,
-    0.0016120333940818135
+    0.6550360395122204,
+    0.29067048053971173,
+    0.05051095564802158,
+    0.0025946204821720564,
+    0.0011879038178743192
    ],
    "baseline": [
-    0.6911388250826481,
-    0.24910390261179433,
-    0.05070829093190669,
-    0.006480223518671478,
-    0.002568757854979522
+    0.5051958309108845,
+    0.422075115840306,
+    0.06810381365317499,
+    0.003173111946860808,
+    0.00145212764877374
    ],
    "absolute_delta": [
-    0.11822323709145988,
-    0.09938697531896518,
-    0.015147403728858762,
-    0.0027321335827383024,
-    0.0009567244608977086
+    0.14984020860133596,
+    0.13140463530059426,
+    0.01759285800515341,
+    0.0005784914646887514,
+    0.0002642238308994207
    ],
    "argmax_agrees": true,
    "rank_agrees": true,
@@ -4412,19 +4421,19 @@
    "tokens": 125,
    "token_sha256": "be121f05616891a0a66cb90e2e9281123634df87fe305dcaeaff9c24eff82788",
    "candidate": [
-    0.8279687579698061,
-    0.11205338637091013,
-    0.05997785565928371
+    0.8844894461815073,
+    0.08227033404879554,
+    0.03324021976969723
    ],
    "baseline": [
-    0.7836566894705043,
-    0.1342537568716934,
-    0.0820895536578024
+    0.8754616749548664,
+    0.09028147239720115,
+    0.034256852647932386
    ],
    "absolute_delta": [
-    0.044312068499301804,
-    0.022200370500783287,
-    0.022111697998518698
+    0.00902777122664089,
+    0.008011138348405611,
+    0.0010166328782351547
    ],
    "argmax_agrees": true
   },
@@ -4444,36 +4453,36 @@
    "tokens": 194,
    "token_sha256": "f7a05f427f35c2d705307664a22eeb0dc6e340f4e2d9cafe8426051a5bf8feaa",
    "candidate": [
-    0.0005603904303314677,
-    0.0006551627891573855,
-    0.6749431457716044,
-    0.0004793273360518167,
-    0.0004364325059678687,
-    0.0016730167917074039,
-    0.17065235216807653,
-    0.15060017220710312
+    0.0006786865703013624,
+    0.0007453913750884689,
+    0.42407237530802294,
+    0.0005805113866135708,
+    0.0004965377019886704,
+    0.001529443795788543,
+    0.330267897968839,
+    0.24162915589335746
    ],
    "baseline": [
-    0.0005200538022581277,
-    0.0005885466870675079,
-    0.6232756442161911,
-    0.0004593892396432912,
-    0.00047603318220974604,
-    0.001036135117253198,
-    0.29343740887070974,
-    0.08020678888466753
+    0.000521453236889475,
+    0.0006240588247496423,
+    0.3575581391229611,
+    0.00036329378907393596,
+    0.0003970212724194037,
+    0.0008178492758408894,
+    0.6117743355856728,
+    0.02794384889239274
    ],
    "absolute_delta": [
-    4.0336628073340056e-05,
-    6.66161020898776e-05,
-    0.05166750155541333,
-    1.9938096408525475e-05,
-    3.960067624187737e-05,
-    0.000636881674454206,
-    0.1227850567026332,
-    0.07039338332243558
+    0.0001572333334118874,
+    0.00012133255033882663,
+    0.06651423618506186,
+    0.00021721759753963487,
+    9.951642956926673e-05,
+    0.0007115945199476537,
+    0.28150643761683386,
+    0.21368530700096472
    ],
-   "argmax_agrees": true
+   "argmax_agrees": false
   },
   {
    "id": "routing1.clarify",
@@ -4485,16 +4494,16 @@
    "tokens": 134,
    "token_sha256": "f1f9491d08ba271e3b2c88d839b47c71d1473c792d1290780b34c36a4f0b39d6",
    "candidate": [
-    0.18242552380635635,
+    0.18242552380635632,
     0.8175744761936437
    ],
    "baseline": [
-    0.17197430043433576,
-    0.8280256995656643
+    0.24719151462100467,
+    0.7528084853789953
    ],
    "absolute_delta": [
-    0.01045122337202059,
-    0.010451223372020646
+    0.06476599081464834,
+    0.0647659908146484
    ],
    "argmax_agrees": true
   },
@@ -4508,16 +4517,16 @@
    "tokens": 132,
    "token_sha256": "6ecf41c5f3bc37917749c8c9c7e21fc72335bd3b5ee677ba497bb841a17e856d",
    "candidate": [
-    0.9933071490757152,
-    0.0066928509242848554
+    0.9908743626108195,
+    0.00912563738918052
    ],
    "baseline": [
-    0.9991030179442728,
-    0.0008969820557271757
+    0.9989402746961957,
+    0.001059725303804294
    ],
    "absolute_delta": [
-    0.005795868868557652,
-    0.00579586886855768
+    0.008065912085376215,
+    0.008065912085376227
    ],
    "argmax_agrees": true
   },
@@ -4534,25 +4543,25 @@
    "tokens": 149,
    "token_sha256": "3fc13f08a6d281e984e532f77379525a94103460402710e463197b66b9c8f0fe",
    "candidate": [
-    0.10865673905905943,
-    0.06387600167318935,
-    0.15809462247134162,
-    0.3346863183982048,
-    0.3346863183982048
+    0.10579368941956296,
+    0.11619163702784725,
+    0.2618418960255042,
+    0.3362116496504562,
+    0.1799611278766295
    ],
    "baseline": [
-    0.11534621248174487,
-    0.11178661467933905,
-    0.22293842905765845,
-    0.30528557987298416,
-    0.24464316390827345
+    0.09204573252469933,
+    0.12376047145432108,
+    0.27692467179067226,
+    0.32887813881503597,
+    0.17839098541527149
    ],
    "absolute_delta": [
-    0.0066894734226854435,
-    0.0479106130061497,
-    0.06484380658631683,
-    0.029400738525220627,
-    0.09004315448993133
+    0.013747956894863633,
+    0.007568834426473825,
+    0.015082775765168088,
+    0.0073335108354202205,
+    0.001570142461358004
    ],
    "argmax_agrees": true,
    "rank_agrees": true,
@@ -4569,19 +4578,19 @@
    "tokens": 130,
    "token_sha256": "aa81129dde8a46fae57484fb5dd901ee46689454cf9d8a2aea5503e48561275e",
    "candidate": [
-    0.19524459360066335,
-    0.36476492270493643,
-    0.43999048369440025
+    0.15963523893026244,
+    0.593116866284848,
+    0.24724789478488954
    ],
    "baseline": [
-    0.10749780707329024,
-    0.4099236602159566,
-    0.48257853271075307
+    0.08840752329980334,
+    0.6419485556504151,
+    0.2696439210497817
    ],
    "absolute_delta": [
-    0.08774678652737311,
-    0.045158737511020175,
-    0.042588049016352825
+    0.0712277156304591,
+    0.04883168936556703,
+    0.02239602626489215
    ],
    "argmax_agrees": true
   },
@@ -4601,34 +4610,34 @@
    "tokens": 184,
    "token_sha256": "d6d6a706ed55555c967345d439d64b8fd92a1e31e167aac6fdaf612941699bbf",
    "candidate": [
-    0.10085843391542246,
-    0.0018472866544781382,
-    0.008024247452400844,
-    0.012428197578016182,
-    0.2575510336031592,
-    0.004034845008520019,
-    0.5804002137074372,
-    0.0348557420805659
+    0.08770365407491532,
+    0.002337223214196469,
+    0.00868383771591935,
+    0.007199154324050321,
+    0.2537789377202181,
+    0.004232164499236789,
+    0.5718996644145258,
+    0.06416536403693789
    ],
    "baseline": [
-    0.06544915688533312,
-    0.002220190027057947,
-    0.013426688600282123,
-    0.034647886828859414,
-    0.35811452925222315,
-    0.007419944085704992,
-    0.4690991749165602,
-    0.049622429403979144
+    0.03682365781141505,
+    0.002064060334247607,
+    0.010009478567146603,
+    0.00784152523411786,
+    0.2556907171326505,
+    0.004603905477757224,
+    0.6229918871130273,
+    0.059974768329637836
    ],
    "absolute_delta": [
-    0.03540927703008934,
-    0.00037290337257980875,
-    0.005402441147881279,
-    0.022219689250843232,
-    0.10056349564906397,
-    0.0033850990771849727,
-    0.111301038790877,
-    0.014766687323413241
+    0.05087999626350027,
+    0.000273162879948862,
+    0.001325640851227253,
+    0.0006423709100675402,
+    0.0019117794124324239,
+    0.00037174097852043456,
+    0.051092222698501555,
+    0.00419059570730005
    ],
    "argmax_agrees": true
   },
@@ -4642,16 +4651,16 @@
    "tokens": 124,
    "token_sha256": "c485273db1e84106b7a554bd069e7c977520a40f1731a8f33b62fb035262b168",
    "candidate": [
-    0.8354835371034369,
-    0.16451646289656316
+    0.7879311956428947,
+    0.21206880435710534
    ],
    "baseline": [
-    0.7589465343749012,
-    0.24105346562509877
+    0.7912142413481067,
+    0.2087857586518933
    ],
    "absolute_delta": [
-    0.0765370027285357,
-    0.07653700272853561
+    0.0032830457052119844,
+    0.00328304570521204
    ],
    "argmax_agrees": true
   },
@@ -4665,16 +4674,16 @@
    "tokens": 122,
    "token_sha256": "42d54256a446e2af880f2d0220d7898c0bd00ee66d1013fe1c7768fc225c55d2",
    "candidate": [
-    0.1732882059293266,
-    0.8267117940706735
+    0.14804719803168948,
+    0.8519528019683106
    ],
    "baseline": [
-    0.2112407069732995,
-    0.7887592930267004
+    0.09633961295856344,
+    0.9036603870414366
    ],
    "absolute_delta": [
-    0.03795250104397291,
-    0.037952501043973075
+    0.05170758507312603,
+    0.051707585073126006
    ],
    "argmax_agrees": true
   },
@@ -4691,25 +4700,25 @@
    "tokens": 139,
    "token_sha256": "e5fcefa8d90f45b38b0487342b86a0bc704692c32d70d362ff1f5e2c5b02ed9e",
    "candidate": [
-    0.8253304035457426,
-    0.11169632392765093,
-    0.046561955183145466,
-    0.013340223511160368,
-    0.0030710938323006004
+    0.739837162514486,
+    0.1991244709449337,
+    0.050346550748551024,
+    0.00847974273362273,
+    0.0022120730584065996
    ],
    "baseline": [
-    0.7828472610198997,
-    0.13790534187413503,
-    0.06011019446508823,
-    0.014035162200313263,
-    0.005102040440563761
+    0.6485266145838942,
+    0.25725654889566035,
+    0.07629033789857835,
+    0.013365462931472845,
+    0.004561035690394268
    ],
    "absolute_delta": [
-    0.042483142525842954,
-    0.0262090179464841,
-    0.013548239281942764,
-    0.0006949386891528953,
-    0.002030946608263161
+    0.09131054793059179,
+    0.05813207795072664,
+    0.025943787150027327,
+    0.004885720197850114,
+    0.002348962631987669
    ],
    "argmax_agrees": true,
    "rank_agrees": true,
@@ -4726,19 +4735,19 @@
    "tokens": 120,
    "token_sha256": "9ef0465fe6d5f11a40d4f122c1c973b8ee1e943edcd5c39b4e8df3933d220914",
    "candidate": [
-    0.5838074038376537,
-    0.25906296505837756,
-    0.15712963110396863
+    0.5588664121883595,
+    0.2810156799156312,
+    0.16011790789600924
    ],
    "baseline": [
-    0.586129917416967,
-    0.25054184754135095,
-    0.16332823504168206
+    0.511296173665475,
+    0.31544986460987884,
+    0.17325396172464613
    ],
    "absolute_delta": [
-    0.0023225135793132345,
-    0.00852111751702661,
-    0.006198603937713432
+    0.047570238522884556,
+    0.03443418469424764,
+    0.01313605382863689
    ],
    "argmax_agrees": true
   },
@@ -4758,34 +4767,34 @@
    "tokens": 197,
    "token_sha256": "9df7e151e35e31ca82052972f6c1b707058b87e09d6e8d2fcc6db2bbdaa963a2",
    "candidate": [
-    0.0005312921777276733,
-    0.0005481572018263686,
-    0.01652801519084977,
-    0.0027837719691223943,
-    0.00037674256790732225,
-    0.9023990531401028,
-    0.029007570031011443,
-    0.04782539772145215
+    0.00047996727119483317,
+    0.0003856645370369877,
+    0.004018716759370516,
+    0.0007433878519793034,
+    0.0002821582028267312,
+    0.9530931449870522,
+    0.022414602360909936,
+    0.018582358029629483
    ],
    "baseline": [
-    0.00029075804102379093,
-    0.0003181163553398767,
-    0.007918486044456661,
-    0.0027621801867643244,
-    0.00020269794800588294,
-    0.9587429409830083,
-    0.015800019730173708,
-    0.013964800711227377
+    0.00017386186322619675,
+    0.00016936732209873732,
+    0.0007648944711983903,
+    0.00022865265045674026,
+    0.0001021647503070593,
+    0.9880819825633572,
+    0.007163524712048546,
+    0.003315551667306847
    ],
    "absolute_delta": [
-    0.0002405341367038824,
-    0.00023004084648649194,
-    0.008609529146393109,
-    2.159178235806988e-05,
-    0.0001740446199014393,
-    0.05634388784290545,
-    0.013207550300837735,
-    0.03386059701022477
+    0.0003061054079686364,
+    0.0002162972149382504,
+    0.003253822288172126,
+    0.0005147352015225631,
+    0.0001799934525196719,
+    0.034988837576305,
+    0.01525107764886139,
+    0.015266806362322636
    ],
    "argmax_agrees": true
   },
@@ -4799,16 +4808,16 @@
    "tokens": 137,
    "token_sha256": "cf66f767f77860a1e418e846587cdab2078c749394cefbf7ce65f579328426e6",
    "candidate": [
-    0.665410558746814,
-    0.334589441253186
+    0.6370307944803831,
+    0.3629692055196168
    ],
    "baseline": [
-    0.7095634468352133,
-    0.2904365531647867
+    0.5321791621044629,
+    0.46782083789553713
    ],
    "absolute_delta": [
-    0.044152888088399345,
-    0.04415288808839929
+    0.10485163237592021,
+    0.10485163237592032
    ],
    "argmax_agrees": true
   },
@@ -4822,16 +4831,16 @@
    "tokens": 135,
    "token_sha256": "7fd07d1fc6a747f0226b8ad9811fcb001897658f5a6497ddac12284946f95360",
    "candidate": [
-    0.3486451353339458,
-    0.6513548646660543
+    0.5621765008857981,
+    0.4378234991142019
    ],
    "baseline": [
-    0.29780507525199357,
-    0.7021949247480065
+    0.5470444248288087,
+    0.4529555751711913
    ],
    "absolute_delta": [
-    0.05084006008195224,
-    0.05084006008195219
+    0.015132076056989407,
+    0.015132076056989407
    ],
    "argmax_agrees": true
   },
@@ -4848,25 +4857,25 @@
    "tokens": 152,
    "token_sha256": "40b9ad5598bdbb14d0f3b4a1490035d3a08843e4048133be2cf297154c71c2ad",
    "candidate": [
-    0.00811030912438509,
-    0.022046105916001577,
-    0.08451136174523635,
-    0.33424891966090486,
-    0.5510833035534721
+    0.011384916727900915,
+    0.029072403337292045,
+    0.10469374618548954,
+    0.41407179857358467,
+    0.44077713517573286
    ],
    "baseline": [
-    0.01498808991449463,
-    0.035244426296184746,
-    0.09704995731489216,
-    0.3330797910406599,
-    0.5196377354337686
+    0.010287383388043416,
+    0.03284904831667039,
+    0.12079258857560492,
+    0.4099620368737199,
+    0.42610894284596135
    ],
    "absolute_delta": [
-    0.00687778079010954,
-    0.01319832038018317,
-    0.012538595569655808,
-    0.0011691286202449858,
-    0.03144556811970356
+    0.0010975333398574993,
+    0.003776644979378345,
+    0.016098842390115373,
+    0.004109761699864767,
+    0.014668192329771512
    ],
    "argmax_agrees": true,
    "rank_agrees": true,
@@ -4883,19 +4892,19 @@
    "tokens": 133,
    "token_sha256": "cd5a5a9e1ab2cee63bfe1960410e5280536d5809594737bcdc155f4bdab488a9",
    "candidate": [
-    0.026385268561774217,
-    0.04350195351093253,
-    0.9301127779272933
+    0.03443066774586689,
+    0.07759070751229082,
+    0.8879786247418423
    ],
    "baseline": [
-    0.014632272589338101,
-    0.05011295487887537,
-    0.9352547725317866
+    0.01682658410914926,
+    0.116442410614855,
+    0.8667310052759958
    ],
    "absolute_delta": [
-    0.011752995972436116,
-    0.006611001367942841,
-    0.005141994604493272
+    0.017604083636717626,
+    0.03885170310256418,
+    0.021247619465846523
    ],
    "argmax_agrees": true
   },
@@ -4915,34 +4924,34 @@
    "tokens": 195,
    "token_sha256": "14b04414c41eb083d7615f2443feece587ebe548d6bbdc261177036e60a2a4ef",
    "candidate": [
-    0.0007532100707527654,
-    0.8792672483986234,
-    0.0002522937712109693,
-    0.00012295816398551746,
-    0.00016289310160929802,
-    0.00022971609279923128,
-    0.00021579829831407048,
-    0.11899588210270477
+    0.000554809670013965,
+    0.9133506213645647,
+    0.0003261557793562265,
+    0.0001589556318034201,
+    0.00018012032828430553,
+    0.00020410307136124975,
+    0.0002703926381491337,
+    0.0849548415164671
    ],
    "baseline": [
-    0.0003991739136346957,
-    0.9081748224521998,
-    0.00023333901214338991,
-    8.071251195456659e-05,
-    9.656099109861232e-05,
-    0.00010088001119491473,
-    0.00013344409506867627,
-    0.09078106701270551
+    0.00030616982196071506,
+    0.9269140747885671,
+    0.00045698985892897714,
+    0.00011593775122086912,
+    0.000122666052128378,
+    0.00012884957909794343,
+    0.000199624664391758,
+    0.07175568748370403
    ],
    "absolute_delta": [
-    0.00035403615711806976,
-    0.028907574053576468,
-    1.8954759067579363e-05,
-    4.224565203095088e-05,
-    6.63321105106857e-05,
-    0.00012883608160431655,
-    8.23542032453942e-05,
-    0.028214815089999262
+    0.0002486398480532499,
+    0.013563453424002447,
+    0.00013083407957275065,
+    4.3017880582550994e-05,
+    5.745427615592752e-05,
+    7.525349226330632e-05,
+    7.076797375737569e-05,
+    0.01319915403276306
    ],
    "argmax_agrees": true
   },
@@ -4956,16 +4965,16 @@
    "tokens": 135,
    "token_sha256": "57c8c0acf9ed1beb17da766b361850dd3257516d979fe35120feb9ecb08c7b06",
    "candidate": [
-    0.0023967308701289603,
-    0.9976032691298711
+    0.0011335690050875116,
+    0.9988664309949125
    ],
    "baseline": [
-    0.0012802741034936074,
-    0.9987197258965064
+    0.0009076180073600301,
+    0.9990923819926399
    ],
    "absolute_delta": [
-    0.001116456766635353,
-    0.0011164567666352987
+    0.00022595099772748151,
+    0.0002259509977274865
    ],
    "argmax_agrees": true
   },
@@ -4979,16 +4988,16 @@
    "tokens": 133,
    "token_sha256": "0dd10b35bf601499a2a1bb798b8804b2b59ba8d67565497d5425f76a5e2c111b",
    "candidate": [
-    0.006692850924284855,
-    0.993307149075715
+    0.0005527786369235994,
+    0.9994472213630764
    ],
    "baseline": [
-    0.002623253060022022,
-    0.997376746939978
+    0.0002488924742530357,
+    0.9997511075257469
    ],
    "absolute_delta": [
-    0.004069597864262833,
-    0.004069597864262975
+    0.00030388616267056377,
+    0.00030388616267051916
    ],
    "argmax_agrees": true
   },
@@ -5005,25 +5014,25 @@
    "tokens": 150,
    "token_sha256": "79f91139997308032dea4abf4a87cf83888ea72391ab0ae6d750a52834723e77",
    "candidate": [
-    0.9187278101405219,
-    0.0665524193471893,
-    0.01231095969806104,
-    0.001517007884841855,
-    0.0008918029293860035
+    0.802995722088678,
+    0.17917256406815077,
+    0.016152896549889918,
+    0.0010326201287276682,
+    0.0006461971645536092
    ],
    "baseline": [
-    0.8472680572075428,
-    0.12828239855369478,
-    0.02138492633953778,
-    0.001988107604892367,
-    0.0010765102943322274
+    0.6305153921521889,
+    0.3276896999902283,
+    0.03890537472130454,
+    0.0019373253991837426,
+    0.0009522077370944656
    ],
    "absolute_delta": [
-    0.07145975293297901,
-    0.06172997920650547,
-    0.009073966641476739,
-    0.00047109972005051183,
-    0.00018470736494622384
+    0.1724803299364891,
+    0.14851713592207752,
+    0.022752478171414625,
+    0.0009047052704560744,
+    0.0003060105725408564
    ],
    "argmax_agrees": true,
    "rank_agrees": true,
@@ -5040,19 +5049,19 @@
    "tokens": 131,
    "token_sha256": "33bb6d7fa62491dd84c1a0f0d9f0379b29eb6126fa18d6a30f3caed330e6114f",
    "candidate": [
-    0.9319731144716186,
-    0.03189036629428171,
-    0.03613651923409978
+    0.9058521627227551,
+    0.05790919133233617,
+    0.03623864594490876
    ],
    "baseline": [
-    0.89291549855241,
-    0.06160564280391888,
-    0.04547885864367119
+    0.872370553599142,
+    0.08976541858849685,
+    0.037864027812361124
    ],
    "absolute_delta": [
-    0.03905761591920853,
-    0.029715276509637165,
-    0.00934233940957141
+    0.0334816091236132,
+    0.03185622725616068,
+    0.001625381867452362
    ],
    "argmax_agrees": true
   },
@@ -5072,34 +5081,34 @@
    "tokens": 222,
    "token_sha256": "5297215afcf168784cbe1283978f1efb98afaff377956bf9a90a6d341ce62a0c",
    "candidate": [
-    3.759646905410398e-05,
-    3.4231974625065486e-05,
-    0.00011580527744027642,
-    0.998900185126584,
-    4.6789561718838146e-05,
-    9.018924075428858e-05,
-    0.0006664133594534008,
-    0.0001087889903701344
+    9.304562663495446e-05,
+    6.394926162459193e-05,
+    9.904655397944902e-05,
+    0.998830108714751,
+    7.958614196859936e-05,
+    0.00011947294951091943,
+    0.000535440612024139,
+    0.00017935013950632776
    ],
    "baseline": [
-    2.378780600677996e-05,
-    3.0826512038851416e-05,
-    0.00016901953088587095,
-    0.9984915203726582,
-    4.701678808573092e-05,
-    5.9069217560181885e-05,
-    0.001093121505900489,
-    8.563826686396395e-05
+    5.572568691021505e-05,
+    5.523436899657493e-05,
+    8.277849981278881e-05,
+    0.9988470617596349,
+    7.951549574140463e-05,
+    0.00012136233704342731,
+    0.000634672386015663,
+    0.00012364946584481596
    ],
    "absolute_delta": [
-    1.380866304732402e-05,
-    3.40546258621407e-06,
-    5.321425344559453e-05,
-    0.0004086647539257582,
-    2.2722636689277638e-07,
-    3.112002319410669e-05,
-    0.0004267081464470883,
-    2.3150723506170455e-05
+    3.731993972473941e-05,
+    8.714892628016998e-06,
+    1.6268054166660212e-05,
+    1.6953044883916135e-05,
+    7.064622719472598e-08,
+    1.8893875325078828e-06,
+    9.923177399152395e-05,
+    5.57006736615118e-05
    ],
    "argmax_agrees": true
   },
@@ -5113,16 +5122,16 @@
    "tokens": 162,
    "token_sha256": "687dbad0a774fc2f50d95f00e387473f6641823ee1f6b76e7b1eb57749a159cf",
    "candidate": [
-    0.11920292202211756,
-    0.8807970779778824
+    0.09534946489910948,
+    0.9046505351008906
    ],
    "baseline": [
-    0.21279094056971143,
-    0.7872090594302885
+    0.1155941159705912,
+    0.8844058840294088
    ],
    "absolute_delta": [
-    0.09358801854759387,
-    0.09358801854759391
+    0.020244651071481726,
+    0.020244651071481767
    ],
    "argmax_agrees": true
   },
@@ -5136,16 +5145,16 @@
    "tokens": 160,
    "token_sha256": "2ecbd56cc44e789df60a417cc91c3d3ae4a43fbceacabd977eec6f60d0c14030",
    "candidate": [
-    0.20181322226037882,
-    0.7981867777396211
+    0.15610489744545739,
+    0.8438951025545425
    ],
    "baseline": [
-    0.34318865600930704,
-    0.6568113439906931
+    0.20289149033244988,
+    0.7971085096675502
    ],
    "absolute_delta": [
-    0.14137543374892822,
-    0.14137543374892803
+    0.046786592886992495,
+    0.04678659288699227
    ],
    "argmax_agrees": true
   },
@@ -5162,25 +5171,25 @@
    "tokens": 177,
    "token_sha256": "a9a331d076a5a062e0bad26d28aa84aa9b6f58ff56d01312906d21c45d32fa20",
    "candidate": [
-    0.12521312377614296,
-    0.5611662882904273,
-    0.30037066910703364,
-    0.011288305470000932,
-    0.0019616133563952927
+    0.21098119195527437,
+    0.5387593476265394,
+    0.23907301129031427,
+    0.008984662813786218,
+    0.002201786314085675
    ],
    "baseline": [
-    0.11358081555467202,
-    0.5144760669912614,
-    0.3402454690214568,
-    0.027500743276116686,
-    0.0041969051564931335
+    0.13266000709563627,
+    0.5432750863076696,
+    0.3104386682083526,
+    0.010559872215878997,
+    0.003066366172462369
    ],
    "absolute_delta": [
-    0.011632308221470947,
-    0.04669022129916589,
-    0.039874799914423165,
-    0.016212437806115754,
-    0.0022352918000978408
+    0.0783211848596381,
+    0.004515738681130199,
+    0.07136565691803831,
+    0.0015752094020927785,
+    0.0008645798583766942
    ],
    "argmax_agrees": true,
    "rank_agrees": true,
@@ -5197,19 +5206,19 @@
    "tokens": 158,
    "token_sha256": "424757d1550d0ccbab4f39e9af2c595c832ab94c2a4630586f4192cdb915f28e",
    "candidate": [
-    0.15680706096308022,
-    0.7480846489033837,
-    0.09510829013353618
+    0.37036324377722335,
+    0.538875339986008,
+    0.09076141623676852
    ],
    "baseline": [
-    0.07721212376028595,
-    0.8200150994866293,
-    0.10277277675308487
+    0.18476091797957392,
+    0.7314219960462351,
+    0.08381708597419092
    ],
    "absolute_delta": [
-    0.07959493720279427,
-    0.07193045058324565,
-    0.007664486619548688
+    0.18560232579764943,
+    0.19254665606022714,
+    0.006944330262577597
    ],
    "argmax_agrees": true
   },
@@ -5223,16 +5232,16 @@
    "tokens": 149,
    "token_sha256": "f2c83f4bb2d39d45a9dda5af1e669cdc3a4ffeb4b45f4e0b528c09044b3fdbe1",
    "candidate": [
-    0.9099070060380482,
-    0.09009299396195182
+    0.9219218348550491,
+    0.07807816514495095
    ],
    "baseline": [
-    0.8869466576805735,
-    0.11305334231942653
+    0.8995806709286869,
+    0.10041932907131314
    ],
    "absolute_delta": [
-    0.022960348357474736,
-    0.022960348357474708
+    0.022341163926362206,
+    0.022341163926362193
    ],
    "argmax_agrees": true
   },
@@ -5248,22 +5257,22 @@
    "tokens": 168,
    "token_sha256": "215e8659fb6ffc4ad97792e6dcc26b54e46804b3f0f124f081ec3852273051e3",
    "candidate": [
-    0.03802357312632938,
-    0.12083866548701717,
-    0.14575925361010317,
-    0.6953785077765502
+    0.016469016878622053,
+    0.09477264860090201,
+    0.1884779173641696,
+    0.7002804171563064
    ],
    "baseline": [
-    0.062342968474710776,
-    0.11238677585132965,
-    0.16921769920835097,
-    0.6560525564656086
+    0.02256544691175919,
+    0.08576897476825397,
+    0.1945047064638531,
+    0.6971608718561337
    ],
    "absolute_delta": [
-    0.024319395348381394,
-    0.00845188963568752,
-    0.023458445598247807,
-    0.03932595131094163
+    0.006096430033137135,
+    0.009003673832648038,
+    0.006026789099683488,
+    0.003119545300172666
    ],
    "argmax_agrees": true,
    "rank_agrees": true,
@@ -5279,16 +5288,16 @@
    "tokens": 152,
    "token_sha256": "b8a58591eb569b2cd01aae733e29e31b33e491d39213e3723b61c50fe02b543c",
    "candidate": [
-    0.679178699175393,
-    0.320821300824607
+    0.7549149868676283,
+    0.2450850131323717
    ],
    "baseline": [
-    0.6725986755913342,
-    0.3274013244086658
+    0.7343527023605398,
+    0.2656472976394602
    ],
    "absolute_delta": [
-    0.006580023584058736,
-    0.006580023584058792
+    0.020562284507088413,
+    0.020562284507088524
    ],
    "argmax_agrees": true
   },
@@ -5307,31 +5316,31 @@
    "tokens": 158,
    "token_sha256": "80b2308642a3486995f1830b40fa451f94ccd613f8994571fd13c1fd04fb5401",
    "candidate": [
-    0.9938160358630375,
-    0.004899102940276752,
-    0.00040214285811095575,
-    0.00047015263341284403,
-    0.00017295948804519907,
-    0.0001347009847292303,
-    0.00010490523238761391
+    0.987491102378971,
+    0.010305394401982094,
+    0.000794666687288702,
+    0.000900475327404932,
+    0.00018294265909603202,
+    0.00018294265909603202,
+    0.0001424758861611548
    ],
    "baseline": [
-    0.9945542079468689,
-    0.003812546489670858,
-    0.00044158836944268865,
-    0.0007436852653159535,
-    0.0002011268648748585,
-    0.00013142877218453282,
-    0.00011541629164193846
+    0.9887923195812228,
+    0.008426254513905572,
+    0.0008953381622115789,
+    0.0013829418039357415,
+    0.00017752828098115928,
+    0.00017927361132355428,
+    0.00014634404641961673
    ],
    "absolute_delta": [
-    0.0007381720838314232,
-    0.001086556450605894,
-    3.944551133173291e-05,
-    0.0002735326319031094,
-    2.816737682965944e-05,
-    3.2722125446974914e-06,
-    1.0511059254324546e-05
+    0.0013012172022518476,
+    0.0018791398880765222,
+    0.00010067147492287684,
+    0.00048246647653080947,
+    5.414378114872745e-06,
+    3.669047772477741e-06,
+    3.868160258461935e-06
    ],
    "argmax_agrees": true
   },
@@ -5345,16 +5354,16 @@
    "tokens": 148,
    "token_sha256": "9157224b4d8123ae897b734342821cfd888fd9c6124a9494980a586d0c74ce7e",
    "candidate": [
-    0.9937100978631075,
-    0.006289902136892483
+    0.9980122257876161,
+    0.0019877742123839116
    ],
    "baseline": [
-    0.993554304196082,
-    0.006445695803918011
+    0.9986310279107274,
+    0.001368972089272563
    ],
    "absolute_delta": [
-    0.00015579366702545006,
-    0.00015579366702552812
+    0.0006188021231113838,
+    0.0006188021231113485
    ],
    "argmax_agrees": true
   },
@@ -5368,16 +5377,16 @@
    "tokens": 151,
    "token_sha256": "f3c63d4b252802e0bf0d406cddb6f3e250fee634cafe7b1f92f17f03f58b8a39",
    "candidate": [
-    0.04742587317756679,
-    0.9525741268224333
+    0.019124036750888904,
+    0.9808759632491111
    ],
    "baseline": [
-    0.07081877477793924,
-    0.9291812252220607
+    0.027753311869805845,
+    0.9722466881301942
    ],
    "absolute_delta": [
-    0.023392901600372454,
-    0.02339290160037255
+    0.008629275118916941,
+    0.008629275118916868
    ],
    "argmax_agrees": true
   },
@@ -5393,22 +5402,22 @@
    "tokens": 170,
    "token_sha256": "3c8e35cc7127b0f4e59b9a600e1b7e04cd6282b8ac1f9366f715d5882c3404f5",
    "candidate": [
-    0.951139398735051,
-    0.030574325872854795,
-    0.011247665916299391,
-    0.00703860947579473
+    0.9301364121135185,
+    0.05946163145689798,
+    0.00830270408471716,
+    0.002099252344866304
    ],
    "baseline": [
-    0.9485790758295751,
-    0.03796954909276661,
-    0.009066440826302695,
-    0.0043849342513556456
+    0.9104834203144606,
+    0.08030027619475967,
+    0.007322947630251936,
+    0.0018933558605278428
    ],
    "absolute_delta": [
-    0.0025603229054759202,
-    0.007395223219911817,
-    0.002181225089996696,
-    0.002653675224439085
+    0.019652991799057884,
+    0.020838644737861692,
+    0.0009797564544652233,
+    0.00020589648433846138
    ],
    "argmax_agrees": true,
    "rank_agrees": true,
@@ -5424,16 +5433,16 @@
    "tokens": 154,
    "token_sha256": "12273963bcc03e80ca8055dd13a52cb76b18a69111671533a44839b36b9fc7df",
    "candidate": [
-    0.0031726828424851893,
-    0.9968273171575147
+    0.001648482941851288,
+    0.9983515170581487
    ],
    "baseline": [
-    0.0018741355060127773,
-    0.9981258644939872
+    0.0006798639517622993,
+    0.9993201360482377
    ],
    "absolute_delta": [
-    0.001298547336472412,
-    0.0012985473364724998
+    0.0009686189900889887,
+    0.0009686189900889319
    ],
    "argmax_agrees": true
   },
@@ -5452,31 +5461,31 @@
    "tokens": 160,
    "token_sha256": "fe5de64c8aae22e61992aef2d3f7a87cd61989e1146eaa699ec5d41a7d94d9c2",
    "candidate": [
-    0.9552294422113177,
-    0.041969852597563154,
-    0.0008987068027953185,
-    0.0007221312031739615,
-    0.000496313033821889,
-    0.00036311037239401725,
-    0.0003204437789340592
+    0.9319932874462882,
+    0.06342293915629672,
+    0.0014456739472989675,
+    0.0015389119063016607,
+    0.0005841050760173365,
+    0.0004996115474279756,
+    0.0005154709203692391
    ],
    "baseline": [
-    0.9508725298636204,
-    0.045899414338814504,
-    0.0010633906234998965,
-    0.00090320513148136,
-    0.0005201243429786898,
-    0.00038979761814273296,
-    0.0003515380814624983
+    0.9107435255008177,
+    0.083796668755628,
+    0.001637954402713335,
+    0.001983682588666466,
+    0.0005729193724802921,
+    0.0006117839799418791,
+    0.0006534653997524458
    ],
    "absolute_delta": [
-    0.004356912347697306,
-    0.00392956174125135,
-    0.00016468382070457797,
-    0.00018107392830739853,
-    2.381130915680074e-05,
-    2.6687245748715713e-05,
-    3.1094302528439106e-05
+    0.021249761945470458,
+    0.020373729599331272,
+    0.00019228045541436743,
+    0.0004447706823648052,
+    1.1185703537044413e-05,
+    0.0001121724325139035,
+    0.00013799447938320664
    ],
    "argmax_agrees": true
   },
@@ -5490,16 +5499,16 @@
    "tokens": 150,
    "token_sha256": "ee867339a7cb3ffe2fdb2b97aeffd16a245ace29dbcb470dadbe8174202631ce",
    "candidate": [
-    0.990291523518526,
-    0.009708476481474066
+    0.9964063974185798,
+    0.00359360258142009
    ],
    "baseline": [
-    0.9887478025091746,
-    0.01125219749082534
+    0.996439379588469,
+    0.003560620411531038
    ],
    "absolute_delta": [
-    0.0015437210093514064,
-    0.0015437210093512746
+    3.298216988911751e-05,
+    3.298216988905202e-05
    ],
    "argmax_agrees": true
   },
@@ -5513,16 +5522,16 @@
    "tokens": 155,
    "token_sha256": "e27b322c2451f0176b30b12139e25a789b9edeadaf80a372eeacfc1d1b55b89d",
    "candidate": [
-    0.9944450752963089,
-    0.005554924703691102
+    0.9940889311437563,
+    0.005911068856243796
    ],
    "baseline": [
-    0.9967248685284228,
-    0.003275131471577243
+    0.9982423595738243,
+    0.001757640426175541
    ],
    "absolute_delta": [
-    0.0022797932321139136,
-    0.002279793232113859
+    0.004153428430068051,
+    0.004153428430068254
    ],
    "argmax_agrees": true
   },
@@ -5538,22 +5547,22 @@
    "tokens": 174,
    "token_sha256": "5a9f91793503d4c34aea192a726024d2672b49c863ff1356019dc6d70883a856",
    "candidate": [
-    0.006656860966557395,
-    0.021827006800059924,
-    0.04340818627210665,
-    0.928107945961276
+    0.005855092854264293,
+    0.016942272935848216,
+    0.05218587455596763,
+    0.9250167596539199
    ],
    "baseline": [
-    0.006708863256419108,
-    0.01579132824499864,
-    0.03975152479424814,
-    0.937748283704334
+    0.006813430356188822,
+    0.017303911831825572,
+    0.049197369827313805,
+    0.9266852879846719
    ],
    "absolute_delta": [
-    5.20022898617134e-05,
-    0.006035678555061284,
-    0.0036566614778585083,
-    0.009640337743058058
+    0.0009583375019245289,
+    0.00036163889597735574,
+    0.0029885047286538277,
+    0.0016685283307519283
    ],
    "argmax_agrees": true,
    "rank_agrees": true,
@@ -5569,16 +5578,16 @@
    "tokens": 158,
    "token_sha256": "9ab6a258a22e13d64d3ef42539955f548032814baece57c09371f449600785a5",
    "candidate": [
-    0.9553191297273498,
-    0.044680870272650205
+    0.9525741268224334,
+    0.04742587317756679
    ],
    "baseline": [
-    0.9606463937410012,
-    0.03935360625899869
+    0.9606544689442433,
+    0.039345531055756666
    ],
    "absolute_delta": [
-    0.005327264013651467,
-    0.005327264013651516
+    0.00808034212180997,
+    0.008080342121810122
    ],
    "argmax_agrees": true
   },
@@ -5597,31 +5606,31 @@
    "tokens": 164,
    "token_sha256": "14f600a6f5317b28a41592ca0126c53fdbcaabdb50174c8c0919886d78263e6a",
    "candidate": [
-    4.130305159316448e-05,
-    2.8387144541332334e-05,
-    0.9991761672641236,
-    4.396686955732206e-05,
-    0.0006665974801354925,
-    2.2809711441534727e-05,
-    2.0768478607606084e-05
+    0.00021635815681009826,
+    3.3179597964242454e-05,
+    0.9989251879392612,
+    6.395534899235369e-05,
+    0.0007094110848441934,
+    2.3527858047231642e-05,
+    2.8380014080653648e-05
    ],
    "baseline": [
-    5.017876487318051e-05,
-    2.706883237185215e-05,
-    0.9989723923957954,
-    4.09275978639082e-05,
-    0.0008683497921971311,
-    1.88558749107618e-05,
-    2.2226741987562466e-05
+    0.00019622935802619012,
+    3.0079419109574883e-05,
+    0.9985532536527527,
+    5.269055528756439e-05,
+    0.0011196203899243166,
+    1.9374013985865093e-05,
+    2.875261091385952e-05
    ],
    "absolute_delta": [
-    8.87571328001603e-06,
-    1.3183121694801831e-06,
-    0.00020377486832823255,
-    3.0392716934138632e-06,
-    0.0002017523120616386,
-    3.953836530772926e-06,
-    1.4582633799563827e-06
+    2.012879878390814e-05,
+    3.1001788546675714e-06,
+    0.0003719342865085018,
+    1.1264793704789297e-05,
+    0.0004102093050801232,
+    4.153844061366549e-06,
+    3.725968332058725e-07
    ],
    "argmax_agrees": true
   },
@@ -5635,16 +5644,16 @@
    "tokens": 154,
    "token_sha256": "a9bf42b77b8c2781321a6621414327adf3bb183bbcbe0e031db27d5dbb75915e",
    "candidate": [
-    0.9890130573694068,
-    0.010986942630593181
+    0.9933071490757152,
+    0.0066928509242848554
    ],
    "baseline": [
-    0.9814020863791498,
-    0.018597913620850167
+    0.993882535225557,
+    0.0061174647744430145
    ],
    "absolute_delta": [
-    0.007610970990256982,
-    0.007610970990256986
+    0.0005753861498418722,
+    0.000575386149841841
    ],
    "argmax_agrees": true
   },
@@ -5658,16 +5667,16 @@
    "tokens": 146,
    "token_sha256": "b4e4b03793e414a37e6205b7bedf5fdf2c96ba4bbeaf47e66bc6cad3b62bd5b6",
    "candidate": [
-    0.20181322226037884,
-    0.7981867777396212
+    0.16451646289656316,
+    0.8354835371034368
    ],
    "baseline": [
-    0.2187078325326333,
-    0.7812921674673666
+    0.10604588867905144,
+    0.8939541113209486
    ],
    "absolute_delta": [
-    0.016894610272254446,
-    0.016894610272254584
+    0.058470574217511714,
+    0.058470574217511784
    ],
    "argmax_agrees": true
   },
@@ -5683,22 +5692,22 @@
    "tokens": 165,
    "token_sha256": "1afa33381cba92ee24674deb06aa60beeeda08fc2fd205e21821da06eb365cb3",
    "candidate": [
-    0.9254854295711179,
-    0.049048930847864936,
-    0.01861687427600242,
-    0.00684876530501477
+    0.9347698303913959,
+    0.05273610515528327,
+    0.010384354809871365,
+    0.002109709643449507
    ],
    "baseline": [
-    0.9258283238496555,
-    0.0529380455796621,
-    0.015157431595982877,
-    0.006076198974699498
+    0.8833680647914883,
+    0.10129182931868706,
+    0.012137006936928329,
+    0.0032030989528963514
    ],
    "absolute_delta": [
-    0.0003428942785376199,
-    0.0038891147317971636,
-    0.0034594426800195442,
-    0.0007725663303152722
+    0.05140176559990761,
+    0.04855572416340379,
+    0.0017526521270569643,
+    0.0010933893094468442
    ],
    "argmax_agrees": true,
    "rank_agrees": true,
@@ -5714,16 +5723,16 @@
    "tokens": 149,
    "token_sha256": "57af151f53e47e9eccc3ce90ae6136a91068e8a8d8f61b68db7466fbee24a1e7",
    "candidate": [
-    0.020332353342658753,
-    0.9796676466573413
+    0.004070137715896128,
+    0.9959298622841039
    ],
    "baseline": [
-    0.011693384240649925,
-    0.9883066157593501
+    0.005003675506785948,
+    0.9949963244932141
    ],
    "absolute_delta": [
-    0.008638969102008828,
-    0.008638969102008787
+    0.0009335377908898206,
+    0.0009335377908897824
    ],
    "argmax_agrees": true
   },
@@ -5742,31 +5751,31 @@
    "tokens": 155,
    "token_sha256": "4032f07f665e4c23280b7f58342d86fa906da1ff1800fc47297ea648cf96f258",
    "candidate": [
-    0.0021817011765367374,
-    0.00010203952188243877,
-    6.18900985241173e-05,
-    0.9973531587863281,
-    0.00013947149000815117,
-    9.58572597796045e-05,
-    6.588166694080325e-05
+    0.0040679980229373905,
+    7.22156131521205e-05,
+    0.0001050730971377246,
+    0.9954062966795783,
+    0.00015773340080040858,
+    0.00012284289605987397,
+    6.784029033418665e-05
    ],
    "baseline": [
-    0.001696693080038371,
-    7.518234733993273e-05,
-    4.160175998745108e-05,
-    0.9978878650167016,
-    0.00015441444085278276,
-    8.817198367357346e-05,
-    5.607137140625765e-05
+    0.003730414877293517,
+    5.8931518100431266e-05,
+    8.448500648170917e-05,
+    0.9956638247602362,
+    0.0002211499553753803,
+    0.00014695069820924782,
+    9.424318430372639e-05
    ],
    "absolute_delta": [
-    0.00048500809649836625,
-    2.6857174542506036e-05,
-    2.0288338536666215e-05,
-    0.0005347062303734385,
-    1.4942950844631594e-05,
-    7.685276106031042e-06,
-    9.810295534545596e-06
+    0.0003375831456438735,
+    1.328409505168924e-05,
+    2.0588090656015423e-05,
+    0.00025752808065793165,
+    6.341655457497172e-05,
+    2.4107802149373852e-05,
+    2.6402893969539734e-05
    ],
    "argmax_agrees": true
   },
@@ -5780,16 +5789,16 @@
    "tokens": 145,
    "token_sha256": "9e13ac6f7e1bf6397234c7a7fbc406061e30abdcba795d18b436ca4fb4dc302d",
    "candidate": [
-    0.11279540628289322,
-    0.8872045937171068
+    0.24508501313237172,
+    0.7549149868676284
    ],
    "baseline": [
-    0.10376104233996677,
-    0.8962389576600334
+    0.2520081452146639,
+    0.747991854785336
    ],
    "absolute_delta": [
-    0.009034363942926449,
-    0.00903436394292656
+    0.006923132082292199,
+    0.006923132082292338
    ],
    "argmax_agrees": true
   },
@@ -5803,16 +5812,16 @@
    "tokens": 153,
    "token_sha256": "04f66ff3bc283ecea3a6d81bd2b7d3da7813f73891a4c061eb4e8fa32dfd0253",
    "candidate": [
-    0.9465966702001758,
-    0.05340332979982424
+    0.9796676466573412,
+    0.020332353342658753
    ],
    "baseline": [
-    0.9351159611823355,
-    0.06488403881766443
+    0.9718467253004237,
+    0.028153274699576222
    ],
    "absolute_delta": [
-    0.011480709017840263,
-    0.011480709017840186
+    0.007820921356917476,
+    0.00782092135691747
    ],
    "argmax_agrees": true
   },
@@ -5828,22 +5837,22 @@
    "tokens": 172,
    "token_sha256": "15782ac02261d43d6f89085dc653a108ee80902941e2cc04f32920420d675ef3",
    "candidate": [
-    0.025246591610036402,
-    0.09678007737599599,
-    0.11673905687222945,
-    0.7612342741417382
+    0.005025989499810837,
+    0.02323993999349995,
+    0.043417923943823704,
+    0.9283161465628655
    ],
    "baseline": [
-    0.04611382125988602,
-    0.09982457438883346,
-    0.16292363592217893,
-    0.6911379684291016
+    0.012550286805016964,
+    0.04205497773451455,
+    0.07537083857956581,
+    0.8700238968809026
    ],
    "absolute_delta": [
-    0.02086722964984962,
-    0.0030444970128374743,
-    0.04618457904994948,
-    0.07009630571263659
+    0.007524297305206127,
+    0.018815037741014597,
+    0.031952914635742104,
+    0.05829224968196289
    ],
    "argmax_agrees": true,
    "rank_agrees": true,
@@ -5859,16 +5868,16 @@
    "tokens": 156,
    "token_sha256": "4d930ff82d613d13c6276f7f3438ea8a251511f455726c906aeba22fb0958b96",
    "candidate": [
-    0.7772998611746912,
-    0.22270013882530887
+    0.9241418199787564,
+    0.07585818002124355
    ],
    "baseline": [
-    0.7446837207275431,
-    0.255316279272457
+    0.895839722500895,
+    0.10416027749910496
    ],
    "absolute_delta": [
-    0.03261614044714811,
-    0.03261614044714811
+    0.028302097477861388,
+    0.028302097477861415
    ],
    "argmax_agrees": true
   },
@@ -5887,31 +5896,31 @@
    "tokens": 162,
    "token_sha256": "ebc25ec45c258c3c826b38610280a40b9ab0a63fab2d1de682e57531e7713b2c",
    "candidate": [
-    1.6140353026119552e-05,
-    1.886998445052415e-05,
-    0.002800554004518787,
-    4.121583533691295e-05,
-    0.9970662891489929,
-    3.416912762442953e-05,
-    2.2761546050325773e-05
+    2.1405228152104237e-05,
+    9.206273909897815e-06,
+    0.00181009606667598,
+    1.2583484476886768e-05,
+    0.9981263977868007,
+    1.110488607457391e-05,
+    9.206273909897815e-06
    ],
    "baseline": [
-    2.125936219501337e-05,
-    2.1152874366596694e-05,
-    0.0038242466223619973,
-    4.626405157687869e-05,
-    0.9960235355194229,
-    3.744216055105483e-05,
-    2.6099409525471313e-05
+    3.9187761230073154e-05,
+    1.4129480271824627e-05,
+    0.004531630240163449,
+    1.799261151720814e-05,
+    0.9953603552956782,
+    2.260639174209052e-05,
+    1.409821939722911e-05
    ],
    "absolute_delta": [
-    5.119009168893817e-06,
-    2.282889916072544e-06,
-    0.0010236926178432103,
-    5.0482162399657424e-06,
-    0.001042753629569959,
-    3.273032926625301e-06,
-    3.33786347514554e-06
+    1.7782533077968917e-05,
+    4.923206361926813e-06,
+    0.002721534173487469,
+    5.409127040321373e-06,
+    0.0027660424911224446,
+    1.1501505667516612e-05,
+    4.891945487331295e-06
    ],
    "argmax_agrees": true
   },
@@ -5925,16 +5934,16 @@
    "tokens": 152,
    "token_sha256": "04f4a0e5cfd3f0761dce4c394bb994a6fcff1735dc4ff6650d769b613b56ce5f",
    "candidate": [
-    0.26894142136999516,
-    0.7310585786300049
+    0.2689414213699951,
+    0.7310585786300048
    ],
    "baseline": [
-    0.16334675465956353,
-    0.8366532453404364
+    0.234719989139123,
+    0.765280010860877
    ],
    "absolute_delta": [
-    0.10559466671043163,
-    0.1055946667104315
+    0.034221432230872095,
+    0.03422143223087226
    ],
    "argmax_agrees": true
   },
@@ -5948,16 +5957,16 @@
    "tokens": 140,
    "token_sha256": "12329decf9f7a530f35904bf7dab276385feac838e1dfb1be752bbd1e15875c1",
    "candidate": [
-    0.11920292202211756,
-    0.8807970779778824
+    0.08509904500702024,
+    0.9149009549929797
    ],
    "baseline": [
-    0.08441982377050053,
-    0.9155801762294995
+    0.0761390506701408,
+    0.9238609493298591
    ],
    "absolute_delta": [
-    0.03478309825161703,
-    0.03478309825161707
+    0.00895999433687944,
+    0.008959994336879329
    ],
    "argmax_agrees": true
   },
@@ -5973,22 +5982,22 @@
    "tokens": 159,
    "token_sha256": "ba5a0e53d92c38251fdfdd57206d94078f6b2887be09946cbd5c4ecdcc5beb43",
    "candidate": [
-    0.832100183388562,
-    0.09335905317760443,
-    0.04694388002716782,
-    0.027596883406665797
+    0.7074495697147422,
+    0.1904074685987551,
+    0.06580306036932042,
+    0.03633990131718234
    ],
    "baseline": [
-    0.8343341190788903,
-    0.09424253826323413,
-    0.04178710224919891,
-    0.02963624040867659
+    0.7181270333371503,
+    0.18557761869104406,
+    0.06550201449234427,
+    0.030793333479461397
    ],
    "absolute_delta": [
-    0.0022339356903283702,
-    0.0008834850856297011,
-    0.005156777777968906,
-    0.002039357002010793
+    0.010677463622408179,
+    0.004829849907711042,
+    0.00030104587697614427,
+    0.00554656783772094
    ],
    "argmax_agrees": true,
    "rank_agrees": true,
@@ -6004,16 +6013,16 @@
    "tokens": 143,
    "token_sha256": "c1da2f9303944be7e053093a4af66fbcc6590de21a563d3d8aee9b5da3425d34",
    "candidate": [
-    0.04208772791561884,
-    0.9579122720843812
+    0.08509904500702022,
+    0.9149009549929797
    ],
    "baseline": [
-    0.045789521630495086,
-    0.9542104783695049
+    0.03138437206574479,
+    0.9686156279342552
    ],
    "absolute_delta": [
-    0.0037017937148762434,
-    0.0037017937148763336
+    0.053714672941275424,
+    0.05371467294127541
    ],
    "argmax_agrees": true
   },
@@ -6032,31 +6041,31 @@
    "tokens": 149,
    "token_sha256": "6df77331245d27d061f32ca72ffa8a1a0c3bfcf3306be329b1e4bb103b8298d1",
    "candidate": [
-    0.00023749478031127354,
-    0.9983863909014953,
-    0.00010214523219186773,
-    0.00010214523219186773,
-    9.300429227626499e-05,
-    0.0009104105445181351,
-    0.0001684090170153358
+    0.00040322669017852,
+    0.9964945111043676,
+    0.00018461063112047298,
+    0.000168089892456098,
+    0.00012688090751993608,
+    0.0021798228923588002,
+    0.000442857881998576
    ],
    "baseline": [
-    0.0002726785766055863,
-    0.9981681491708656,
-    7.996771449682506e-05,
-    7.625956712241285e-05,
-    7.605257719318125e-05,
-    0.0011973259753729438,
-    0.0001295664183435368
+    0.0003407725609038269,
+    0.9972743934993261,
+    0.00014282855896395168,
+    0.0001237437484137471,
+    8.313468702387481e-05,
+    0.0016648858413563928,
+    0.00037024110401208594
    ],
    "absolute_delta": [
-    3.518379629431276e-05,
-    0.00021824173062967578,
-    2.217751769504268e-05,
-    2.5885665069454885e-05,
-    1.6951715083083737e-05,
-    0.00028691543085480875,
-    3.884259867179899e-05
+    6.245412927469309e-05,
+    0.0007798823949585199,
+    4.178207215652129e-05,
+    4.4346144042350894e-05,
+    4.374622049606127e-05,
+    0.0005149370510024074,
+    7.261677798649007e-05
    ],
    "argmax_agrees": true
   },
@@ -6070,16 +6079,16 @@
    "tokens": 139,
    "token_sha256": "ceafbf9ae297ae71004d89d93d5e4be17574cfec3a92a08b194544c193de72b1",
    "candidate": [
-    0.9796676466573412,
-    0.020332353342658753
+    0.9890130573694068,
+    0.01098694263059318
    ],
    "baseline": [
-    0.9812111745396075,
-    0.01878882546039255
+    0.9921304222618083,
+    0.007869577738191805
    ],
    "absolute_delta": [
-    0.0015435278822663046,
-    0.001543527882266204
+    0.003117364892401442,
+    0.0031173648924013742
    ],
    "argmax_agrees": true
   },
@@ -6111,70 +6120,70 @@
    "tokens": 215,
    "token_sha256": "2b02ce01ae669a17c047907bcf0f65335ff666f14737fe4bb9bb86a060edad77",
    "candidate": [
-    4.482006024716047e-05,
-    0.0002499862240576246,
-    0.007080896568041076,
-    2.8047677012187425e-05,
-    3.8336629102045875e-05,
-    3.4905898017796123e-05,
-    8.373489636862621e-05,
-    1.9276867705468427e-05,
-    3.178218181847817e-05,
-    8.373489636862621e-05,
-    0.004866624295442421,
-    1.5012839664182684e-05,
-    1.3248784502640376e-05,
-    1.4103257690457489e-05,
-    3.080434688263885e-05,
-    0.9872275239552565,
-    2.8047677012187425e-05,
-    2.6348354166822103e-05,
-    1.7551787780781166e-05,
-    6.521280286228903e-05
+    9.817685917006963e-05,
+    0.0002507033926024184,
+    0.00667096987971442,
+    5.771519810848748e-05,
+    5.9547275160936636e-05,
+    5.771519810848748e-05,
+    6.539988745507801e-05,
+    3.2885128608158826e-05,
+    7.888732255704282e-05,
+    8.66407741230705e-05,
+    0.002034530863903386,
+    2.7262729171270965e-05,
+    2.6423943175323535e-05,
+    2.4822997389939926e-05,
+    4.494864148201132e-05,
+    0.9900597141265525,
+    6.338774445247415e-05,
+    4.637546452510588e-05,
+    3.6117248087452606e-05,
+    0.00017777532565240524
    ],
    "baseline": [
-    4.352655007783872e-05,
-    0.00020489560071411826,
-    0.008532152874992417,
-    2.8462661739096245e-05,
-    3.747030915173924e-05,
-    3.117791585782043e-05,
-    7.813367989760499e-05,
-    2.024682251792517e-05,
-    4.191082235208173e-05,
-    8.463292511563812e-05,
-    0.00436622947424966,
-    1.5261067221739038e-05,
-    1.595631860107061e-05,
-    1.5545362645975398e-05,
-    2.348519075476983e-05,
-    0.9863276327367307,
-    3.2675452886997715e-05,
-    2.54369437519436e-05,
-    1.8552757178705417e-05,
-    5.66145335618068e-05
+    0.00031137706721696615,
+    0.0006848316508560376,
+    0.019526554265071674,
+    0.0002037456221374242,
+    0.00018367656206992738,
+    0.00017576973537719332,
+    0.00020961213742095526,
+    0.00012055514110570965,
+    0.00028973782213293013,
+    0.00028660707316124483,
+    0.005195060034117799,
+    9.408213158031735e-05,
+    0.00011547924502760777,
+    8.799116541692655e-05,
+    0.0001379697590185381,
+    0.9713613978732251,
+    0.00021743376103465316,
+    0.00013495414157083983,
+    0.0001227453235036607,
+    0.0005404194889547723
    ],
    "absolute_delta": [
-    1.2935101693217551e-06,
-    4.509062334350636e-05,
-    0.0014512563069513408,
-    4.149847269088199e-07,
-    8.663199503066338e-07,
-    3.7279821599756904e-06,
-    5.601216471021219e-06,
-    9.699548124567439e-07,
-    1.0128640533603563e-05,
-    8.980287470119092e-07,
-    0.0005003948211927617,
-    2.482275575563536e-07,
-    2.707534098430233e-06,
-    1.4421049555179086e-06,
-    7.319156127869021e-06,
-    0.0008998912185257391,
-    4.62777587481029e-06,
-    9.114104148785029e-07,
-    1.000969397924252e-06,
-    8.598269300482231e-06
+    0.00021320020804689653,
+    0.00043412825825361916,
+    0.012855584385357255,
+    0.00014603042402893673,
+    0.00012412928690899074,
+    0.00011805453726870585,
+    0.00014421224996587724,
+    8.767001249755082e-05,
+    0.0002108504995758873,
+    0.00019996629903817434,
+    0.0031605291702144133,
+    6.681940240904638e-05,
+    8.905530185228424e-05,
+    6.316816802698663e-05,
+    9.302111753652678e-05,
+    0.018698316253327407,
+    0.000154046016582179,
+    8.857867704573395e-05,
+    8.662807541620811e-05,
+    0.00036264416330236704
    ],
    "argmax_agrees": true
   },
@@ -6212,88 +6221,88 @@
    "tokens": 251,
    "token_sha256": "67e62f47d56d8131f7cf9d21c9a05a5fe7f7429d1dbc5a923dd8a113d1ef0f3c",
    "candidate": [
-    6.120014965037394e-05,
-    0.0002829866249265818,
-    0.008015637776833104,
-    3.379793259476253e-05,
-    4.206220671510508e-05,
-    3.951378643893041e-05,
-    8.904569231464321e-05,
-    2.251427685298821e-05,
-    3.951378643893041e-05,
-    8.630604437830696e-05,
-    0.004567172734503862,
-    1.9257481503909127e-05,
-    1.6471796820077787e-05,
-    1.9868779586694147e-05,
-    3.379793259476253e-05,
-    0.9862346971092822,
-    3.597771197000402e-05,
-    3.379793259476253e-05,
-    2.251427685298821e-05,
-    6.314285093973183e-05,
-    2.8908903717581358e-05,
-    0.00012171103075374226,
-    3.0773367820755263e-05,
-    2.6321856370995612e-05,
-    1.753413644339362e-05,
-    1.5473821100790546e-05
+    0.0001715915641342929,
+    0.00038668755896895536,
+    0.00908034099848044,
+    9.184634574032954e-05,
+    8.90205307567322e-05,
+    8.628165696014841e-05,
+    8.90205307567322e-05,
+    5.399368124784955e-05,
+    0.0001336356445162345,
+    0.00013787769523651856,
+    0.0026015612531908945,
+    4.6183242959474515e-05,
+    4.3385141719218845e-05,
+    4.205032123673306e-05,
+    6.719622200526191e-05,
+    0.9859560176942523,
+    0.00010407554459549532,
+    7.153000598481563e-05,
+    5.747597450491298e-05,
+    0.00022732188889155785,
+    7.38006121132049e-05,
+    0.00013787769523651856,
+    7.856034265925287e-05,
+    7.856034265925287e-05,
+    5.0722369473616876e-05,
+    4.3385141719218845e-05
    ],
    "baseline": [
-    4.8586079570779516e-05,
-    0.00018518246760550793,
-    0.00874153002672368,
-    3.0054397155754238e-05,
-    3.5117987954833925e-05,
-    2.938660566331105e-05,
-    7.255924238609012e-05,
-    2.079761340613826e-05,
-    4.309166307822439e-05,
-    8.068056571496647e-05,
-    0.003484892036122751,
-    1.67107621851729e-05,
-    1.7244622653860254e-05,
-    1.706686207844438e-05,
-    2.411898222076183e-05,
-    0.9868019862919327,
-    3.6880333954406174e-05,
-    2.7706584590932844e-05,
-    1.911412465754114e-05,
-    5.165070394436074e-05,
-    2.6591472312425854e-05,
-    0.00010547088130989501,
-    3.423214169790517e-05,
-    2.0656321036325267e-05,
-    1.5492248412781634e-05,
-    1.3198981630512154e-05
+    0.0004819155760883168,
+    0.0010466574463223412,
+    0.023246049122526518,
+    0.0002996921224800714,
+    0.00026439099676795635,
+    0.00024466165606276387,
+    0.0002887550074247167,
+    0.0001793579885859809,
+    0.00042165454007106457,
+    0.000430754433395375,
+    0.004826066212260293,
+    0.00014667503585439134,
+    0.00016851743121326833,
+    0.00013601326116921789,
+    0.00019897862225290252,
+    0.9647021041651853,
+    0.00035412016224183437,
+    0.00019673117015710454,
+    0.00017663035380924063,
+    0.0005941353370348929,
+    0.00024379056547329947,
+    0.00043526401063976016,
+    0.00031834347276264426,
+    0.00028658441420750786,
+    0.00017906522066982286,
+    0.00013309167534358756
    ],
    "absolute_delta": [
-    1.2614070079594429e-05,
-    9.780415732107384e-05,
-    0.0007258922498905758,
-    3.7435354390082943e-06,
-    6.944218760271155e-06,
-    1.0127180775619358e-05,
-    1.648644992855309e-05,
-    1.7166634468499499e-06,
-    3.577876639293983e-06,
-    5.625478663340492e-06,
-    0.0010822806983811109,
-    2.546719318736227e-06,
-    7.728258337824675e-07,
-    2.8019175082497678e-06,
-    9.678950374000703e-06,
-    0.0005672891826504767,
-    9.026219844021532e-07,
-    6.0913480038296884e-06,
-    3.4001521954470695e-06,
-    1.1492146995371094e-05,
-    2.3174314051555037e-06,
-    1.624014944384725e-05,
-    3.4587738771499094e-06,
-    5.665535334670345e-06,
-    2.0418880306119863e-06,
-    2.274839470278392e-06
+    0.0003103240119540239,
+    0.0006599698873533858,
+    0.014165708124046078,
+    0.00020784577673974185,
+    0.00017537046601122415,
+    0.00015837999910261547,
+    0.00019973447666798448,
+    0.00012536430733813133,
+    0.0002880188955548301,
+    0.0002928767381588565,
+    0.0022245049590693985,
+    0.00010049179289491682,
+    0.00012513228949404947,
+    9.396293993248482e-05,
+    0.0001317824002476406,
+    0.021253913529067026,
+    0.00025004461764633907,
+    0.0001252011641722889,
+    0.00011915437930432766,
+    0.00036681344814333506,
+    0.0001699899533600946,
+    0.00029738631540324157,
+    0.0002397831301033914,
+    0.000208024071548255,
+    0.00012834285119620598,
+    8.970653362436872e-05
    ],
    "argmax_agrees": true
   },
@@ -6307,16 +6316,16 @@
    "tokens": 4086,
    "token_sha256": "24de8b73082ae1ad8950a39e02099eef0e3c2ca54a48a66b5d5d5c8357d9c3dd",
    "candidate": [
-    0.9968273171575148,
-    0.0031726828424851893
+    0.9984988177432631,
+    0.0015011822567369917
    ],
    "baseline": [
-    0.998460781877154,
-    0.0015392181228460551
+    0.9995893065283765,
+    0.000410693471623491
    ],
    "absolute_delta": [
-    0.0016334647196392105,
-    0.0016334647196391341
+    0.0010904887851134193,
+    0.0010904887851135006
    ],
    "argmax_agrees": true
   },
@@ -6333,25 +6342,25 @@
    "tokens": 4078,
    "token_sha256": "5b827575905623f3ea86ff9694abaf003aaab437538c331639ed041c00cd0059",
    "candidate": [
-    3.966951896622933e-06,
-    3.1875353976751597e-06,
-    0.9999874576902553,
-    1.9947086819137264e-06,
-    3.3931137684297427e-06
+    6.276693288806202e-07,
+    7.81147100819982e-07,
+    0.9999976444819023,
+    3.9278542933273725e-07,
+    5.539162385844989e-07
    ],
    "baseline": [
-    2.386137353790046e-06,
-    2.680419021467987e-06,
-    0.9999904305961472,
-    1.9230983167615234e-06,
-    2.5797491607656925e-06
+    2.663195149817046e-07,
+    4.1158742046281166e-07,
+    0.9999988596327122,
+    2.4705751053641793e-07,
+    2.1540284200681848e-07
    ],
    "absolute_delta": [
-    1.5808145428328869e-06,
-    5.071163762071727e-07,
-    2.9729058919070184e-06,
-    7.161036515220302e-08,
-    8.133646076640503e-07
+    3.6134981389891557e-07,
+    3.6955968035717033e-07,
+    1.2151508098634523e-06,
+    1.4572791879631932e-07,
+    3.3851339657768046e-07
    ],
    "argmax_agrees": true
   },
@@ -6365,16 +6374,16 @@
    "tokens": 12045,
    "token_sha256": "403304f78f0884f5e8f3ef21e7cc1b54a37bc58f2a19fa5f4d041f1be60caff6",
    "candidate": [
-    0.9944450752963089,
-    0.005554924703691102
+    0.9980732653366725,
+    0.0019267346633274755
    ],
    "baseline": [
-    0.998046487396888,
-    0.0019535126031120236
+    0.9995376391088954,
+    0.0004623608911046027
    ],
    "absolute_delta": [
-    0.003601412100579071,
-    0.0036014121005790785
+    0.00146437377222286,
+    0.0014643737722228728
    ],
    "argmax_agrees": true
   },
@@ -6391,25 +6400,25 @@
    "tokens": 12037,
    "token_sha256": "f48065b6211e3b0b9f8dc1eb1b4123a71fb32ef9d7828e20313364761b694e4e",
    "candidate": [
-    6.1441058113931285e-06,
-    3.844883170088462e-06,
-    0.9999826597895785,
-    2.99439802368296e-06,
-    4.356823416408415e-06
+    7.338194503916887e-07,
+    1.0030122667666626e-06,
+    0.9999971810211442,
+    4.737894468095194e-07,
+    6.083576918618477e-07
    ],
    "baseline": [
-    2.2134879101354343e-06,
-    2.3718763133834697e-06,
-    0.9999911509439008,
-    2.0569108162036445e-06,
-    2.2067810595743013e-06
+    1.8938055997311474e-07,
+    2.9007393300191724e-07,
+    0.9999991910953165,
+    1.850581463383194e-07,
+    1.4439204419367563e-07
    ],
    "absolute_delta": [
-    3.930617901257694e-06,
-    1.4730068567049927e-06,
-    8.49115432233205e-06,
-    9.374872074793154e-07,
-    2.150042356834114e-06
+    5.444388904185739e-07,
+    7.129383337647454e-07,
+    2.0100741723316773e-06,
+    2.887313004712e-07,
+    4.63965647668172e-07
    ],
    "argmax_agrees": true
   },
@@ -6423,16 +6432,16 @@
    "tokens": 16301,
    "token_sha256": "c53a28956106809d822bcc4f196b9597e6d120154147842eb3548f95ed1107ce",
    "candidate": [
-    0.9933071490757152,
-    0.006692850924284856
+    0.9976768374773687,
+    0.0023231625226312826
    ],
    "baseline": [
-    0.9973146785176087,
-    0.002685321482391239
+    0.9994653703329562,
+    0.0005346296670437143
    ],
    "absolute_delta": [
-    0.0040075294418935314,
-    0.004007529441893617
+    0.0017885328555875546,
+    0.0017885328555875683
    ],
    "argmax_agrees": true
   },
@@ -6449,25 +6458,25 @@
    "tokens": 16293,
    "token_sha256": "becdd93e8770b050f65dec6038764bd8c57fcf6837d01335d11ab2df1b0489f6",
    "candidate": [
-    7.889140830549659e-06,
-    5.255300758210663e-06,
-    0.9999766777696959,
-    4.222752790747504e-06,
-    5.955035924567332e-06
+    9.721520394598647e-07,
+    1.2878922050436116e-06,
+    0.9999963744857847,
+    6.083572011984748e-07,
+    7.571127695958059e-07
    ],
    "baseline": [
-    2.842759069121967e-06,
-    2.8544827841956754e-06,
-    0.9999883456175527,
-    2.993849675039415e-06,
-    2.963290918989525e-06
+    2.3769184684220997e-07,
+    3.5107344411136406e-07,
+    0.9999990086646027,
+    2.2667502380935093e-07,
+    1.758950823229902e-07
    ],
    "absolute_delta": [
-    5.046381761427692e-06,
-    2.4008179740149875e-06,
-    1.1667847856777769e-05,
-    1.2289031157080888e-06,
-    2.9917450055778067e-06
+    7.344601926176548e-07,
+    9.368187609322476e-07,
+    2.6341788179617964e-06,
+    3.816821773891239e-07,
+    5.812176872728157e-07
    ],
    "argmax_agrees": true
   }

@@ -2055,6 +2055,20 @@ impl<'a> Worker<'a> {
         crate::model::prompt_metadata(&mut incoming.prompt.data)
             .extend_text(incoming.prompt.tokens.len(), tokens.len())?;
         incoming.prompt.tokens = tokens;
+        let marker = &self.config.contract.frontend.block_end_marker;
+        if !marker.is_empty() {
+            match crate::model::continued_block_spans(
+                &incoming.prompt.tokens,
+                marker,
+                self.config.limits.prefill_chunk_size,
+            ) {
+                Ok(spans) => incoming.prompt.data.spans = spans,
+                Err(error) => {
+                    incoming.fail(error);
+                    return Ok(());
+                }
+            }
+        }
         incoming.prompt.max_new_tokens = remaining;
         incoming.readmitted = true;
         self.begin_pool_lookups(std::slice::from_mut(&mut incoming));

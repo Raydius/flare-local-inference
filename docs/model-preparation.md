@@ -1565,8 +1565,21 @@ BF16. KV pages are BF16 and the recurrent state is FP32. A checkpoint that
 declares its own `quantization_config` is rejected.
 
 The recipe declares the trained 16,384-token context, 128-token pages, two
-concurrent requests, 2048-token prefill chunks and no
+concurrent requests, a prefill chunk of the whole context and no
 speculation. A prompt longer than the context is rejected, not truncated.
+
+The checkpoint's full-attention layers were trained with a block mask: a token
+attends to every token of its own block and of every earlier block, where the
+blocks are the shared prefix (system turn and state) and the question. The core
+declares the tokens of `</state>` and the blank line after it as its block-end
+marker. A prompt holding the marker once is served with that mask, each block
+in one prefill submission; a prompt without it is served causally; a prompt
+holding it more than once is refused with `prompt holds the block-end marker
+more than once`. The Gated DeltaNet layers are causal. The end of the prefix
+block is a prefix-cache checkpoint, so further questions about one state
+prefill only their question. Prompt logprobs are null inside a block. An answer
+longer than one token decodes causally after the question block, which the
+model was not trained for.
 Sampling defaults are temperature 1.0, top-p 1.0 and top-k 1, since the model
 card gives none and a decision read samples nothing.
 
@@ -1588,35 +1601,60 @@ probabilities gives the option distribution. The twenty most likely tokens are
 not a sufficient readout, because the model is trained on the letters' relative
 logits: on the probe set below the vendor runtime places a mean 0.61 of the
 next-token probability on the letters, and the core's twenty most likely tokens
-held every letter for 138 of the 157 questions with at most 20 options.
+held every letter for 132 of the 157 questions with at most 20 options.
 
-The core was exported on an RTX PRO 6000 Blackwell (GB202) at concurrency 2 and
-`flare inspect` reports 8.05 GiB of fixed device allocations in 16 graphs.
-Served with the flags above on an RTX 5060 Ti with 16 GB, beside about 2.9 GB of
-desktop use, the `flare` process held 9,608 MiB after answering a 15,609-token
-prompt, inside the 12 GB the recipe targets. That card is in no Flare hardware
-platform list, so this is a measurement of a GB202 core, not a qualified
-platform.
+Core `gb202-tp1-202611171634` was exported on an RTX PRO 6000 Blackwell (GB202)
+at concurrency 2. Served with the flags above on an RTX 5060 Ti with 16 GB,
+beside about 1.7 GB of desktop use, the `flare` process held 10,428 MiB after
+answering the probe set below, inside the 12 GB the recipe targets; the causal
+core with 2,048-token prefill chunks held 9,608 MiB. On that card a 16,301-token
+prompt prefilled in 6.3 s from an empty prefix cache, a 12,045-token one in
+4.6 s and a 4,086-token one in 1.5 s, and a second question over a cached
+16,236-token prefix answered in 0.07 s
+(`qualify/results/elephant1-decision-parity/prefill-latency.json`, one request
+at a time). `flare inspect` was not run on this core. That card is in no Flare
+hardware platform list, so this is a measurement of a GB202 core, not a
+qualified platform.
 
 `qualify/elephant1_decision_parity.py` compares decision probabilities with the
 vendor runtime (OneJev `81ce62f` with the checkpoint's `serve.patch`) on 160
 rendered questions: 30 states with five yes/no, choice and score questions
 each, a 20-option and a 26-option choice, service logs up to 16,301 prompt
-tokens, and two over-length prompts. The vendor runtime runs the full-attention
-layers with the trained mask, bidirectional inside the shared prefix and inside
-the question; the core runs every layer causally. The results are in
+tokens, and two over-length prompts. The vendor runtime takes the two blocks
+from its rendering; the core takes them from the prompt's tokens, and the two
+agree on all 160 prompts. The results are in
 `qualify/results/elephant1-decision-parity/`:
 
 | Comparison | Questions | Argmax agreement | Mean abs. probability delta | Maximum | Score rank agreement |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| BF16 checkpoint, causal mask, against the vendor runtime | 159 | 0.906 | 0.032 | 0.436 | 0.639 |
-| Served core against the BF16 checkpoint, causal mask | 158 | 0.968 | 0.017 | 0.338 | 0.861 |
+| BF16 checkpoint under the served mask against the vendor runtime | 159 | 1.000 | 0.000 | 0.000 | 1.000 |
+| Served core against the BF16 checkpoint under the served mask | 158 | 0.956 | 0.021 | 0.298 | 0.889 |
 
-Both comparisons fail the change's acceptance bounds: 0.99 argmax agreement and
-0.02 mean delta for the mask, 0.01 mean delta for the packed core. The core
-does not reproduce the vendor runtime's probabilities and is not qualified as
-equivalent to it. The core refused both over-length prompts; the vendor engine,
-whose own limit is 32,768 tokens per question, answered the 17,135-token one.
+The mask comparison passes its bounds of 0.99 argmax agreement and 0.02 mean
+delta. It runs the vendor's own Transformers model with the core's block rule,
+so it shows the rule places the blocks where the vendor does, not that the
+prepared kernels execute them exactly. The packed core fails its 0.01 mean-delta
+bound, as the causal core did (0.968 and 0.017 against a causal BF16 forward):
+the core does not reproduce the vendor runtime's probabilities and is not
+qualified as equivalent to it. Against the vendor runtime the served core moved
+from 0.924 argmax agreement and a 0.037 mean delta, with every layer causal, to
+0.956 and 0.021. No BF16 core exists to separate the NVFP4 projections from the
+prepared attention in that remainder; the captured attention layer matches FP32
+attention under the block mask in `tests/recipes/test_elephant1_attention.py`.
+
+Scored in both orders on a freshly started core, the 68 questions that ran once
+from an empty prefix cache and once from the cached prefix block returned
+identical probabilities, as did all 158 answered questions. Each of 70 prompts
+that extend a prompt just served by its most likely letter resumed at the end
+of the prefix block, not inside its question block, and a prompt holding the
+marker twice was refused (`prefix-cache.json`). The core refused both
+over-length prompts; the vendor engine, whose own limit is 32,768 tokens per
+question, answered the 17,135-token one.
+
+`qualify/results/elephant1-mask-feasibility/masks.json` holds the ablation that
+set the design: against the trained mask, a causal forward agrees on 0.906 of
+argmax answers with a 0.032 mean delta, a bidirectional question block alone on
+0.943 with 0.021, and a bidirectional prefix block alone on 0.931 with 0.023.
 
 The reference side needs the vendor environment from the checkpoint's
 `setup.sh` and a GPU that holds the 18.8 GB BF16 checkpoint:
@@ -1628,6 +1666,10 @@ python -m qualify.elephant1_decision_parity core --probes reference.json \
 python -m qualify.elephant1_decision_parity report --reference reference.json --core core.json \
   --output qualify/results/elephant1-decision-parity
 ```
+
+`core --reverse` scores the probe set in reverse order; run on a freshly started
+core, its file is the `--recached` input of `report` for the prefix-cache
+comparison.
 
 ## Storage and graph capacities
 
