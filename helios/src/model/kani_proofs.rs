@@ -77,6 +77,7 @@ fn completion_fixture(tokens_below_vocabulary: bool) -> CompletionFixture {
                 message_end_markers: Vec::new(),
                 prefix_boundary: None,
                 image_tokens: None,
+                block_end_marker: Vec::new(),
             },
         },
         identity: [0; 32],

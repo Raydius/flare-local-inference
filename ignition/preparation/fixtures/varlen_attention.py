@@ -22,11 +22,12 @@ class AttentionBenchmarkInputs:
     seed_k: torch.Tensor
     seed_v: torch.Tensor
     cu_seqlens_q: torch.Tensor
+    cu_seqlens_k: torch.Tensor | None = None
 
     @property
     def nbytes(self):
         return sum({value.untyped_storage()._cdata: value.untyped_storage().nbytes()
-                    for value in vars(self).values()}.values())
+                    for value in vars(self).values() if value is not None}.values())
 
     def produce(self):
         restored = set()
@@ -68,8 +69,13 @@ def attention_benchmark_inputs(arguments):
     maximum = arguments["max_seqlen_q"]
     if (count - 1) * maximum < query.shape[0]:
         raise ValueError("attention benchmark segments cannot hold the prepared query rows")
-    lengths = (torch.arange(count, device=query.device, dtype=torch.int32) * maximum).clamp_max(query.shape[0])
-    return AttentionBenchmarkInputs(**result, cu_seqlens_q=lengths)
+    def lengths(rows, maximum):
+        return (torch.arange(count, device=query.device, dtype=torch.int32) * maximum).clamp_max(rows)
+
+    keys = arguments.get("cu_seqlens_k")
+    return AttentionBenchmarkInputs(
+        **result, cu_seqlens_q=lengths(query.shape[0], maximum),
+        cu_seqlens_k=None if keys is None else lengths(arguments["k"].shape[0], arguments["max_seqlen_k"]))
 
 
 def input_factory(arguments, *, storage=None, session=None):
@@ -83,8 +89,9 @@ def input_factory(arguments, *, storage=None, session=None):
 def benchmark_call(state, *, arguments, inputs, workspace):
     """Keep candidate inputs private and reuse the caller's disposable output."""
     inputs = inputs()
-    arguments = {**arguments, **{key: getattr(inputs, key)
-                                  for key in ("q", "k", "v", "cu_seqlens_q")}}
+    arguments = {**arguments, **{key: getattr(inputs, key) for key in ("q", "k", "v", "cu_seqlens_q")}}
+    if inputs.cu_seqlens_k is not None:
+        arguments["cu_seqlens_k"] = inputs.cu_seqlens_k
     scratch = planned_scratch(state.scratch_plan.scratch_specs(), workspace)
     binding = state.bind(scratch=scratch, **arguments)
     return PreparedCall(run=lambda: state.run(binding), produce=inputs.produce,

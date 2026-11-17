@@ -217,6 +217,7 @@ pub(super) fn spec(tokens: usize, max_new: u32) -> RequestSpec {
         host_stops: false,
         prompt_logprobs: false,
         growable_output: false,
+        atomic_spans: Vec::new(),
     }
 }
 fn records(
@@ -2408,6 +2409,7 @@ fn declared_model_capabilities_drive_state_slots_vision_buckets_and_copy_validat
             host_stops: false,
             prompt_logprobs: false,
             growable_output: false,
+            atomic_spans: Vec::new(),
         })
         .unwrap();
     assert_eq!(s.request(handle).unwrap().state_slot, StateSlotId(1));

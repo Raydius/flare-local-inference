@@ -15,7 +15,7 @@ FRONTEND = c.frontend(tools=p.QWEN_CODER, wrapping_newlines=1, terminal_markers=
         required_start="<|im_start|>system\n", required_marker="<|im_end|>"))
 
 
-def prepare(signatures, buffers, pool, *, vocabulary):
+def prepare(signatures, buffers, pool, *, vocabulary, frontend=FRONTEND):
     inputs = {kind: c.text_inputs(kind) for kind in {s.kind for s in signatures.values()}}
     if "decode" in inputs:
         inputs["decode"].pop("token_ids", None)
@@ -32,4 +32,4 @@ def prepare(signatures, buffers, pool, *, vocabulary):
         regions=[dict(kind=p.CONTINUATION_STATE, storage=continuation, tokens_per_record=1, window_tokens=0),
                  *regions],
         graphs=c.graph_contracts(signatures, inputs, continuation=continuation, pending=pending, cursor=cursor),
-        frontend=FRONTEND)
+        frontend=frontend)

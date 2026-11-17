@@ -235,6 +235,7 @@ pub fn metadata() -> PreparedContract {
             message_end_markers: vec![],
             prefix_boundary: None,
             image_tokens: None,
+            block_end_marker: vec![],
         },
     }
 }

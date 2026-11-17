@@ -125,3 +125,30 @@ def test_provided_attention_outputs_survive_scratch_reuse(width, math_mode, comp
             for actual, saved in zip((q, k, v), inputs, strict=True):
                 torch.testing.assert_close(actual, saved, rtol=0, atol=0)
         graph.reset()
+
+
+@torch.no_grad()
+def test_key_segments_longer_than_their_queries_match_reference_attention():
+    """A segment's queries attend to a longer key sequence: the question-suffix case of a block mask."""
+    device = torch.device("cuda", 0)
+    heads, kv_heads, width = 16, 4, 256
+    generator = torch.Generator(device=device).manual_seed(7)
+    q = torch.randn((300, heads, width), generator=generator, device=device).bfloat16()
+    k, v = (torch.randn((4500, kv_heads, width), generator=generator, device=device).bfloat16() for _ in range(2))
+    out = torch.full_like(q, float("nan"))
+    cu = torch.tensor([0, 256, 300], dtype=torch.int32, device=device)
+    cu_k = torch.tensor([0, 4352, 4500], dtype=torch.int32, device=device)
+    arena = ScratchArena(device)
+    with PreparationSession(device=device, autotune=False, compile_workers=0) as session:
+        operation = PreparedVarlenAttention(q, k, v, cu, out, session=session, workspace=arena, name="attention",
+                                            cu_k=cu_k, max_seqlen_k=4352)
+        arena.finalize()
+        arena.freeze()
+        operation()
+    for (first, last), (key_first, key_last) in zip(zip(cu, cu[1:]), zip(cu_k, cu_k[1:]), strict=True):
+        keys, values = (tensor[key_first:key_last].float().transpose(0, 1).repeat_interleave(heads // kv_heads, 0)
+                        for tensor in (k, v))
+        expected = torch.nn.functional.scaled_dot_product_attention(
+            q[first:last].float().transpose(0, 1), keys, values).transpose(0, 1)
+        # qualify/results/elephant1-mask-feasibility/operator.json records 5.3e-4 against a magnitude of 0.145.
+        assert (out[first:last].float() - expected).abs().max() <= 0.004 * expected.abs().max()

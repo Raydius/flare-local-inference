@@ -245,7 +245,10 @@ last message end marker can open reasoning. It finds these markers in the
 rendered text and ignores a spelling that request text wrote. Prefix-boundary
 rules declare message roles and rendering constraints. Image token layout data
 declares feature IDs and atomic spans; custom image layout code produces token
-positions, feature mappings, and vision tensors. The generic graph packer binds
+positions, feature mappings, and vision tensors. A core without image spans may
+declare a block-end marker, a token sequence: a prompt holding it once has two
+atomic spans, through the marker and after it, and a prompt holding it more than
+once is refused. The generic graph packer binds
 those tensors to declared destinations.
 
 Recipient-header reasoning uses `<|start|>assistant to=RECIPIENT<|message|>`

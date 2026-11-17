@@ -19,14 +19,17 @@ switched off, so both BF16 sides come from one loaded model and differ only in t
 branch runs alone, without the vendor's batched prefix fork, whose BF16 rounding differs by batch.
 
 `reference` runs in the vendor environment and needs a GPU that holds the 18.8 GB BF16 checkpoint;
-`--render-only` writes the same prompts without loading weights. `core` and `report` use only the
-standard library:
+`--render-only` writes the same prompts without loading weights. `--masks` scores the trained mask
+twice and three ablations of it instead of the two stage A sides, for `masks` to compare. `core`,
+`report` and `masks` use only the standard library:
 
     python -m qualify.elephant1_decision_parity reference --checkpoint DIR --output reference.json
     python -m qualify.elephant1_decision_parity core --probes reference.json \\
         --url http://127.0.0.1:8120 --output core.json
     python -m qualify.elephant1_decision_parity report --reference reference.json --core core.json \\
         --output qualify/results/elephant1-decision-parity
+    python -m qualify.elephant1_decision_parity masks --reference masks-reference.json \\
+        --output qualify/results/elephant1-mask-feasibility/masks.json
 """
 
 from __future__ import annotations
@@ -41,6 +44,12 @@ import urllib.request
 
 TRAINED_CONTEXT = 16384
 STAGE_A_ARGMAX, STAGE_A_MEAN_DELTA, STAGE_B_MEAN_DELTA = 0.99, 0.02, 0.01
+# Mask runs in scoring order: the side's name, and which blocks keep one block id for all their tokens.
+# A block whose tokens each take their own id is causal.
+MASK_RUNS = (("trained", ("prefix", "suffix")), ("trained_repeat", ("prefix", "suffix")), ("causal", ()),
+             ("suffix", ("suffix",)), ("prefix", ("prefix",)))
+MASK_BASELINE, MASK_NOISE_FLOOR = "trained", "trained_repeat"
+STATE_END = "</state>\n\n"
 
 _YES_NO = {"type": "noul"}
 
@@ -253,8 +262,20 @@ def reference(args):
         raise ValueError("an option letter is not a single token")
     slot_ids = [ids[0] for ids in slot_ids]
 
-    def decide(request, attention):
+    def decide(request, attention, whole_blocks=None):
         engine.readout.config.attention = attention
+        if whole_blocks is not None:
+            import torch
+            from qev.readout import blocks
+
+            def block_ids(prefixes, lengths, width):
+                # One branch per forward: `prefixes` holds the one prefix length, and no row is padded.
+                position = torch.arange(width, device=engine.device)
+                prefix = torch.zeros_like(position) if "prefix" in whole_blocks else position
+                suffix = torch.full_like(position, prefixes[0]) if "suffix" in whole_blocks else position
+                return blocks(torch.where(position < prefixes[0], prefix, suffix)[None])
+
+            engine._blocks = block_ids
         try:
             _, meta = engine.decide(request, debug=True)
         except ValueError as error:
@@ -263,6 +284,7 @@ def reference(args):
             return None, str(error)
         finally:
             engine.readout.config.attention = trained
+            vars(engine).pop("_blocks", None)
         return {qid: {"probabilities": _softmax(entry["slot_logits"][0]),
                       "letter_mass": entry["allowed_token_mass"]}
                 for qid, entry in meta["diagnostics"].items()}, None
@@ -270,8 +292,12 @@ def reference(args):
     branches = []
     for name, state, questions, expects_refusal in requests():
         request = SystemOneRequest(state=state, questions=questions)
-        scored = {}
-        if engine is not None:
+        scored, prefix_tokens = {}, None
+        if engine is not None and args.masks:
+            scored = {side: decide(request, "noncausal", whole_blocks) for side, whole_blocks in MASK_RUNS}
+            prefix_tokens = len(engine._prefix_and_suffix_ids(
+                state, [render_question(qid, question) for qid, question in request.questions.items()])[0])
+        elif engine is not None:
             scored = {side: decide(request, attention)
                       for side, attention in (("vendor", "noncausal"), ("causal", "causal"))}
         for qid, question in request.questions.items():
@@ -281,12 +307,15 @@ def reference(args):
             tokens = tokenizer.encode(prompt, add_special_tokens=False)
             branch = {"id": f"{name}.{qid}", "kind": rendered.kind, "labels": rendered.labels,
                       "slot_ids": slot_ids[:rendered.n_slots], "tokens": tokens, "expects_refusal": expects_refusal}
+            if prefix_tokens is not None:
+                branch["prefix_tokens"] = prefix_tokens
             for side, (answers, refusal) in scored.items():
                 branch[side] = {"refused": refusal} if answers is None else answers[qid]
             branches.append(branch)
         print(f"{name}: {len(request.questions)} questions, longest prompt"
               f" {max(len(b['tokens']) for b in branches[-len(request.questions):])} tokens", flush=True)
-    meta = {"checkpoint": checkpoint, "rendered_only": engine is None}
+    meta = {"checkpoint": checkpoint, "rendered_only": engine is None, "masks": args.masks,
+            "state_end_ids": tokenizer.encode(STATE_END, add_special_tokens=False)}
     if engine is not None:
         import torch
         meta.update(device=torch.cuda.get_device_name(engine.device), dtype=engine.info.dtype,
@@ -393,8 +422,9 @@ def report(args):
     """Write the two stage reports and evaluate the acceptance thresholds."""
     source = json.loads(args.reference.read_text())
     served = json.loads(args.core.read_text())
-    if source["meta"]["rendered_only"]:
-        raise ValueError("the reference file holds rendered prompts only; run `reference` with the checkpoint")
+    if source["meta"]["rendered_only"] or source["meta"].get("masks"):
+        raise ValueError("the reference file holds no stage A sides; run `reference` with the checkpoint and"
+                         " without --masks")
     by_id = {branch["id"]: branch for branch in served["branches"]}
     stage_a, stage_b, refusals, coverage = [], [], [], []
     for branch in source["branches"]:
@@ -457,6 +487,61 @@ def report(args):
               f" core refused {entry['core_refused']}")
 
 
+def _state_end(tokens, marker):
+    """The token index after the last rendered end of the state block, from the prompt's tokens alone."""
+    for start in range(len(tokens) - len(marker), -1, -1):
+        if tokens[start:start + len(marker)] == marker:
+            return start + len(marker)
+    return None
+
+
+def masks(args):
+    """Compare each mask run with the first trained run and evaluate the mask acceptance bounds."""
+    source = json.loads(args.reference.read_text())
+    if not source["meta"].get("masks"):
+        raise ValueError("the reference file holds no mask runs; run `reference --masks` with the checkpoint")
+    answered = [branch for branch in source["branches"] if "refused" not in branch[MASK_BASELINE]]
+    variants = {}
+    for side, _ in MASK_RUNS[1:]:
+        summary, rows = compare([(branch, branch[side]["probabilities"], branch[MASK_BASELINE]["probabilities"])
+                                 for branch in answered])
+        if side != MASK_NOISE_FLOOR:
+            summary["verdicts"] = {
+                f"argmax agreement >= {STAGE_A_ARGMAX}": _verdict(summary["argmax_agreement"] >= STAGE_A_ARGMAX),
+                f"mean absolute probability delta <= {STAGE_A_MEAN_DELTA}":
+                    _verdict(summary["mean_absolute_probability_delta"] <= STAGE_A_MEAN_DELTA)}
+        variants[side] = {"summary": summary, "questions": rows}
+    marker = source["meta"]["state_end_ids"]
+    boundaries = [(branch["id"], branch["prefix_tokens"], _state_end(branch["tokens"], marker))
+                  for branch in source["branches"]]
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_text(json.dumps({
+        "baseline": "vendor DecisionEngine, first run with the trained mask: the prefix one block and the suffix"
+                    " one block (one branch per forward)",
+        "masks": {"trained_repeat": "the trained mask scored a second time: the noise floor",
+                  "causal": "every token its own block",
+                  "suffix": "each prefix token its own block, the suffix one block",
+                  "prefix": "the prefix one block, each suffix token its own block"},
+        "reference": source["meta"],
+        "refused": [branch["id"] for branch in source["branches"] if "refused" in branch[MASK_BASELINE]],
+        "prefix_boundary": {
+            "rule": f"the token after the last {STATE_END!r} in the prompt's tokens equals the vendor engine's"
+                    " prefix length",
+            "probes": len(boundaries), "matching": sum(vendor == found for _, vendor, found in boundaries),
+            "differing": [{"id": name, "vendor": vendor, "from_tokens": found}
+                          for name, vendor, found in boundaries if vendor != found]},
+        "variants": variants}, indent=1))
+    for side, entry in variants.items():
+        summary = entry["summary"]
+        print(f"{side}: {summary['questions']} questions; argmax agreement {summary['argmax_agreement']:.4f},"
+              f" mean |dp| {summary['mean_absolute_probability_delta']:.6f},"
+              f" max |dp| {summary['maximum_absolute_probability_delta']:.6f}")
+        for threshold, verdict in summary.get("verdicts", {}).items():
+            print(f"  {threshold}: {verdict}")
+    print(f"prefix boundary from tokens: {sum(vendor == found for _, vendor, found in boundaries)} of"
+          f" {len(boundaries)} probes match")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -464,6 +549,8 @@ def main():
     command.add_argument("--checkpoint", type=Path, required=True, help="baselabs/elephant-1 snapshot directory")
     command.add_argument("--device", default="cuda:0")
     command.add_argument("--render-only", action="store_true", help="write prompts without loading weights")
+    command.add_argument("--masks", action="store_true",
+                         help="score the trained mask twice and its causal, suffix-only and prefix-only ablations")
     command.add_argument("--output", type=Path, required=True)
     command.set_defaults(run=reference)
     command = commands.add_parser("core", help="score the rendered probe set on a served core")
@@ -477,6 +564,10 @@ def main():
     command.add_argument("--core", type=Path, required=True)
     command.add_argument("--output", type=Path, required=True, help="report directory")
     command.set_defaults(run=report)
+    command = commands.add_parser("masks", help="write the mask ablation report and its verdicts")
+    command.add_argument("--reference", type=Path, required=True, help="file written by `reference --masks`")
+    command.add_argument("--output", type=Path, required=True, help="report file")
+    command.set_defaults(run=masks)
     args = parser.parse_args()
     args.run(args)
 

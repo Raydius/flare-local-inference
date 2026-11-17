@@ -1,0 +1,80 @@
+{
+ "operator": {
+  "name": "b12x.attention.varlen, causal=False, flash arithmetic",
+  "query_heads": 16,
+  "kv_heads": 4,
+  "head_dimension": 256,
+  "dtype": "bfloat16",
+  "device": "NVIDIA GeForce RTX 5060 Ti",
+  "torch": "2.14.1+cu132",
+  "reference": "torch scaled_dot_product_attention in FP32 over the same BF16-rounded seeded standard-normal inputs",
+  "cases": {
+   "suffix_over_prefix": {
+    "description": "256 suffix queries over 4,096 prefix keys and the suffix's own 256 keys",
+    "query_tokens": 256,
+    "key_tokens": 4352,
+    "ran": true,
+    "maximum_absolute_difference": 0.0005332529544830322,
+    "reference_maximum_magnitude": 0.14506450295448303,
+    "scratch_bytes": 16384,
+    "operand_bytes": 22020096
+   },
+   "whole_prefix": {
+    "description": "one 16,384-token block attending to itself",
+    "query_tokens": 16384,
+    "key_tokens": 16384,
+    "ran": true,
+    "maximum_absolute_difference": 0.00027111172676086426,
+    "reference_maximum_magnitude": 0.07331294566392899,
+    "scratch_bytes": 1048576,
+    "operand_bytes": 335544320
+   }
+  }
+ },
+ "prefill_storage": {
+  "method": "allocation arithmetic on the CPU from Scratch.allocate, BatchInputs.allocate, the page pool's prefill pages (chunk / 128 pages), the prompt-logprob outputs and the gathered block keys and values for one prefill row; not a captured-graph measurement, and it leaves out each operator's private scratch",
+  "envelope_bytes": 12884901888,
+  "serving_process_bytes": 10074718208,
+  "headroom_bytes": 2810183680,
+  "gathered_block_key_value_bytes": 134217728,
+  "headroom_basis": "the measured serving process already holds the 2,048-token prefill storage, so a capacity fits when its increase over 2,048 tokens is within the headroom",
+  "capacities": [
+   {
+    "prefill_tokens": 2048,
+    "decoder_scratch_bytes": 202355712,
+    "batch_input_bytes": 17580,
+    "prefill_page_bytes": 67108864,
+    "prompt_output_bytes": 712704,
+    "increase_over_2048_bytes": 134217728,
+    "fits_headroom": true
+   },
+   {
+    "prefill_tokens": 4096,
+    "decoder_scratch_bytes": 404206592,
+    "batch_input_bytes": 33964,
+    "prefill_page_bytes": 134217728,
+    "prompt_output_bytes": 1425408,
+    "increase_over_2048_bytes": 403906560,
+    "fits_headroom": true
+   },
+   {
+    "prefill_tokens": 8192,
+    "decoder_scratch_bytes": 807908352,
+    "batch_input_bytes": 66732,
+    "prefill_page_bytes": 268435456,
+    "prompt_output_bytes": 2850816,
+    "increase_over_2048_bytes": 943284224,
+    "fits_headroom": true
+   },
+   {
+    "prefill_tokens": 16384,
+    "decoder_scratch_bytes": 1615311872,
+    "batch_input_bytes": 132268,
+    "prefill_page_bytes": 536870912,
+    "prompt_output_bytes": 5701632,
+    "increase_over_2048_bytes": 2022039552,
+    "fits_headroom": true
+   }
+  ]
+ }
+}

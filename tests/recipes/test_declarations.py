@@ -520,7 +520,7 @@ def test_elephant1_adapter_configures_a_text_decision_core(monkeypatch, tmp_path
     model = resolve("elephant-1-9b")
     recipe = model.recipe
     assert (recipe.served_model_name, recipe.context, recipe.page_tokens) == ("Elephant-1", 16384, 128)
-    assert (recipe.concurrency, recipe.max_concurrency, recipe.prefill_chunk) == (2, 2, 2048)
+    assert (recipe.concurrency, recipe.max_concurrency, recipe.prefill_chunk) == (2, 2, 16384)
     assert recipe.speculation is None and recipe.max_draft_tokens == 0 and recipe.tensor_parallel == (1,)
     seen = []
     monkeypatch.setattr("ignition.recipes.elephant1.bootstrap.prepare",
@@ -529,10 +529,12 @@ def test_elephant1_adapter_configures_a_text_decision_core(monkeypatch, tmp_path
     assert recipe.prepare(tmp_path, plan, compile_forwards=True, kernel_cache=tmp_path / "kernels",
                           progress=None) == "prepared"
     config = seen.pop()
-    assert (config.max_active, config.context, config.prefill_chunk_size) == (2, 16384, 2048)
+    assert (config.max_active, config.context, config.prefill_chunk_size) == (2, 16384, 16384)
     assert config.compile_decoder and config.kernel_cache == tmp_path / "kernels"
     assert config.snapshot_budget_bytes == plan.snapshots * recipe.costs(1, None).state_row_bytes
-    assert config.headroom_bytes == planning.HEADROOM_BYTES + (1 << 30)
+    # A whole-context prefill chunk raises the preparation headroom by its tokens past the base chunk.
+    chunk_headroom = (16384 - planning.HEADROOM_CHUNK_TOKENS) * planning.HEADROOM_CHUNK_TOKEN_BYTES
+    assert config.headroom_bytes == planning.HEADROOM_BYTES + chunk_headroom + (1 << 30)
     # One local GPU prepares the core; a rank group is refused before any weight loads.
     with pytest.raises(ValueError, match="one local GPU"):
         recipe.prepare(tmp_path, plan, compile_forwards=True, kernel_cache=None, progress=None, ranks=object())

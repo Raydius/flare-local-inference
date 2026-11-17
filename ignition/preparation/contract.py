@@ -91,13 +91,14 @@ def graph_contracts(signatures, inputs, *, continuation, pending, cursor=None, r
 
 def frontend(*, tools, assistant_marker, message_end_markers, prefix_boundary, wrapping_newlines=0,
              tag_separator="", terminal_markers=(), image_preparation=None, image_layout=None,
-             position_dimensions=0, rejected_tokens=(), image_tokens=None):
+             position_dimensions=0, rejected_tokens=(), image_tokens=None, block_end_marker=()):
     return dict(tools=dict(kind=tools, wrapping_newlines=wrapping_newlines, tag_separator=tag_separator),
         reasoning=dict(kind=p.THINK_TAGS, open="<think>", close="</think>",
                        wrapping_newlines=wrapping_newlines, terminal_markers=list(terminal_markers)),
         image_preparation=image_preparation, image_layout=image_layout, position_dimensions=position_dimensions,
         rejected_tokens=list(rejected_tokens), assistant_marker=assistant_marker,
-        message_end_markers=list(message_end_markers), prefix_boundary=prefix_boundary, image_tokens=image_tokens)
+        message_end_markers=list(message_end_markers), prefix_boundary=prefix_boundary, image_tokens=image_tokens,
+        block_end_marker=list(block_end_marker))
 
 
 def prefix_boundary(roles, *, append_role=None, minimum_messages=1, required_start="", required_end="", required_marker=""):

@@ -299,7 +299,9 @@ class FullAttention(torch.nn.Module):
 
 class PreparedDecoder:
     def __init__(self, weights, scratch, metadata, pool, *, mode, vocabulary_runtime,
-                 coordinator, session, name, workspace, scoring=None, records=None):
+                 coordinator, session, name, workspace, scoring=None, records=None, attention=None):
+        # `attention` replaces the full-attention layer class for a recipe that composes its own.
+        attention = FullAttention if attention is None else attention
         self.weights, self.scratch, self.metadata, self.pool = weights, scratch, metadata, pool
         self.embedding = PreparedEmbedding(weights.tree.embed_tokens.weight, metadata.token_ids,
             scratch.activations, num_rows=metadata.live_counts[:1], session=session, name=name + ".embedding").functional(session=session, dynamic_inputs=True)
@@ -367,7 +369,7 @@ class PreparedDecoder:
                     projection_staging=scratch.quantized,
                     gdn_buffers=None).functional(session=session, dynamic_metadata=True))
             else:
-                layer.self_attn = FullAttention(original.self_attn, weights, source, metadata, pool, index,
+                layer.self_attn = attention(original.self_attn, weights, source, metadata, pool, index,
                     mode=mode, session=session, workspace=workspace, name=name + "." + prefix + "attention",
                     buffers=attention_buffers, projection_staging=scratch.quantized)
             attended = (scratch.gdn.output if original.block_type == "linear_attention"

@@ -116,6 +116,10 @@ pub fn prepare_image_inputs(
             }
         }
     };
+    let marker = &config.contract.frontend.block_end_marker;
+    if !marker.is_empty() {
+        prepared.data.spans = super::block_spans(&prepared.tokens, marker)?;
+    }
     if prepared.token_expansions.len() != inputs.len() {
         return Err("image expansions do not match input descriptions".into());
     }
@@ -489,6 +493,30 @@ mod tests {
             assert!(validate_conditioned_inputs(&oversized, &prepared.tokens, &prepared.data,
                 &prepared.conditioned_inputs).is_err());
         }
+    }
+
+    #[test]
+    fn text_prompts_take_their_atomic_spans_from_the_block_end_marker() {
+        let frontend = crate::server::output::tests::frontend(&["x"]);
+        let mut config = super::super::tests::config();
+        config.contract.frontend.position_dimensions = 0;
+        config.contract.frontend.block_end_marker = vec![7, 8];
+        let prepare = |token_ids: Vec<u32>| {
+            let rendered = RenderedPrompt { message_boundaries: Vec::new(), text: String::new(), token_ids,
+                image_sources: vec![], image_checkpoint_hints: vec![] };
+            prepare_input(&config, &frontend, None, &rendered, vec![])
+        };
+        assert_eq!(prepare(vec![1, 7, 8, 2, 3]).unwrap().data.spans, [0..3, 3..5]);
+        assert!(prepare(vec![1, 2, 3]).unwrap().data.spans.is_empty());
+        assert_eq!(
+            prepare(vec![7, 8, 1, 7, 8]).err().unwrap().to_string(),
+            "prompt holds the block-end marker more than once"
+        );
+        let mut unmarked = config.clone();
+        unmarked.contract.frontend.block_end_marker.clear();
+        let rendered = RenderedPrompt { message_boundaries: Vec::new(), text: String::new(),
+            token_ids: vec![1, 7, 8, 2, 3], image_sources: vec![], image_checkpoint_hints: vec![] };
+        assert!(prepare_input(&unmarked, &frontend, None, &rendered, vec![]).unwrap().data.spans.is_empty());
     }
 
     #[test]

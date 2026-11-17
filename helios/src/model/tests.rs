@@ -26,6 +26,62 @@ fn prompt_scoring_recognizes_features_without_protected_image_spans() {
     assert!(!data.is_image_position(6));
 }
 
+#[test]
+fn block_end_marker_splits_a_prompt_into_two_atomic_spans() {
+    let marker = [7, 8];
+    assert_eq!(block_spans(&[1, 7, 8, 2, 3], &marker).unwrap(), [0..3, 3..5]);
+    // A lone 7 or 8 is not the marker, and a prompt ending at the marker has one block.
+    assert_eq!(block_spans(&[7, 1, 8, 7, 8], &marker).unwrap(), [0..5]);
+    assert!(block_spans(&[1, 2, 3], &marker).unwrap().is_empty());
+    assert!(block_spans(&[1, 7, 8, 2], &[]).unwrap().is_empty());
+    assert_eq!(
+        block_spans(&[7, 8, 1, 7, 8, 2], &marker).unwrap_err().to_string(),
+        "prompt holds the block-end marker more than once"
+    );
+}
+
+#[test]
+fn prompt_spans_follow_the_declared_block_end_marker() {
+    let mut config = config();
+    config.contract.frontend.block_end_marker = vec![7, 8];
+    config.contract.validate(&manifest(&config)).unwrap();
+    let data = |spans: Vec<std::ops::Range<usize>>, tokens: usize| PromptData {
+        positions: (0..tokens).map(|p| [p as i64; 3]).collect(),
+        vision_token_indices: vec![],
+        spans,
+    };
+    validate_prompt_data(&config, &[1, 7, 8, 2, 3], &data(vec![0..3, 3..5], 5)).unwrap();
+    validate_prompt_data(&config, &[1, 2, 3], &data(vec![], 3)).unwrap();
+    for (tokens, spans) in [(vec![1, 7, 8, 2, 3], vec![]), (vec![1, 7, 8, 2, 3], vec![0..2, 2..5]), (vec![1, 2, 3], vec![0..3])] {
+        assert_eq!(
+            validate_prompt_data(&config, &tokens, &data(spans, tokens.len())).unwrap_err().to_string(),
+            "prompt spans do not match the declared block-end marker"
+        );
+    }
+    assert!(validate_prompt_data(&config, &[7, 8, 7, 8], &data(vec![0..2, 2..4], 4)).is_err());
+    // A block longer than the prefill chunk cannot be kept whole.
+    let long = [vec![1; 600], vec![7, 8, 2]].concat();
+    assert_eq!(
+        validate_prompt_data(&config, &long, &data(vec![0..602, 602..603], 603)).unwrap_err().to_string(),
+        "prompt arrays violate prepared geometry"
+    );
+    // Image spans and text blocks are not composed: a contract declaring both is refused.
+    config.contract.frontend.image_tokens = Some(ImageTokenLayout {
+        feature_token: 1,
+        span: Some(ImageSpan { start_token: 2, end_token: 3, max_tokens: 8, interior_tokens: vec![], unscoped_tokens: vec![] }),
+    });
+    assert_eq!(
+        config.contract.validate(&manifest(&config)).unwrap_err().to_string(),
+        "invalid prepared block-end marker"
+    );
+    config.contract.frontend.image_tokens = None;
+    config.contract.frontend.block_end_marker = vec![u32::MAX];
+    assert_eq!(
+        config.contract.validate(&manifest(&config)).unwrap_err().to_string(),
+        "invalid prepared block-end marker"
+    );
+}
+
 pub(super) fn config() -> ModelConfig {
     ModelConfig {
         completion_token_capacity: 16,
@@ -78,6 +134,7 @@ fn admission_histogram_seed_and_partial_page_uploads_preserve_native_semantics()
             host_stops: false,
             prompt_logprobs: false,
             growable_output: false,
+            atomic_spans: Vec::new(),
         })
         .unwrap();
     let mut admissions: [Option<Admission>; 4] = std::array::from_fn(|_| None);
@@ -226,6 +283,7 @@ fn large_prefill_uploads_preserve_token_position_and_image_indices_without_tail_
             host_stops: false,
             prompt_logprobs: false,
             growable_output: false,
+            atomic_spans: Vec::new(),
         })
         .unwrap();
     let mut admissions: [Option<Admission>; 4] = std::array::from_fn(|_| None);
@@ -538,6 +596,7 @@ fn packing_follows_value_bindings_after_buffers_and_model_are_renamed() {
             host_stops: false,
             prompt_logprobs: false,
             growable_output: false,
+            atomic_spans: Vec::new(),
         })
         .unwrap();
     let mut admissions: [Option<Admission>; 4] = std::array::from_fn(|_| None);
@@ -710,6 +769,7 @@ fn history_proposal_count_is_bounded_by_the_lane_verification_width() {
                 host_stops: false,
                 prompt_logprobs: false,
                 growable_output: false,
+                atomic_spans: Vec::new(),
             })
             .unwrap()
     };
@@ -864,6 +924,7 @@ fn copy_staging_uses_physical_slots_stochastic_defaults_and_bonus_mask() {
                     host_stops: false,
                     prompt_logprobs: false,
                     growable_output: false,
+                    atomic_spans: Vec::new(),
                 })
                 .unwrap()
         })
@@ -1101,6 +1162,7 @@ fn mixed_native_uploads_pack_prompt_after_the_decode_extent_and_sample_only_elig
                     host_stops: false,
                     prompt_logprobs: false,
                     growable_output: false,
+                    atomic_spans: Vec::new(),
                 })
                 .unwrap();
             admissions[h.slot as usize] = Some(Admission {
@@ -1314,6 +1376,7 @@ fn state_transfer_and_resume_upload_fixture() {
                 host_stops: false,
                 prompt_logprobs: false,
                 growable_output: false,
+                atomic_spans: Vec::new(),
             })
             .unwrap();
         let mut admissions: [_; 4] = std::array::from_fn(|_| None);
@@ -1535,6 +1598,7 @@ fn grammar_packing_fixture() -> (
                 host_stops: false,
                 prompt_logprobs: false,
                 growable_output: false,
+                atomic_spans: Vec::new(),
             })
             .unwrap();
         admissions.push(Some(Admission {
@@ -1768,6 +1832,7 @@ fn prefill_compacts_execution_feature_indices_and_preserves_admission_metadata()
             host_stops: false,
             prompt_logprobs: false,
             growable_output: true,
+            atomic_spans: Vec::new(),
         })
         .unwrap();
     scheduler
@@ -1876,7 +1941,8 @@ fn committed_generation_cursors_require_feedback_while_unused_prompt_positions_d
             }
             scheduler.measured_graph_durations(&manifest.graphs).unwrap();
             let handle = scheduler.admit(RequestSpec { message_boundaries: vec![], prompt: vec![7; 64], conditioning: vec![],
-                max_new_tokens: 64, grammar_constrained: false, host_stops: false, prompt_logprobs: false, growable_output: false }).unwrap();
+                max_new_tokens: 64, grammar_constrained: false, host_stops: false, prompt_logprobs: false, growable_output: false,
+                atomic_spans: Vec::new(), }).unwrap();
             let mut admissions: [Option<Admission>; 4] = std::array::from_fn(|_| None);
             admissions[handle.slot as usize] = Some(Admission { handle, sampling: SamplingParameters::default(),
                 max_new_tokens: 64, prompt: vec![7; 64], data: PromptData {

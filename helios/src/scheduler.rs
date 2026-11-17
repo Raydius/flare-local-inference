@@ -157,6 +157,8 @@ pub struct RequestSpec {
     /// request decodes. When pages run out the scheduler may preempt such a request:
     /// it finishes through its terminal checkpoint and the runtime readmits its history.
     pub growable_output: bool,
+    /// Bidirectional token ranges, sorted and disjoint, each kept inside one prefill submission.
+    pub atomic_spans: Vec<std::ops::Range<usize>>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -1423,9 +1425,22 @@ impl RequestScheduler {
                 "request requires a nonempty prompt, positive output limit, and bounded total tokens",
             ));
         }
+        if spec.atomic_spans.windows(2).any(|pair| pair[0].end > pair[1].start)
+            || spec.atomic_spans.iter().any(|span| {
+                span.start >= span.end
+                    || span.end > spec.prompt.len()
+                    || span.end - span.start > self.limits.prefill_chunk_size
+            })
+        {
+            return Err(crate::Error::admission(
+                crate::AdmissionError::Invalid,
+                "invalid atomic prefill spans",
+            ));
+        }
         self.free_slot()?;
         let mut history = PrefixHistory::new(self.identity);
         history.append(&spec.prompt, &spec.conditioning)?;
+        history.set_atomic_spans(&spec.atomic_spans);
         if spec.prompt_logprobs && self.scored_prefill_catalog.is_empty() {
             return Err(crate::Error::admission(crate::AdmissionError::Invalid,
                 "prompt logprobs are not available in this model core"));
@@ -1666,7 +1681,7 @@ impl RequestScheduler {
             pending: 0,
             terminal_snapshot_ready: false,
             vision_patches: VecDeque::new(),
-            prefill_spans: Vec::new(),
+            prefill_spans: spec.atomic_spans.clone(),
             growable_output: spec.growable_output,
             preempted: false,
             admission_order: self.admissions,
@@ -1858,7 +1873,9 @@ impl RequestScheduler {
         self.stats.host_lookups += 1;
     }
 
-    /// Keep model-declared bidirectional spans inside one prefill submission.
+    /// Declare spans on an admitted request that has not run. Requests take their spans from
+    /// `RequestSpec::atomic_spans`, which also keeps cache lookups outside them.
+    #[cfg(test)]
     pub fn set_prefill_spans(
         &mut self,
         handle: RequestHandle,
