@@ -437,7 +437,8 @@ class PreparedDecoder:
         dim = int(config.text["head_dim"] * rotary["partial_rotary_factor"])
         from ignition.preparation.persistent import persistent_copy, persistent_empty
 
-        scaling = config.rope_scaling
+        # Elephant-1 composes this decoder with a configuration that declares no rope scaling.
+        scaling = getattr(config, "rope_scaling", None)
         if scaling is None:
             inverse = 1.0 / (rotary["rope_theta"] ** (
                 torch.arange(0, dim, 2, device=source.device, dtype=torch.float32) / dim))

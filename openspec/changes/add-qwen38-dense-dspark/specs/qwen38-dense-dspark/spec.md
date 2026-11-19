@@ -150,14 +150,16 @@ The dense Qwen recipe SHALL prepare the checkpoint's vision encoder and accept u
 - **WHEN** `--language-model-only` is planned for a dense Qwen checkpoint
 - **THEN** no vision graph or image storage is prepared, the state row has no position-offset region, and the core rejects images
 
-#### Scenario: The served core answers an image request
+#### Scenario: A core prepared with image input answers an image request
 
-- **WHEN** the served DaisyRose core receives a chat request with an image
+- **WHEN** a dense Qwen core exported without `--language-model-only` receives a chat request with an image
 - **THEN** it reports image input in `/v1/models` and answers from the image's content
+
+This scenario is unrun: the DaisyRose core served on GPU 0 was exported language-only, and `docs/TODO.md` lists the export with image input and the image request.
 
 ### Requirement: Existing cores and DFlash2 preparation are unchanged
 
-A core exported before this capability SHALL load and serve without re-export. DFlash2 preparation of the recipe SHALL declare the same state-row layout, page regions and page cost as before.
+A core exported before this capability SHALL load and serve without re-export. DFlash2 preparation of the recipe SHALL declare the same state-row layout, page regions and page cost as before; a plan with image input adds only the position-offset region to the state row.
 
 #### Scenario: A DFlash2 layout is unchanged
 

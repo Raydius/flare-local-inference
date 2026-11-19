@@ -571,6 +571,19 @@ def test_qwen_dense_layer_projections_are_grouped_per_layer():
     assert not contains('layer-001', torch.full((2, 2), 1.0))
 
 
+def test_dense_weight_roots_accept_elephant1_weights():
+    """Elephant-1 declares its weights through the dense Qwen roots and has no vision encoder field."""
+    from ignition.recipes.elephant1.weights import ModelWeights
+    from ignition.recipes.qwen38_dense.bootstrap import _declared_weight_roots
+
+    dense = qwen_dense_weights()
+    weights = ModelWeights(config=None, tree=dense.tree, projections=dense.projections, head=dense.head,
+                           allocated_bytes=0)
+    roots, components = _declared_weight_roots(weights)
+    assert 'vision' not in roots and 'vision' not in components
+    assert {'embedding', 'norm', 'head', 'draft', 'draft_head', 'layer-000', 'layer-001'} <= set(roots)
+
+
 def test_qwen_dense_single_layer_change_keeps_other_layer_payloads():
     before = declared_group_bytes(qwen_dense_weights(first_layer_seed=1.0))
     after = declared_group_bytes(qwen_dense_weights(first_layer_seed=9.0))

@@ -418,8 +418,9 @@ images per request through the Qwen image preparation and layout, as
 `qwen3.8-flash` does. The encoder is the canonical 27-layer Qwen3.5 vision
 model with the checkpoint's BF16 weights (921,460,192 bytes) and a 5,120-wide
 output, captured at 256, 1,024, 4,096 and 16,384 patches. Image features
-occupy up to 16,384 rows of 5,120 BF16 values per image slot;
-`--image-concurrency` sets the slots, four by default. An image token takes
+occupy up to 16,384 rows of 5,120 BF16 values (167,772,160 bytes) per image
+slot; `--image-concurrency` sets the slots, four by default. Video is not
+prepared: Helios rejects a prompt that contains the video token. An image token takes
 the canonical time, row and column rotary positions, and each continuation row
 stores the offset between the next rotary position and the next token index,
 which decode and verification apply after an image. Draft positions are token
