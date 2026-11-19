@@ -8,7 +8,7 @@ from types import MappingProxyType
 from pathlib import Path
 
 from ignition.recipes.declaration import (Checkpoint, RankCosts, RankUsage, Recipe, SamplingDefaults, SamplingRange,
-                                          Speculation, SpeculativeMethod)
+                                          RopeScaling, Speculation, SpeculativeMethod)
 
 _DRAFT_FILES = ("config.json", "model.safetensors")
 
@@ -45,6 +45,7 @@ def prepare(snapshot, plan, *, compile_forwards, kernel_cache, progress, retain_
         online_mxfp8=plan.online_mxfp8,
         lock_gpu_clocks=plan.lock_gpu_clocks and plan.autotune_effort != "off",
         max_active=plan.concurrency if selection is None else selection.max_batch, context=plan.context,
+        rope_scaling=plan.checkpoint.rope_scaling,
         prefill_chunk_size=plan.prefill_chunk,
         snapshot_budget_bytes=plan.snapshots * plan.costs.state_row_bytes,
         headroom_bytes=plan.headroom_bytes + plan.reserve_bytes, compile_decoder=compile_forwards,
@@ -78,7 +79,13 @@ RECIPE = Recipe(
         Checkpoint(alias="daisyrose-27b", repository="RadixArk/DaisyRose-27B-NVFP4",
         revision="c4d85c5dfad123426555c22f4e24bb15381f0bdb", architecture="Qwen3_5ForConditionalGeneration",
         stored_bytes=21_921_428_072, device_bytes=24_104_235_656, draft_bytes=3_953_666_560,
-        expansion_bytes=307_871_744)),
+        expansion_bytes=307_871_744),
+        # Frequency-only rope interpolation extends the target's trained 262,144-token context by four.
+        # Draft rotary frequencies are unchanged.
+        Checkpoint(alias="daisyrose-27b-yarn4", repository="RadixArk/DaisyRose-27B-NVFP4",
+        revision="c4d85c5dfad123426555c22f4e24bb15381f0bdb", architecture="Qwen3_5ForConditionalGeneration",
+        stored_bytes=21_921_428_072, device_bytes=24_104_235_656, draft_bytes=3_953_666_560,
+        expansion_bytes=307_871_744, context=1_048_576, rope_scaling=RopeScaling(4., 262144))),
     context=262144, page_tokens=128, concurrency=32, max_concurrency=64, prefill_chunk=4096,
     speculation=Speculation(draft_tokens=7, token_capacity=128, packed_verification=True, graph_budget=64,
                             method="dflash2"), max_draft_tokens=15, verification_rows=0,

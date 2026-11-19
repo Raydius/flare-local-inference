@@ -22,7 +22,7 @@ HUB = Path.home() / ".cache/huggingface/hub"
 def test_declarations_import_without_model_dependencies():
     result = subprocess.run(
         [sys.executable, "-c", "import sys; from ignition.recipes import aliases; from ignition import planning;"
-         " import ignition.cli.preparation; assert aliases() == ('qwen3.8-flash', 'qwen3.8-flash-yarn4', 'qwen3.8-27b', 'qwen3.8-27b-qad', 'daisyrose-27b', 'glm-5.3-flash', 'deepseek-v4.1-flash', 'deepseek-v4-flash', 'mimo-v2.6-pro-mopd', 'mimo-v2.6-flash-rl', 'kimi-k3-mxfp4-csf', 'kimi-k3', 'kimi-k3-dspark', 'kimi-k3.1-pro', 'step5-preview-nvfp4', 'nemotron-bolt-24gb', 'minimax-m3-1-flash', 'gemma-4-e2b', 'gemma-4-e4b', 'gemma-4-12b', 'gemma-4-26b-a4b', 'gemma-4-31b', 'gemma-4-e4b-nvfp4', 'gemma-4-12b-nvfp4', 'gemma-4-26b-a4b-nvfp4', 'gemma-4-31b-nvfp4', 'muse-spark-open-nvfp4', 'inkling-2-small-nvfp4', 'muse-glimmer-30b-nvfp4', 'elephant-1-9b');"
+         " import ignition.cli.preparation; assert aliases() == ('qwen3.8-flash', 'qwen3.8-flash-yarn4', 'qwen3.8-27b', 'qwen3.8-27b-qad', 'daisyrose-27b', 'daisyrose-27b-yarn4', 'glm-5.3-flash', 'deepseek-v4.1-flash', 'deepseek-v4-flash', 'mimo-v2.6-pro-mopd', 'mimo-v2.6-flash-rl', 'kimi-k3-mxfp4-csf', 'kimi-k3', 'kimi-k3-dspark', 'kimi-k3.1-pro', 'step5-preview-nvfp4', 'nemotron-bolt-24gb', 'minimax-m3-1-flash', 'gemma-4-e2b', 'gemma-4-e4b', 'gemma-4-12b', 'gemma-4-26b-a4b', 'gemma-4-31b', 'gemma-4-e4b-nvfp4', 'gemma-4-12b-nvfp4', 'gemma-4-26b-a4b-nvfp4', 'gemma-4-31b-nvfp4', 'muse-spark-open-nvfp4', 'inkling-2-small-nvfp4', 'muse-glimmer-30b-nvfp4', 'elephant-1-9b');"
          " assert not {'torch', 'transformers', 'flare_heliopause'} & set(sys.modules)"],
         cwd=ROOT, check=False, capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
@@ -110,7 +110,7 @@ def test_a_different_revision_of_a_declared_repository_is_not_the_pinned_checkpo
 
 @pytest.mark.parametrize("name", ["qwen", "Qwen3.8-Flash", "qwen3.8-flash@main"])
 def test_unknown_aliases_list_the_supported_aliases(name):
-    with pytest.raises(UsageError, match="supported models: qwen3.8-flash, qwen3.8-flash-yarn4, qwen3.8-27b, qwen3.8-27b-qad, daisyrose-27b, glm-5.3-flash"):
+    with pytest.raises(UsageError, match="supported models: qwen3.8-flash, qwen3.8-flash-yarn4, qwen3.8-27b, qwen3.8-27b-qad, daisyrose-27b, daisyrose-27b-yarn4, glm-5.3-flash"):
         resolve(name)
 
 
@@ -324,7 +324,7 @@ def test_rope_parameters_reach_bench_and_are_refused_without_rope_scaling(tmp_pa
 
     config = tmp_path / "config.toml"
     config.write_text("")
-    assert main(["bench", "qwen3.8-27b", "--config", str(config), "--rope-parameters", '{"factor": 4}']) == 2
+    assert main(["bench", "nemotron-bolt-24gb", "--config", str(config), "--rope-parameters", '{"factor": 4}']) == 2
     assert "declares no rope scaling" in capsys.readouterr().err
 
 
@@ -353,3 +353,17 @@ def test_daisyrose_resolves_to_its_pinned_dense_qwen_checkpoint():
     assert model.checkpoint.revision == "c4d85c5dfad123426555c22f4e24bb15381f0bdb"
     assert model.source == "c4d85c5d"
     assert resolve("RadixArk/DaisyRose-27B-NVFP4").checkpoint is model.checkpoint
+
+
+def test_daisyrose_yarn4_extends_the_dense_qwen_context_by_rope_scaling():
+    from ignition.cli.preparation import rope_scaled
+    from ignition.recipes.declaration import RopeScaling
+
+    model = resolve("daisyrose-27b-yarn4")
+    base = resolve("daisyrose-27b")
+    assert model.recipe is base.recipe and model.checkpoint.revision == base.checkpoint.revision
+    assert model.checkpoint.context == 1_048_576
+    assert model.checkpoint.rope_scaling == RopeScaling(4., 262144)
+    assert base.checkpoint.context is None and base.checkpoint.rope_scaling is None
+    scaled = rope_scaled(base, {"rope_type": "yarn", "factor": 4.0, "original_max_position_embeddings": 262144})
+    assert (scaled.context, scaled.rope_scaling) == (1_048_576, RopeScaling(4., 262144))

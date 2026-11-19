@@ -136,3 +136,28 @@ def test_dspark_owner_sizes_a_seven_position_block_scored_from_the_pending_token
     assert dspark.tail_pages(7) == 2
     key, value = pool.draft_attention(4, config)
     assert key.shape == value.shape == (2, 128, 8, 128) and key.dtype == torch.float8_e4m3fn
+
+
+def test_rope_scaling_raises_the_preparation_context_ceiling():
+    from ignition.recipes.declaration import RopeScaling
+
+    options = dict(draft_snapshot=Path("draft"), speculative_method="dspark", max_active=8,
+                   speculative_widths=tuple(range(1, 9)))
+    scaled = PreparationConfig(context=1_048_576, rope_scaling=RopeScaling(4., 262144), **options)
+    assert scaled.context == 1_048_576
+    with pytest.raises(ValueError, match=r"128-aligned in \[128,262144\]"):
+        PreparationConfig(context=1_048_576, **options)
+    with pytest.raises(ValueError, match=r"128-aligned in \[128,1048576\]"):
+        PreparationConfig(context=1_048_576 + 128, rope_scaling=RopeScaling(4., 262144), **options)
+    with pytest.raises(ValueError, match="must extend the trained 262,144-token context"):
+        PreparationConfig(context=262144, rope_scaling=RopeScaling(4., 131072), **options)
+
+
+def test_scaled_target_frequencies_interpolate_only_the_slow_pairs():
+    from ignition.components.rotary import interpolated_frequencies
+
+    native = 1.0 / (10000000 ** (torch.arange(0, 64, 2, dtype=torch.float32) / 64))
+    scaled = interpolated_frequencies(10000000, 32, 4., 262144, 32., 1., "cpu")
+    assert scaled.shape == native.shape and torch.equal(scaled[0], native[0])
+    assert torch.allclose(scaled[-1], native[-1] / 4)
+    assert (scaled <= native).all() and (scaled >= native / 4 - 1e-12).all()

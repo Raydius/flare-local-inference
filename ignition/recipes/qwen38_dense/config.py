@@ -20,6 +20,8 @@ class ModelConfig:
     text: dict
     quantization: dict
     draft: object = None
+    # Declared rope interpolation of the target's rotary frequencies; None serves the trained context.
+    rope_scaling: object = None
 
     @classmethod
     def load(cls, snapshot):

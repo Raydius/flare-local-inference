@@ -400,8 +400,16 @@ class PreparedDecoder:
         dim = int(config.text["head_dim"] * rotary["partial_rotary_factor"])
         from ignition.preparation.persistent import persistent_copy, persistent_empty
 
-        self.inverse_frequency = persistent_copy(1.0 / (rotary["rope_theta"] ** (
-            torch.arange(0, dim, 2, device=source.device, dtype=torch.float32) / dim)))
+        scaling = config.rope_scaling
+        if scaling is None:
+            inverse = 1.0 / (rotary["rope_theta"] ** (
+                torch.arange(0, dim, 2, device=source.device, dtype=torch.float32) / dim))
+        else:
+            from ignition.components.rotary import interpolated_frequencies
+
+            inverse = interpolated_frequencies(rotary["rope_theta"], dim // 2, scaling.factor,
+                scaling.original_max_position_embeddings, scaling.beta_fast, scaling.beta_slow, source.device)
+        self.inverse_frequency = persistent_copy(inverse)
         self.scoring = None if scoring is None else scoring.prepare(scratch.activations, weights.head,
             vocabulary=weights.config.text["vocab_size"], session=session, coordinator=coordinator,
             name=name + ".prompt")

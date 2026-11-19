@@ -43,6 +43,7 @@ from ignition.preparation.selection import BenchmarkSelection
 from ignition.preparation.tuning import RecordedPreparationSession, with_autotune_effort
 from ignition.preparation.tuning_replicas import TuningReplica
 from ignition.progress import phase
+from ignition.recipes.declaration import RopeScaling
 
 from .config import PAGE_TOKENS
 from .contract import prepare as prepare_contract
@@ -66,6 +67,8 @@ class PreparationConfig:
     tuning_replica: TuningReplica | None = None
     device: int = 0
     context: int = 262144
+    # Declared rope interpolation that extends the context past the trained 262,144 tokens.
+    rope_scaling: RopeScaling | None = None
     prefill_chunk_size: int = 4096
     max_active: int = 32
     snapshot_budget_bytes: int = 4 << 30
@@ -113,8 +116,11 @@ class PreparationConfig:
             if (not selection.prefill_chunk and self.speculative_token_capacity is not None
                     and selection.max_batch * selection.width > self.speculative_token_capacity):
                 raise ValueError("benchmark shapes exceed the speculative token capacity")
-        if not PAGE_TOKENS <= self.context <= 262144 or self.context % PAGE_TOKENS:
-            raise ValueError("Qwen dense context must be 128-aligned in [128,262144]")
+        if self.rope_scaling is not None and self.rope_scaling.original_max_position_embeddings != 262144:
+            raise ValueError("Qwen dense rope scaling must extend the trained 262,144-token context")
+        ceiling = 262144 if self.rope_scaling is None else self.rope_scaling.context
+        if not PAGE_TOKENS <= self.context <= ceiling or self.context % PAGE_TOKENS:
+            raise ValueError(f"Qwen dense context must be 128-aligned in [128,{ceiling}]")
         if not 128 <= self.prefill_chunk_size <= self.context or self.prefill_chunk_size % 128:
             raise ValueError("Qwen dense prefill chunk must be 128-aligned and fit the context")
         if self.snapshot_budget_bytes <= 0 or self.headroom_bytes < 0:
@@ -215,7 +221,8 @@ def prepare(snapshot, config, *, progress=None, core_storage):
     transient.enter_context(core_storage.transient())
     weights = ModelWeights.load(manifest, device, progress=progress, mtp=config.mtp,
         draft_snapshot=config.draft_snapshot, online_mxfp8=config.online_mxfp8,
-        draft_head_quantization=config.draft_head_quantization, speculative_method=config.speculative_method)
+        draft_head_quantization=config.draft_head_quantization, speculative_method=config.speculative_method,
+        rope_scaling=config.rope_scaling)
     release_unused()
     study_widths = (() if config.benchmark_selection is None
                     else config.benchmark_selection.selected_study_widths)
@@ -250,6 +257,9 @@ def prepare(snapshot, config, *, progress=None, core_storage):
             "draft_block_size": config.verification_width if config.mtp else None,
             **({} if not study_widths else {"speculation_study_blocks": study_widths}),
             "online_mxfp8": config.online_mxfp8,
+            **({} if config.rope_scaling is None else {"rope_scaling": {"factor": config.rope_scaling.factor,
+                "original_max_position_embeddings": config.rope_scaling.original_max_position_embeddings,
+                "beta_fast": config.rope_scaling.beta_fast, "beta_slow": config.rope_scaling.beta_slow}}),
             "draft_head_quantization": config.draft_head_quantization,
             "contract": "qwen38-dense.graph-inputs.v1"}, sort_keys=True).encode()).hexdigest()
         session = RecordedPreparationSession(
