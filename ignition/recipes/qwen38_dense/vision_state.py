@@ -9,10 +9,11 @@ from ignition.components.vision_delivery import PreparedFeaturePublication
 from ignition.recipes.qwen38.vision import VisionMetadata
 from ignition.recipes.qwen38.vision_state import FEATURES, PATCHES, VisionInputs
 
+from .config import VISION
+
 __all__ = ["FEATURES", "PATCH_CAPACITIES", "PreparedVisionGeneration", "VisionInputs"]
 
 PATCH_CAPACITIES = (256, 1024, 4096, 16384)
-POSITION_EMBEDDINGS = 2304
 
 
 class PreparedVisionGeneration:
@@ -48,7 +49,7 @@ class PreparedVisionGeneration:
         pixels, indices = i.vision_pixel_values[:capacity], i.vision_interpolation_indices[:capacity]
         weights, positions = i.vision_interpolation_weights[:capacity], i.vision_position_ids[:capacity]
         valid &= (~live | torch.isfinite(pixels)).all()
-        valid &= (~live | ((indices >= 0) & (indices < POSITION_EMBEDDINGS))).all()
+        valid &= (~live | ((indices >= 0) & (indices < VISION["num_position_embeddings"]))).all()
         valid &= (~live | ((weights >= 0) & (weights <= 1))).all()
         valid &= (~live | ((positions >= 0) & (positions < PATCHES))).all()
         kept = valid & live
