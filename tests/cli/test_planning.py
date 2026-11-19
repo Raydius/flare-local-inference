@@ -844,7 +844,9 @@ def test_every_recipe_passes_collective_policy_to_preparation(monkeypatch, tmp_p
     world = min((size for size in recipe.tensor_parallel if size > 1), default=1)
     ladder = load("ignition/preparation/ladders/gb202_pcie_tp4.json") | {"world_size": world} if mode == "runtime" and world in (2, 3, 4, 6, 8, 10) else None
     devices = tuple(replace(gpu(i, 4096), total_bytes=4096 * GIB) for i in range(world))
-    plan = replace(derive(model=recipe, gpus=devices, selected=tuple(range(world)), speculation=None), collective_tuning=mode, collective_ladder=ladder)
+    # Keep the helper's default concurrency within each recipe's declared ceiling
+    # (elephant-1-9b caps at two rows).
+    plan = replace(derive(model=recipe, gpus=devices, selected=tuple(range(world)), concurrency=min(4, recipe.max_concurrency), speculation=None), collective_tuning=mode, collective_ladder=ladder)
     original = bootstrap.PreparationConfig
 
     class Captured(Exception):

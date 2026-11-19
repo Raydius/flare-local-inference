@@ -58,6 +58,7 @@
       "required_end": "<|user|>",
       "required_marker": ""
     },
-    "image_tokens": null
+    "image_tokens": null,
+    "block_end_marker": []
   }
 }

@@ -23,6 +23,7 @@ def prepare(snapshot, plan, *, compile_forwards, kernel_cache, progress, retain_
     config = PreparationConfig(prompt_logprobs=plan.prompt_logprobs,
         compile_workers=plan.compile_workers, autotune_effort=plan.autotune_effort,
         tuning_replica=plan.tuning_replica,
+        collective_tuning=plan.collective_tuning, collective_ladder=plan.collective_ladder,
         lock_gpu_clocks=plan.lock_gpu_clocks and plan.autotune_effort != "off",
         max_active=plan.concurrency, context=plan.context, prefill_chunk_size=plan.prefill_chunk,
         snapshot_budget_bytes=plan.snapshots * plan.costs.state_row_bytes,
