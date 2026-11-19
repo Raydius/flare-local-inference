@@ -13,6 +13,29 @@ MODEL_ID = "nvidia/Qwen3.8-27B-NVFP4"
 REVISION = "482ca0f3832238542f8f5295dde86b5f22711d80"
 TEXT_PREFIX = "model.language_model"
 PAGE_TOKENS = 128
+IMAGE_TOKEN = 248056
+# Geometry of the vision encoder the recipe prepares; its output width is the text hidden size.
+VISION = dict(depth=27, hidden_size=1152, num_heads=16, intermediate_size=4304, patch_size=16,
+    temporal_patch_size=2, spatial_merge_size=2, in_channels=3, num_position_embeddings=2304,
+    deepstack_visual_indexes=[])
+
+
+def vision_config(snapshot, text):
+    """Validate the checkpoint's vision encoder, image token and three-axis text positions; return ``vision_config``."""
+    raw = json.loads((Path(snapshot) / "config.json").read_text())
+    vision = raw.get("vision_config")
+    if not isinstance(vision, dict):
+        raise ValueError("Qwen dense image input requires a vision_config object")
+    for name, expected in {**VISION, "out_hidden_size": text["hidden_size"]}.items():
+        if vision.get(name) != expected:
+            raise ValueError(f"unsupported Qwen dense vision {name}: {vision.get(name)!r}")
+    if raw.get("image_token_id") != IMAGE_TOKEN:
+        raise ValueError(f"unsupported Qwen dense image_token_id: {raw.get('image_token_id')!r}")
+    rope = text["rope_parameters"]
+    for name, expected in (("mrope_interleaved", True), ("mrope_section", [11, 11, 10])):
+        if rope.get(name) != expected:
+            raise ValueError(f"unsupported Qwen dense {name}: {rope.get(name)!r}")
+    return vision
 
 
 @dataclass(frozen=True)
@@ -22,6 +45,8 @@ class ModelConfig:
     draft: object = None
     # Declared rope interpolation of the target's rotary frequencies; None serves the trained context.
     rope_scaling: object = None
+    # The validated ``vision_config`` when the vision encoder is prepared; None prepares text alone.
+    vision: dict | None = None
 
     @classmethod
     def load(cls, snapshot):

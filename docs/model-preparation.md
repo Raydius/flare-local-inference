@@ -353,7 +353,7 @@ For concurrency 32 with seven draft tokens per request, use
 
 ## Qwen3.8 27B
 
-`qwen3.8-27b` prepares `nvidia/Qwen3.8-27B-NVFP4` for text generation on one GPU.
+`qwen3.8-27b` prepares `nvidia/Qwen3.8-27B-NVFP4` for text and image input on one GPU.
 It uses the canonical Qwen3.5 dense decoder with tensor-scaled FP8 attention
 projections and NVFP4 MLP and vocabulary weights. FP8 KV pages and Gated DeltaNet
 continuations reside in device memory. The pinned BF16
@@ -366,7 +366,7 @@ to seven draft tokens with adaptive packed verification capped at 128 physical
 target rows and a 64-graph budget. Accepted GDN corrections commit into one
 recurrent row per request. Five 2,048-token FP8 draft KV rings per continuation
 track target consumption without lag and survive prefix snapshot/restore.
-The recipe has no host-mapped tables or vision graphs. Prepare on the same GPU
+The recipe has no host-mapped tables. Prepare on the same GPU
 architecture as the serving device:
 
 ```sh
@@ -413,6 +413,33 @@ The recipe context capacity is 262144 tokens; `daisyrose-27b-yarn4` and
 `--no-mtp` skips the draft download and omits its weights and state during preparation;
 `flare run CORE --mtp-draft-tokens 0` selects the core's ordinary graphs.
 
+The recipe prepares the checkpoint's vision encoder and accepts up to four
+images per request through the Qwen image preparation and layout, as
+`qwen3.8-flash` does. The encoder is the canonical 27-layer Qwen3.5 vision
+model with the checkpoint's BF16 weights (921,460,192 bytes) and a 5,120-wide
+output, captured at 256, 1,024, 4,096 and 16,384 patches. Image features
+occupy up to 16,384 rows of 5,120 BF16 values per image slot;
+`--image-concurrency` sets the slots, four by default. An image token takes
+the canonical time, row and column rotary positions, and each continuation row
+stores the offset between the next rotary position and the next token index,
+which decode and verification apply after an image. Draft positions are token
+indices with either proposal method. `--language-model-only` prepares no
+encoder, image storage or position offset and rejects images. Preparation
+refuses a checkpoint whose `vision_config`, `image_token_id` or
+`mrope_section` differs from this geometry, naming the field.
+
+Image qualification: on an RTX 5060 Ti (SM120) with the DaisyRose vision
+weights, the encoder captured at 256 and 1,024 patches agrees with
+`transformers`' `Qwen3_5VisionModel` in FP32 to a relative L2 error of 0.026
+to 0.043, within twice that model's own BF16-against-FP32 error on the same
+upload; a 256-patch vision graph loads the weights through the checkpoint
+loader, publishes two uploads into one request's features and rejects a
+non-finite upload; and the position computation, compiled and captured, equals
+`transformers`' three-axis positions and offset for a prompt of text, an image
+and text split across prefill chunks. The target decoder with image input has
+not run on a GPU and no core with image input has been exported; [the
+follow-up list](TODO.md) names the unrun checks.
+
 `daisyrose-27b` selects the pinned `RadixArk/DaisyRose-27B-NVFP4` checkpoint at
 revision `c4d85c5d`, a fine-tune stored with the tensor names, shapes and
 formats of `nvidia/Qwen3.8-27B-NVFP4`. Every checkpoint of the recipe prepares
@@ -458,7 +485,7 @@ only, and logits agree with the eager reference
 `ignition/reference/qwen38_dense_dspark.py` within BF16 rounding. One core
 is exported and served on an RTX PRO 6000 (SM120): the DaisyRose checkpoint
 folder with DSpark, seven drafts at fixed width eight, 16 sequences and the
-1,048,576-token rope-scaled context. It loads 24.56 GiB and allocates 69.3
+1,048,576-token rope-scaled context, prepared language-only. It loads 24.56 GiB and allocates 69.3
 GiB of cache holding 1,665,024 KV tokens. Over its first 619 served rounds,
 mixed chat traffic, 3.29 drafts were accepted per round; acceptance by draft
 position was 80%, 67%, 55%, 45%, 34%, 27% and 22%. A passkey probe

@@ -36,7 +36,7 @@ def page_bytes(config, *, mtp=False):
     return sum(shape[0] for _, shape in page_specs(config, mtp=mtp))
 
 
-def continuation_layout(config, *, mtp=False, verification_width=8):
+def continuation_layout(config, *, mtp=False, verification_width=8, vision=False):
     if type(verification_width) is not int or not 1 <= verification_width <= 16:
         raise ValueError("Qwen verification capacity must be an integer in [1,16]")
     regions = []
@@ -52,13 +52,17 @@ def continuation_layout(config, *, mtp=False, verification_width=8):
         regions.extend(draft_context_specs(config.draft, TensorParallelShard(0, 1)))
     regions.extend((("last_hidden", (config.hidden,), torch.bfloat16),
                     ("consumed_tokens", (1,), torch.int64)))
+    if vision:
+        # The next rotary position minus the next token index, which an image leaves below zero.
+        regions.append(("rope_delta", (1,), torch.int64))
     return StateLayout.from_specs(regions)
 
 
 class ContinuationPool(PagedStateStorage):
     @classmethod
-    def for_model(cls, config, slots, pages, device, *, mtp=False, verification_width=8, **kwargs):
-        return cls.allocate(continuation_layout(config, mtp=mtp, verification_width=verification_width), page_specs(config, mtp=mtp), slots, pages, device, **kwargs)
+    def for_model(cls, config, slots, pages, device, *, mtp=False, verification_width=8, vision=False, **kwargs):
+        return cls.allocate(continuation_layout(config, mtp=mtp, verification_width=verification_width, vision=vision),
+                            page_specs(config, mtp=mtp), slots, pages, device, **kwargs)
 
     def partial_pages(self):
         return tuple(self.pages.items())

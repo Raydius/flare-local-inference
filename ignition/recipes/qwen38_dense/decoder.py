@@ -19,6 +19,7 @@ from ignition.components.gdn_recovery import GDNLayerRecords, PreparedGDNCommit
 from ignition.components.paged_attention import PreparedPagedAttention, PreparedPagedKVWriter
 from ignition.components.recurrent import DeltaMetadata, _commit_convolution
 from ignition.components.rms_norm import PreparedRMSNorm
+from ignition.components.state import scatter_rows
 from ignition.components.head_norm_rope import head_norm_rope
 from ignition.components.tensor_fp8 import TensorFP8Projection, TensorFP8Weight
 from ignition.components.vocabulary import PreparedVocabularyProjection
@@ -297,9 +298,45 @@ class FullAttention(torch.nn.Module):
         return self.projections["o_proj"](attended.flatten(1)), None
 
 
+def rotary_axes(sections, pairs):
+    """Position axis (0 time, 1 row, 2 column) that each rotary pair reads under interleaved sections.
+
+    Pair ``i`` reads the row axis when ``i % 3 == 1`` and the column axis when ``i % 3 == 2``, for
+    the first ``3 * sections[axis]`` pairs; every other pair reads the time axis.
+    """
+    index = torch.arange(pairs)
+    axes = torch.zeros(pairs, dtype=torch.int64)
+    for axis in (1, 2):
+        axes[(index % 3 == axis) & (index < 3 * sections[axis])] = axis
+    return axes
+
+
+def rotary_positions(metadata, rope_delta, prefill_positions=None):
+    """Each token's time, row and column rotary positions for a model prepared with image input.
+
+    ``rope_delta`` holds, per state row, the next rotary position minus the next token index: an
+    image advances the rotary position by its larger grid side while its tokens advance the index by
+    their count. Decode and verification add the row's offset to the token position on all three
+    axes. Prefill reads ``prefill_positions``, the three positions the frontend assigns each prompt
+    token, and stores the offset that follows its last token; a request's first chunk ignores the
+    offset an earlier request left in the row.
+    """
+    m = metadata
+    delta = rope_delta[m.state_rows, 0]
+    if prefill_positions is None:
+        return (m.positions + delta[m.requests])[:, None].expand(-1, 3)
+    positions = torch.where((m.positions >= 0)[:, None], prefill_positions[:m.positions.numel()], -1)
+    start, length = m.starts[:1], m.lengths[:1]
+    following = torch.maximum(start + torch.where(start == 0, 0, delta[:1]), positions.max() + 1)
+    scatter_rows((following - start - length).view(1, 1).view(torch.uint8), m.state_rows[:1],
+                 rope_delta.view(torch.uint8), length > 0)
+    return positions
+
+
 class PreparedDecoder:
     def __init__(self, weights, scratch, metadata, pool, *, mode, vocabulary_runtime,
-                 coordinator, session, name, workspace, scoring=None, records=None, attention=None):
+                 coordinator, session, name, workspace, scoring=None, records=None, attention=None,
+                 vision_state=None, prefill_positions=None):
         # `attention` replaces the full-attention layer class for a recipe that composes its own.
         attention = FullAttention if attention is None else attention
         self.weights, self.scratch, self.metadata, self.pool = weights, scratch, metadata, pool
@@ -410,6 +447,15 @@ class PreparedDecoder:
             inverse = interpolated_frequencies(rotary["rope_theta"], dim // 2, scaling.factor,
                 scaling.original_max_position_embeddings, scaling.beta_fast, scaling.beta_slow, source.device)
         self.inverse_frequency = persistent_copy(inverse)
+        # A state row with a rotary offset belongs to a model prepared with image input. Its prefill
+        # graphs replace image-token embeddings with published features and read uploaded positions.
+        self.vision_state, self.prefill_positions = vision_state, prefill_positions
+        self.rope_delta = self.rotary_axes = None
+        if any(region.name == "rope_delta" for region in pool.layout.regions):
+            if mode == "prefill" and prefill_positions is None:
+                raise ValueError("dense Qwen prefill with image input requires uploaded rotary positions")
+            self.rope_delta = pool.reserved_region("rope_delta")
+            self.rotary_axes = persistent_copy(rotary_axes(rotary["mrope_section"], dim // 2).to(source.device))
         self.scoring = None if scoring is None else scoring.prepare(scratch.activations, weights.head,
             vocabulary=weights.config.text["vocab_size"], session=session, coordinator=coordinator,
             name=name + ".prompt")
@@ -477,10 +523,16 @@ class PreparedDecoder:
         if metadata is None:
             raise ValueError("dense decoder requires metadata")
         m, d = metadata, self._delta_metadata(metadata)
-        frequency = m.positions.float()[:, None] * self.inverse_frequency[None, :]
+        if self.rope_delta is None:
+            frequency = m.positions.float()[:, None] * self.inverse_frequency[None, :]
+        else:
+            positions = rotary_positions(m, self.rope_delta, self.prefill_positions)
+            frequency = positions[:, self.rotary_axes].float() * self.inverse_frequency[None, :]
         embedding = torch.cat((frequency, frequency), dim=-1)
         position_embeddings = embedding.cos().bfloat16(), embedding.sin().bfloat16()
         hidden = self.embedding(token_ids=m.token_ids, num_rows=m.live_counts[:1])
+        if self.vision_state is not None:
+            self.vision_state.inject(m, hidden)
         records = (GDNLayerRecords.allocate(self.record_layers, self.record_rows, hidden.device,
             key_heads=16, value_heads=48, width=self.record_width) if self.record_layers else None)
         if self.context_capture is not None:

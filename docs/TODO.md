@@ -35,6 +35,21 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
       `PreparedParallelDraftRound` with the target decoder, sampling, verification and commit on
       fabricated weights.
 
+- [ ] Export and serve a dense Qwen core with image input, and qualify what GPU 1 cannot hold.
+      The dense decoder with three-axis positions, image-feature injection and the stored position
+      offset has not run on a GPU: the 27B target exceeds the 16 GiB test GPU, and only the position
+      computation and the vision graph run there. Unrun: an export with image input; an image
+      request to the served core; draft acceptance on image prompts with DFlash2 and DSpark, whose
+      positions stay token indices; image prompts past 262,144 tokens on a rope-scaled checkpoint;
+      vision graphs at 4,096 and 16,384 patches; the vision weights of `qwen3.8-27b` and
+      `qwen3.8-27b-qad`, which are not on the test host (quantized vision projections would take
+      the encoder's quantized branch, unrun for this recipe); a restored or prefix-reused request
+      that continues after an image. The declared graph bytes (6 GiB) include an estimate of
+      2 GiB for image storage, not a measurement.
+      `tests/preparation/test_native_recipe_contract.py` cannot validate the image contract in the
+      test environments: the host has no `flare_heliopause`, and the flare-ignition image's
+      extension lacks `validate_prepared_contract`.
+
 - [ ] Test the dense Qwen DSpark and rope-scaling paths that no test reaches.
       No test continues a request from a cached prefix or a resumed request and compares its
       draft pages. For rope scaling, no test reaches

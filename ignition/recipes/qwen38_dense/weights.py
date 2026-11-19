@@ -45,14 +45,19 @@ class ModelWeights:
     shard: TensorParallelShard = TensorParallelShard(0, 1)
     draft: object = None
     draft_head: object = None
+    vision: object = None
 
     @classmethod
     def load(cls, manifest, device, *, progress=None, mtp=False, draft_snapshot=None,
              online_mxfp8=False, draft_head_quantization=None, speculative_method="dflash2",
-             rope_scaling=None):
+             rope_scaling=None, vision=False):
         from transformers import Qwen3_5TextConfig, Qwen3_5TextModel
 
         config = ModelConfig.load(manifest.snapshot)
+        if vision:
+            from .config import vision_config
+
+            config = replace(config, vision=vision_config(manifest.snapshot, config.text))
         if draft_head_quantization is not None and "lm_head" in config.quantization:
             raise ValueError("draft head conversion requires BF16 checkpoint vocabulary weights")
         if rope_scaling is not None:
@@ -71,8 +76,18 @@ class ModelWeights:
         tree = canonical_tree(Qwen3_5TextModel, Qwen3_5TextConfig.from_dict(config.text))
         projections = {}
         before = allocated_tensor_bytes(device)
-        with DirectWeightLoader(manifest, device, prefixes=(TEXT_PREFIX + ".", "lm_head."),
-                                progress=progress) as loader:
+        prefixes = (TEXT_PREFIX + ".", "lm_head.", *(("model.visual.",) if vision else ()))
+        encoder = None
+        with DirectWeightLoader(manifest, device, prefixes=prefixes, progress=progress) as loader:
+            if vision:
+                from transformers.models.qwen3_5.configuration_qwen3_5 import Qwen3_5VisionConfig
+                from transformers.models.qwen3_5.modeling_qwen3_5 import Qwen3_5VisionModel
+
+                from ignition.recipes.qwen38.vision import VisionWeights
+
+                with torch.device("meta"):
+                    module = Qwen3_5VisionModel(Qwen3_5VisionConfig.from_dict(config.vision))
+                encoder = VisionWeights.load(module, loader)
             mlp_groups = {
                 f"layers.{index}.mlp.": tuple(TEXT_PREFIX + f".layers.{index}.mlp." + field
                                             for field in ("gate_proj", "up_proj"))
@@ -207,4 +222,4 @@ class ModelWeights:
                 converters = {"mxfp8": mxfp8_draft_head, "nvfp4": nvfp4_draft_head}
                 draft_head = converters[draft_head_quantization](head)
         return cls(config, tree, projections, head, allocated_tensor_bytes(device) - before,
-                   draft=draft, draft_head=draft_head)
+                   draft=draft, draft_head=draft_head, vision=encoder)

@@ -45,6 +45,7 @@ def prepare(snapshot, plan, *, compile_forwards, kernel_cache, progress, retain_
         online_mxfp8=plan.online_mxfp8,
         lock_gpu_clocks=plan.lock_gpu_clocks and plan.autotune_effort != "off",
         max_active=plan.concurrency if selection is None else selection.max_batch, context=plan.context,
+        vision=not plan.language_model_only, image_concurrency=plan.image_concurrency or None,
         rope_scaling=plan.checkpoint.rope_scaling,
         prefill_chunk_size=plan.prefill_chunk,
         snapshot_budget_bytes=plan.snapshots * plan.costs.state_row_bytes,
@@ -67,35 +68,39 @@ RECIPE = Recipe(
         presence_penalty=0., repetition_penalty=1., frequency_penalty=0.,
         ranges={"temperature": SamplingRange(.7, 1.), "top_p": SamplingRange(.8, .95),
                 "presence_penalty": SamplingRange(0., 2.)}),
+    # Each `device_bytes` includes the BF16 vision encoder, 921,460,192 bytes.
     checkpoints=(Checkpoint(alias="qwen3.8-27b", repository="nvidia/Qwen3.8-27B-NVFP4",
         revision="482ca0f3832238542f8f5295dde86b5f22711d80", architecture="Qwen3_5ForConditionalGeneration",
-        stored_bytes=21_921_428_072, device_bytes=24_104_235_656, draft_bytes=3_953_666_560,
+        stored_bytes=21_921_428_072, device_bytes=25_025_695_848, draft_bytes=3_953_666_560,
         expansion_bytes=307_871_744),
         Checkpoint(alias="qwen3.8-27b-qad", repository="local-inference-lab/Qwen3.8-27B-NVFP4-QAD",
         revision="b9389787cbb5a09fbcf3517bdf673b5a56b16b02", architecture="Qwen3_5ForConditionalGeneration",
-        stored_bytes=25_578_292_192, device_bytes=27_761_099_776, draft_bytes=3_953_666_560,
+        stored_bytes=25_578_292_192, device_bytes=28_682_559_968, draft_bytes=3_953_666_560,
         expansion_bytes=1_619_001_344),
         # A fine-tune stored with the tensor names, shapes and formats of `qwen3.8-27b`.
         Checkpoint(alias="daisyrose-27b", repository="RadixArk/DaisyRose-27B-NVFP4",
         revision="c4d85c5dfad123426555c22f4e24bb15381f0bdb", architecture="Qwen3_5ForConditionalGeneration",
-        stored_bytes=21_921_428_072, device_bytes=24_104_235_656, draft_bytes=3_953_666_560,
+        stored_bytes=21_921_428_072, device_bytes=25_025_695_848, draft_bytes=3_953_666_560,
         expansion_bytes=307_871_744),
         # Frequency-only rope interpolation extends the target's trained 262,144-token context by four.
         # Draft rotary frequencies are unchanged.
         Checkpoint(alias="daisyrose-27b-yarn4", repository="RadixArk/DaisyRose-27B-NVFP4",
         revision="c4d85c5dfad123426555c22f4e24bb15381f0bdb", architecture="Qwen3_5ForConditionalGeneration",
-        stored_bytes=21_921_428_072, device_bytes=24_104_235_656, draft_bytes=3_953_666_560,
+        stored_bytes=21_921_428_072, device_bytes=25_025_695_848, draft_bytes=3_953_666_560,
         expansion_bytes=307_871_744, context=1_048_576, rope_scaling=RopeScaling(4., 262144))),
     context=262144, page_tokens=128, concurrency=32, max_concurrency=64, prefill_chunk=4096,
     speculation=Speculation(draft_tokens=7, token_capacity=128, packed_verification=True, graph_budget=64,
                             method="dflash2"), max_draft_tokens=15, verification_rows=0,
     online_mxfp8=True, draft_head_quantizations=("mxfp8", "nvfp4"),
-    # Reserve continuation memory for the supported sixteen-token verification capacity.
-    ranks=MappingProxyType({1: RankCosts(193_865_984, 4_194_304, 4 << 30)}),
-    plain_ranks=MappingProxyType({1: RankCosts(158_148_864, 4_194_304, 4 << 30)}),
+    max_images=4, image_bytes=32 << 20, language_model_only=True,
+    # Reserve continuation memory for the supported sixteen-token verification capacity. Graph bytes
+    # include the image feature arena, patch uploads and encoder scratch, about 2 GiB at four image slots.
+    # State rows are those of a language-only plan; image input adds one 256-byte offset region.
+    ranks=MappingProxyType({1: RankCosts(193_865_984, 4_194_304, 6 << 30)}),
+    plain_ranks=MappingProxyType({1: RankCosts(158_148_864, 4_194_304, 6 << 30)}),
     # DSpark keeps draft history in ten FP8 page regions beside the target's and no ring in the state row;
     # the row holds eight verification positions. The draft loads every tensor but its confidence head.
     speculative_methods=MappingProxyType({"dspark": SpeculativeMethod(
-        ranks=MappingProxyType({1: RankCosts(166_340_864, 5_505_024, 4 << 30)}),
+        ranks=MappingProxyType({1: RankCosts(166_340_864, 5_505_024, 6 << 30)}),
         draft_bytes=3_714_705_920, draft_files=_DRAFT_FILES, max_draft_tokens=7)}),
 )

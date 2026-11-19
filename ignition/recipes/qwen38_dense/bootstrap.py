@@ -21,7 +21,7 @@ from ignition.components.prompt_logprobs import (
 from ignition.components.dflash2 import PreparedContext
 from ignition.components.capacity import (
     parallel_speculative_shapes, batch_capacities, prefill_capacities,
-    request_capacity, speculative_token_capacity, serving_modes,
+    image_capacity, request_capacity, speculative_token_capacity, serving_modes,
 )
 from ignition.components.paged_batch import BatchInputs, Metadata, PreparedBatch
 from ignition.components.paged_generation import PreparedGeneration
@@ -86,8 +86,14 @@ class PreparationConfig:
     speculative_fixed_width: int | None = None
     speculative_token_capacity: int | None = 128
     mtp_only: bool = False
+    # Prepare the checkpoint's vision encoder and accept images; `image_concurrency` bounds the
+    # requests that hold image features at once.
+    vision: bool = False
+    image_concurrency: int | None = None
 
     def __post_init__(self):
+        object.__setattr__(self, "image_concurrency",
+                           image_capacity(self.max_active, self.image_concurrency) if self.vision else 0)
         if self.mtp_only and (not self.mtp
                 or max(self.speculative_widths, default=1) <= 1 or self.speculative_fixed_width == 1):
             raise ValueError("--mtp-only requires enabled learned speculation with positive draft depth")
@@ -189,7 +195,8 @@ def _declared_weight_roots(weights):
     declared `layers.N.` prefix here, never by native path inference.
     """
     roots = {'embedding': weights.tree.embed_tokens, 'norm': weights.tree.norm,
-             'head': weights.head, 'draft': weights.draft, 'draft_head': weights.draft_head}
+             'head': weights.head, 'draft': weights.draft, 'draft_head': weights.draft_head,
+             **({} if weights.vision is None else {'vision': weights.vision})}
     components = {name: name for name in roots}
     prepared = dict(weights.projections)
     for index, layer in enumerate(weights.tree.layers):
@@ -222,12 +229,13 @@ def prepare(snapshot, config, *, progress=None, core_storage):
     weights = ModelWeights.load(manifest, device, progress=progress, mtp=config.mtp,
         draft_snapshot=config.draft_snapshot, online_mxfp8=config.online_mxfp8,
         draft_head_quantization=config.draft_head_quantization, speculative_method=config.speculative_method,
-        rope_scaling=config.rope_scaling)
+        rope_scaling=config.rope_scaling, vision=config.vision)
     release_unused()
     study_widths = (() if config.benchmark_selection is None
                     else config.benchmark_selection.selected_study_widths)
     verification_width = max((config.verification_width, *study_widths))
-    layout = continuation_layout(weights.config, mtp=config.mtp, verification_width=verification_width)
+    layout = continuation_layout(weights.config, mtp=config.mtp, verification_width=verification_width,
+                                 vision=config.vision)
     snapshots = layout.snapshot_capacity(config.snapshot_budget_bytes)
     if snapshots < 1:
         raise ValueError("snapshot budget must hold a complete Qwen dense continuation")
@@ -239,11 +247,26 @@ def prepare(snapshot, config, *, progress=None, core_storage):
     total_memory = torch.cuda.mem_get_info(device)[1]
     with phase(progress, "Allocate model state"):
         pool = ContinuationPool.for_model(weights.config, state_rows + 1, pages, device,
-            mtp=config.mtp, verification_width=verification_width, storage=core_storage, maximum_pages=total_memory // page_bytes(weights.config, mtp=config.mtp),
+            mtp=config.mtp, verification_width=verification_width, vision=config.vision, storage=core_storage, maximum_pages=total_memory // page_bytes(weights.config, mtp=config.mtp),
             maximum_rows=total_memory // layout.row_bytes, backed_slots=min(state_rows + 1, 1 + 2 * slots))
         vocabulary = weights.config.vocabulary
         requests = DeviceRequestState.allocate(device, vocab_size=vocabulary, capacity=slots)
         inputs = BatchInputs.allocate(max(config.prefill_chunk_size, slots), blocks, device, capacity=slots)
+        vision_inputs = vision_prefill = vision_state = None
+        vision_buffers = {}
+        if config.vision:
+            from ignition.components.vision_state import PrefillVisionInputs, VisionState
+
+            from .config import IMAGE_TOKEN
+            from .vision_state import FEATURES, VisionInputs
+
+            vision_inputs = VisionInputs.allocate(device)
+            vision_prefill = PrefillVisionInputs.allocate(config.prefill_chunk_size, device)
+            vision_state = VisionState(inputs, vision_prefill, requests, image_token=IMAGE_TOKEN,
+                features=FEATURES, hidden=weights.config.hidden, image_slots=config.image_concurrency)
+            # Three rotary positions per prompt token, uploaded with every prefill chunk.
+            vision_buffers = dict(vision_inputs.buffers(), **vision_prefill.buffers(),
+                prefill_positions=torch.zeros((config.prefill_chunk_size, 3), dtype=torch.int64, device=device))
         admission = AdmissionBuffers.allocate(device, vocab_size=vocabulary, capacity=slots)
         commands = StateCommands.allocate(device, capacity=slots)
         frame = torch.zeros(1, dtype=torch.int32, device=device)
@@ -257,6 +280,7 @@ def prepare(snapshot, config, *, progress=None, core_storage):
             "draft_block_size": config.verification_width if config.mtp else None,
             **({} if not study_widths else {"speculation_study_blocks": study_widths}),
             "online_mxfp8": config.online_mxfp8,
+            **({} if not config.vision else {"vision": weights.config.vision}),
             **({} if config.rope_scaling is None else {"rope_scaling": {"factor": config.rope_scaling.factor,
                 "original_max_position_embeddings": config.rope_scaling.original_max_position_embeddings,
                 "beta_fast": config.rope_scaling.beta_fast, "beta_slow": config.rope_scaling.beta_slow}}),
@@ -280,7 +304,7 @@ def prepare(snapshot, config, *, progress=None, core_storage):
             state_pool=pool.backing, memory_capacity=pool.memory_capacity,
             request_pending_token=requests.pending_token,
             sampling_grammar_mask=requests.grammar_mask, frame_index=frame,
-            submission_sequence=sequence, **completion.buffers())
+            submission_sequence=sequence, **completion.buffers(), **vision_buffers)
         speculation = None
         if config.mtp and config.speculative_round_shapes:
             owner = dspark.SpeculativePreparation if config.dspark else dflash.SpeculativePreparation
@@ -319,10 +343,16 @@ def prepare(snapshot, config, *, progress=None, core_storage):
                     name = f"{kind}{capacity}" + (suffix if mode == "prefill" else "")
                     m = Metadata.allocate(capacity, rows, blocks, device)
                     scratch = (prefill_storage if mode == "prefill" else decode_storage).rows(capacity, rows)
+                    images = vision_state if mode == "prefill" else None
                     decoder = PreparedDecoder(mode_weights, scratch, m, pool, mode=mode,
                         scoring=scoring if kind == "scored_prefill" else None,
-                        vocabulary_runtime=None, coordinator=coordinator, session=session, name=name, workspace=arena)
-                    batch = PreparedBatch(inputs, requests, m, mode=mode, shard=weights.shard, pool=pool)
+                        vocabulary_runtime=None, coordinator=coordinator, session=session, name=name, workspace=arena,
+                        vision_state=images,
+                        prefill_positions=None if images is None else vision_buffers["prefill_positions"])
+                    batch = PreparedBatch(inputs, requests, m, mode=mode, shard=weights.shard, pool=pool,
+                        validate_prefill=None if images is None else images.validate_prefill)
+                    graph_fields = fields if images is None else (
+                        *fields, *vision_prefill.buffers(), "prefill_positions")
                     context = None
                     if enabled:
                         context = dspark.prepared_context if config.dspark else partial(
@@ -330,13 +360,32 @@ def prepare(snapshot, config, *, progress=None, core_storage):
                     forward = PreparedGeneration(decoder, batch, completion, frame, sequence, runtime=None,
                         coordinator=coordinator, session=session, name=name + ".generation", workspace=arena,
                         context_factory=context)
-                    add(name, forward, kind, rows, capacity if mode == "prefill" else 1, fields, enabled)
+                    add(name, forward, kind, rows, capacity if mode == "prefill" else 1, graph_fields, enabled)
         if speculation is not None:
             for batch, width, packed in sorted(config.speculative_round_shapes,
                     key=lambda shape: (shape[2], shape[0]), reverse=True):
                 name = f"speculative{batch}x{width}p{packed}"
                 forward = speculation.round(batch, width, name, target_token_capacity=packed)
                 add(name, forward, "speculative", batch, width, forward_inputs, True, packed)
+        if config.vision:
+            from transformers.models.qwen3_5.configuration_qwen3_5 import Qwen3_5VisionConfig
+            from transformers.models.qwen3_5.modeling_qwen3_5 import Qwen3_5VisionModel, Qwen3_5VisionRotaryEmbedding
+
+            from ignition.recipes.qwen38.vision import PreparedVision, VisionMetadata, VisionScratch
+
+            from .vision_state import PATCH_CAPACITIES, PreparedVisionGeneration
+
+            for capacity in reversed(PATCH_CAPACITIES):
+                with torch.device("meta"):
+                    module = Qwen3_5VisionModel(Qwen3_5VisionConfig.from_dict(weights.config.vision))
+                module.eval().requires_grad_(False)
+                name = f"vision{capacity}"
+                encoder = PreparedVision(module, VisionScratch.allocate(capacity, device, width=weights.config.hidden),
+                    VisionMetadata.allocate(capacity, 1, device), weights.vision, session=session, name=name,
+                    projection_workspace=arena, attention_workspace=arena, rotary=Qwen3_5VisionRotaryEmbedding)
+                encoder.functional(session=session)
+                add(name, PreparedVisionGeneration(encoder, vision_inputs, vision_state, completion, frame, sequence),
+                    "vision", 1, capacity, (*vision_inputs.buffers(), "vision_feature_slot"), None)
         row_inputs = ("request_state_rows", "row_slot_ids", "row_generations", "live_rows")
         for enabled in modes:
             suffix = "-no-mtp" if config.mtp and not enabled else ""
@@ -373,7 +422,8 @@ def prepare(snapshot, config, *, progress=None, core_storage):
         stream=stream, pool=graph_pool, collective=None, coordinator=coordinator,
         compile_decoder=config.compile_decoder, progress=progress, cache_root=config.kernel_cache,
         retain_graphs=config.retain_graphs, materialize=pool.clear_for_preparation, warmup_storage=core_storage,
-        compile_kinds=("prefill", "scored_prefill", "decode", "resume", "speculative", "init", "restore", "snapshot"))
+        compile_kinds=("prefill", "scored_prefill", "decode", "resume", "speculative", "init", "restore", "snapshot",
+                       "vision"))
     for study in studies.values():
         study.capture(session=session, device=device, stream=stream, pool=graph_pool,
             compile_decoder=config.compile_decoder, progress=progress, cache_root=config.kernel_cache,
@@ -406,9 +456,11 @@ def prepare(snapshot, config, *, progress=None, core_storage):
     eos_ids = list(dict.fromkeys([*(eos if isinstance(eos, list) else [eos]), tokenizer_eos]))
     server_config = dict(identity=identity, model_id=snapshot.name, max_sequence_tokens=config.context,
         prefill_chunk_size=config.prefill_chunk_size, pages=pages, state_rows=state_rows, snapshots=snapshots,
-        page_tokens=PAGE_TOKENS, frontend=prepare_frontend(snapshot, eos_token_ids=eos_ids),
+        page_tokens=PAGE_TOKENS,
+        frontend=prepare_frontend(snapshot, eos_token_ids=eos_ids, image_profile="qwen" if config.vision else None),
         sampling_defaults=RECIPE.sampling_defaults.as_dict(), assets=assets,
-        model_contract=prepare_contract(signatures, buffers, pool, vocabulary=vocabulary))
+        model_contract=prepare_contract(signatures, buffers, pool, vocabulary=vocabulary,
+                                        image_slots=config.image_concurrency))
     if config.mtp and config.speculative_round_shapes:
         server_config.update(speculative_widths=config.speculative_widths,
             speculative_fixed_width=config.speculative_fixed_width,
@@ -463,7 +515,7 @@ def prepare(snapshot, config, *, progress=None, core_storage):
                            *storage_ranges([arena.tensor,
                                             [f.scratch_tensors() for f in forwards.values() if hasattr(f, "scratch_tensors")]]), *completion.zero_ranges()),
         resources=(scoring, weights, pool, requests, inputs, admission, commands, arena, forwards, compiled, stream, graph_pool, session, coordinator,
-                   speculation, studies, observers))
+                   speculation, studies, observers, vision_state))
 
     if studies:
         from ignition.bench.study import StudyModel

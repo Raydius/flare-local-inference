@@ -54,7 +54,8 @@ class VisionScratch:
     output: torch.Tensor
 
     @classmethod
-    def allocate(cls, patches: int, device: torch.device) -> VisionScratch:
+    def allocate(cls, patches: int, device: torch.device, width: int = 2560) -> VisionScratch:
+        """Allocate scratch whose merged feature rows have the text model's hidden ``width``."""
         if patches <= 0 or patches % 4:
             raise ValueError("vision patch capacity must be positive and divisible by four")
         def zeros(*shape):
@@ -63,7 +64,7 @@ class VisionScratch:
         query, key, value = (zeros(patches, 16, 72) for _ in range(3))
         return cls(zeros(patches, 1536), hidden, zeros(patches, 3456), query, key, value,
                    zeros(patches, 1152), projected, zeros(patches, 4304),
-                   zeros(patches // 4, 4608), zeros(patches // 4, 2560))
+                   zeros(patches // 4, 4608), zeros(patches // 4, width))
 
     def rows(self, patches: int) -> VisionScratch:
         if patches <= 0 or patches % 4 or patches > self.patches.shape[0]:
@@ -92,6 +93,14 @@ class VisionWeights:
         return cls(parameters, projections)
 
 
+def _projection(source, weight, output, *, session, name, bias, workspace, activation_mode="quantized"):
+    """Bind a checkpoint projection in its stored representation: BF16 tensors stay unquantized."""
+    if isinstance(weight, torch.Tensor):
+        return UnquantizedProjection(source, weight, output, session=session, name=name, bias=bias)
+    return QuantizedProjection(source, weight, output, session=session, name=name,
+                               activation_mode=activation_mode, bias=bias, workspace=workspace)
+
+
 class _Linear(torch.nn.Module):
     def __init__(self, projection, bias=None):
         super().__init__()
@@ -110,9 +119,9 @@ class _Attention(torch.nn.Module):
                  projection_workspace=None, attention_workspace=None, attention_math_mode="flash"):
         super().__init__()
         self.scratch = scratch
-        self.qkv = QuantizedProjection(scratch.hidden, weights["qkv"], scratch.qkv,
+        self.qkv = _projection(scratch.hidden, weights["qkv"], scratch.qkv,
             session=session, name=f"{name}.qkv", bias=module.qkv.bias, workspace=projection_workspace)
-        self.proj = QuantizedProjection(scratch.attention, weights["proj"], scratch.projected,
+        self.proj = _projection(scratch.attention, weights["proj"], scratch.projected,
             session=session, name=f"{name}.proj", bias=module.proj.bias, workspace=projection_workspace)
         self.attention = shared.attention if shared is not None else PreparedVarlenAttention(
             scratch.query, scratch.key, scratch.value, metadata.cu_seqlens,
@@ -143,7 +152,7 @@ class PreparedVision:
                  weights: VisionWeights, *, session: PreparationSession, name: str = "vision",
                  projection_workspace: ScratchArena | torch.Tensor | None = None,
                  attention_workspace: ScratchArena | torch.Tensor | None = None,
-                 attention_math_mode: str = "flash"):
+                 attention_math_mode: str = "flash", rotary=Qwen4ExpVisionRotaryEmbedding):
         if attention_math_mode not in ("flash", "eager_bf16"):
             raise ValueError("vision attention math mode must be flash or eager_bf16")
         config = module.config
@@ -162,7 +171,7 @@ class PreparedVision:
         self.patch_embed = _Linear(UnquantizedProjection(scratch.patches,
             module.patch_embed.proj.weight.flatten(1), scratch.hidden,
             session=session, name=f"{name}.patch_embed"), module.patch_embed.proj.bias)
-        module.rotary_pos_emb = Qwen4ExpVisionRotaryEmbedding(config).to(device)
+        module.rotary_pos_emb = rotary(config).to(device)
         for i, block in enumerate(module.blocks):
             prefix = f"blocks.{i}"
             block.attn = _Attention(block.attn, scratch, metadata,
@@ -173,14 +182,14 @@ class PreparedVision:
             for key, source, destination in (("linear_fc1", scratch.hidden, scratch.intermediate),
                                               ("linear_fc2", scratch.intermediate, scratch.projected)):
                 original = getattr(block.mlp, key)
-                setattr(block.mlp, key, _Linear(QuantizedProjection(source,
+                setattr(block.mlp, key, _Linear(_projection(source,
                     weights.projections[f"{prefix}.mlp.{key}"], destination, session=session,
                     name=f"{name}.blocks.{i}.mlp.{key}", activation_mode="a16", bias=original.bias,
                     workspace=projection_workspace)))
         for key, source, destination in (("linear_fc1", scratch.hidden.view(capacity // 4, 4608), scratch.merger_intermediate),
                                          ("linear_fc2", scratch.merger_intermediate, scratch.output)):
             original = getattr(module.merger, key)
-            setattr(module.merger, key, _Linear(QuantizedProjection(source,
+            setattr(module.merger, key, _Linear(_projection(source,
                 weights.projections[f"merger.{key}"], destination, session=session,
                 name=f"{name}.merger.{key}", activation_mode="a16", bias=original.bias,
                 workspace=projection_workspace)))
