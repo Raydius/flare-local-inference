@@ -35,6 +35,16 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
       `PreparedParallelDraftRound` with the target decoder, sampling, verification and commit on
       fabricated weights.
 
+- [ ] Test the dense Qwen DSpark and rope-scaling paths that no test reaches.
+      No test continues a request from a cached prefix or a resumed request and compares its
+      draft pages. For rope scaling, no test reaches
+      the anchor refusal in `ignition/recipes/qwen38_dense/weights.py`, the `rope_scaling` entry
+      of the dense recipe's preparation identity, or the frequency selection in
+      `ignition/recipes/qwen38_dense/decoder.py`:
+      `test_scaled_target_frequencies_interpolate_only_the_slow_pairs` calls
+      `ignition.components.rotary.interpolated_frequencies` directly. The served DaisyRose core
+      exercises prefix reuse and the scaled decoder without asserting on them.
+
 - [ ] Decide what Elephant-1 does for an answer longer than one token. Decode after the question
       block is causal. A request readmitted after preemption takes its generated tokens into the
       question block, and ends with an error when they repeat the block-end marker; no test drives

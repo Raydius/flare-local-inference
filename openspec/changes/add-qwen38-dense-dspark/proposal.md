@@ -42,9 +42,10 @@ The draft is the DFlash2 draft body with different attachments. Both have five n
 - New draft modules in `ignition/recipes/qwen38_dense/`: draft configuration and pin, draft weights, and the draft forward (context projection into paged history, noncausal block attention with YaRN rotary, Markov proposals).
 - Dense Qwen preparation carries the selected method through its configuration, state layout, page layout, weights, decoder feature capture and graph catalog.
 - Draft history under DSpark is paged storage addressed by the target's page table, so prefix reuse, snapshots, eviction and offload cover it through the shared paged-history mechanisms.
+- The dense Qwen recipe accepts a declared rope scaling of the target's rotary frequencies and declares the checkpoint `daisyrose-27b-yarn4` with a 1,048,576-token context.
 - Documentation states the method, its commands, its storage, and its qualification; unrun checks go to `docs/TODO.md`.
 
-Non-goals: context scaling past 262,144 tokens; executing the confidence head or GPU prefix selection; `--draft-head-quantization`, `--draft-body-quantization` and `--online-mxfp8` conversion of the DSpark draft; tensor-parallel preparation; DSpark for the Flash Next recipe (`ignition/recipes/qwen38/`); any `helios/`, `flare/` or `flare-cli/` change.
+Non-goals: rope scaling of the draft's rotary frequencies; executing the confidence head or GPU prefix selection; `--draft-head-quantization`, `--draft-body-quantization` and `--online-mxfp8` conversion of the DSpark draft; tensor-parallel preparation; DSpark for the Flash Next recipe (`ignition/recipes/qwen38/`); any `helios/`, `flare/` or `flare-cli/` change.
 
 ## Capabilities
 
@@ -83,7 +84,7 @@ None.
 13. `ignition/recipes/qwen38_dense/decoder.py:411` — target feature capture is sized by the DFlash2 window with compact prefill; `:477` reads the draft's target layers.
 14. `ignition/recipes/qwen38_dense/contract.py:27` — every pool page region becomes a paged key/value history region, which covers draft pages without edits.
 15. `ignition/recipes/qwen38_dense/dflash.py:13` — the DFlash2 owner the DSpark owner sits beside.
-16. `ignition/recipes/inkling2/dspark.py:126` — existing noncausal GQA block attention over paged draft history with a staged tail; the mechanism this change reuses.
+16. `ignition/recipes/inkling2/dspark.py:126` — existing noncausal GQA block attention over paged draft history with a staged tail. This change imports its slot and tail-staging helpers (`context_slots` and `stage_paged_tail` from `ignition/recipes/inkling2/dspark_state.py`) and composes `PreparedPagedAttention` itself; design.md states why the `DraftAttention` class is not imported.
 17. `ignition/recipes/inkling2/pool.py:60` — existing draft page declaration beside target pages.
 18. `ignition/recipes/kimi31/dspark.py:33` and `:53` — existing YaRN frequencies and rotary gain for a DSpark draft.
 19. `ignition/recipes/kimi3/dspark.py:304` and `ignition/recipes/minimax_m3/draft.py:443` — existing Markov transition composition; `ignition/components/parallel_draft.py:166` consumes it.

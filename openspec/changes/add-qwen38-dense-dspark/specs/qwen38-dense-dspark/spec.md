@@ -105,7 +105,7 @@ A DSpark plan SHALL refuse `--draft-head-quantization`, `--draft-body-quantizati
 
 ### Requirement: DaisyRose is a checkpoint of the dense Qwen recipe
 
-The recipe SHALL declare the alias `daisyrose-27b` for `RadixArk/DaisyRose-27B-NVFP4` at revision `c4d85c5dfad123426555c22f4e24bb15381f0bdb` with measured stored and device byte counts, and SHALL prepare it with either proposal method or with speculation disabled.
+The recipe SHALL declare the alias `daisyrose-27b` for `RadixArk/DaisyRose-27B-NVFP4` at revision `c4d85c5dfad123426555c22f4e24bb15381f0bdb` with the stored and device byte counts of `nvidia/Qwen3.8-27B-NVFP4`, whose tensor names and total size it shares, and SHALL prepare it with either proposal method or with speculation disabled.
 
 #### Scenario: The alias resolves
 
@@ -137,9 +137,9 @@ A core exported before this capability SHALL load and serve without re-export. D
 
 ### Requirement: Qualification is stated from measurement
 
-The documentation SHALL state DSpark's support as present qualification: the hardware, checkpoint, draft count, verification policy and concurrency at which accepted tokens per round and throughput were measured, the draft history precision that was prepared, and the page cost. Checks that were not run SHALL be listed in `docs/TODO.md`.
+The documentation SHALL state DSpark's support as present qualification: the hardware, checkpoint, draft count, verification policy, sequence count and context at which accepted tokens per round were measured, the draft history precision that was prepared, and the page cost. Checks and measurements that were not run, including throughput and acceptance at fixed concurrency, SHALL be listed in `docs/TODO.md`.
 
 #### Scenario: The measured configuration is documented
 
-- **WHEN** a `daisyrose-27b` core is exported with DSpark at seven draft tokens and served at fixed width eight
-- **THEN** `docs/model-preparation.md` records the measured accepted tokens per round at concurrency 1 and 8 on the code workload beside the model card's SGLang figures, labelled as a different runtime and hardware
+- **WHEN** a DaisyRose core is exported with DSpark at seven draft tokens and served at fixed width eight
+- **THEN** `docs/model-preparation.md` records the accepted tokens per round measured on the served core, with its hardware, sequence count and context, beside the model card's SGLang figures, labelled as a different runtime and hardware, and `docs/TODO.md` lists the trials at fixed concurrency as unrun
