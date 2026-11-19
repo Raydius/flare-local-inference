@@ -503,7 +503,7 @@ mod tests {
         config.contract.frontend.block_end_marker = vec![7, 8];
         let prepare = |token_ids: Vec<u32>| {
             let rendered = RenderedPrompt { message_boundaries: Vec::new(), text: String::new(), token_ids,
-                image_sources: vec![], image_checkpoint_hints: vec![] };
+                image_sources: vec![], image_checkpoint_hints: vec![], ordinary: vec![] };
             prepare_input(&config, &frontend, None, &rendered, vec![])
         };
         assert_eq!(prepare(vec![1, 7, 8, 2, 3]).unwrap().data.spans, [0..3, 3..5]);
@@ -515,7 +515,8 @@ mod tests {
         let mut unmarked = config.clone();
         unmarked.contract.frontend.block_end_marker.clear();
         let rendered = RenderedPrompt { message_boundaries: Vec::new(), text: String::new(),
-            token_ids: vec![1, 7, 8, 2, 3], image_sources: vec![], image_checkpoint_hints: vec![] };
+            token_ids: vec![1, 7, 8, 2, 3], image_sources: vec![], image_checkpoint_hints: vec![],
+            ordinary: vec![] };
         assert!(prepare_input(&unmarked, &frontend, None, &rendered, vec![]).unwrap().data.spans.is_empty());
     }
 
