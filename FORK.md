@@ -126,6 +126,26 @@ base/current (tag → an upstream commit)
   cache. No patch retired. Retargeted from `29192ef7` when upstream moved before the rebase ran.
   Not yet run on this base: Rust builds, GPU tests and exports. Pre-rebase refs:
   `backup/pre-rebase-20261114-*` tags.
+  **2026-11-18: moved to upstream `1a532755`** (81 commits; #289 bounds history proposals by
+  logical lane length, checkpoint-work estimation without quoting snapshot storage and
+  quoted-work sizing of ordinary and mixed prefill graphs, `80c97c50` passes mutated
+  dtype-viewed temporaries to storage calls through their owner, 16-bit PNG and GIF input
+  with Pillow-equivalent conversion, the Selene pool series, FlashInfer re-pinned to
+  `2cce3e67`, design checklist digest `1af4`). Five of 130 replayed commits conflicted and
+  kept both sides on upstream's structure: the FlashInfer pin, the `docs/TODO.txt` rename
+  with upstream's four new entries folded into `docs/TODO.md`, the opaque-write copy pair
+  (upstream's `80c97c50` rewrite of `_lower_storage` supersedes the rule the pair patched
+  around; its reproducers stay in `tests/preparation/test_aot.py`), and the code_edit
+  benchmark, where the fork's file already subsumes upstream's `be4ff01e`. One commit
+  dropped, its `AGENTS.md` TODO link subsumed by the rename's resolution. Upstream's #289
+  made the fork's `packing.rs` lane-length change independently, so only the fork's comment
+  remains. The FlashInfer pin is re-cut on `2cce3e67` as `Raydius/flashinfer@be90bff55`,
+  carrying only stub rejection and the `compile_compress` program cache; the
+  `gdn-head-ratio` image patch applies unchanged at that base. No patch retired. Conflicted
+  commits were continued with the hook off, so replayed commits keep their original
+  acknowledgments; the record commit acknowledges `1af4`. Host CPU, image, Rust and GPU 1
+  gates run after this commit and before the push. Pre-rebase refs:
+  `backup/pre-rebase-20261118-*` tags.
 - **Moving to a newer upstream:** `scripts/fork/sync.sh`, then
   `scripts/fork/rebase.sh upstream/main` (or a sha; the tip defaults to `deploy`). The script
   refuses a tip that shares a commit with another branch (`--update-refs` would skip it).
