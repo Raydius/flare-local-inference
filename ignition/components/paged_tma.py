@@ -44,7 +44,8 @@ class State:
         arguments = (query_fp8, key.permute(0, 2, 1, 3), value.permute(0, 2, 1, 3), output, None,
             Float32(math.log2(math.e) / math.sqrt(self.query.dim)), Float32(1), None,
             lengths_i32, cu, pages, None, Int32(self.query.rows), False)
-        self.kernel(*arguments, *((output_gate,) if output_gate is not None else ()))
+        # The kernel's last parameter selects split KV tile ranges; None attends each request's whole history.
+        self.kernel(*arguments, *((output_gate,) if output_gate is not None else ()), None)
 
 
 def supports(q, key, value, pages, cu, output):
