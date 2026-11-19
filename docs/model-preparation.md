@@ -423,7 +423,7 @@ frequency-only rope interpolation by four over the trained 262,144 tokens, the
 declaration `qwen3.8-flash-yarn4` uses. `--rope-parameters` selects the same
 scaling for a checkpoint folder of this recipe. Only the target's rotary
 frequencies are interpolated; draft frequencies are unchanged with either
-proposal method. No core of this recipe has been exported with rope scaling.
+proposal method.
 
 `--speculative-method dspark` prepares the pinned BF16
 `RadixArk/Qwen3.8-27B-DSpark` draft (revision `b9a5dbdf`) in place of DFlash2;
@@ -455,12 +455,21 @@ captured CUDA graphs on an RTX 5060 Ti (SM120) with fabricated two-layer
 weights, where draft history is byte-identical for one prefill and chunked
 prefill, a round that accepts three of eight positions stores those three
 only, and logits agree with the eager reference
-`ignition/reference/qwen38_dense_dspark.py` within BF16 rounding. A served
-`daisyrose-27b` DSpark core, its acceptance and its throughput are not
-measured; [the follow-up list](TODO.md) names the unrun checks. The draft's
-model card reports mean accepted lengths of 3.3 to 4.1 tokens on code
-workloads at seven draft tokens under SGLang, a different runtime and
-hardware.
+`ignition/reference/qwen38_dense_dspark.py` within BF16 rounding. One core
+is exported and served on an RTX PRO 6000 (SM120): the DaisyRose checkpoint
+folder with DSpark, seven drafts at fixed width eight, 16 sequences and the
+1,048,576-token rope-scaled context. It loads 24.56 GiB and allocates 69.3
+GiB of cache holding 1,665,024 KV tokens. Over its first 619 served rounds,
+mixed chat traffic, 3.29 drafts were accepted per round; acceptance by draft
+position was 80%, 67%, 55%, 45%, 34%, 27% and 22%. A passkey probe
+(`qualify/long_context_passkey.py`) retrieved the key at depths 0.25 and 0.75
+of prompts of 199,962, 319,795 and 1,009,836 tokens; the 1,009,836-token
+prompts took 506 and 520 seconds. Throughput at fixed concurrency, target
+quality past 262,144 tokens beyond passkey retrieval, and draft acceptance
+on long outputs past that length are not measured; [the follow-up
+list](TODO.md) names the unrun checks. The draft's model card reports mean
+accepted lengths of 3.3 to 4.1 tokens on code workloads at seven draft tokens
+under SGLang, a different runtime and hardware.
 
 For complete GPU graph round latency without core export, use:
 
