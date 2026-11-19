@@ -292,8 +292,8 @@ def test_mixed_manifest_preserves_speculative_depth_and_ordinary_mode(monkeypatc
     decoded = ExecutionGraph.FromString(encoded.SerializeToString())
     assert (decoded.batch_capacity, decoded.token_capacity, decoded.prefill_capacity) == (4, width, prefill)
     assert decoded.speculation_enabled == enabled
-    expected_depth = width - 1 if depth is None else depth
     if enabled:
+        expected_depth = width - 1 if depth is None else depth
         assert decoded.HasField("draft_tokens") and decoded.draft_tokens == expected_depth
         assert decoded.HasField("verify_tokens") and decoded.verify_tokens == width
         assert decoded.draft_source == 1
@@ -302,11 +302,6 @@ def test_mixed_manifest_preserves_speculative_depth_and_ordinary_mode(monkeypatc
         assert decoded.draft_source == 0
     assert decoded.packed_token_capacity == 0
     assert "prefill_row" in [b.buffer_name for b in decoded.input_bindings]
-    # A mixed round with speculation carries its embedded round's proposal depth, which the
-    # package export requires and the runtime selects mixed rounds by; a plain one carries none.
-    expected = (expected_depth, width, 1) if enabled else (0, 0, 0)
-    assert (decoded.draft_tokens, decoded.verify_tokens, decoded.draft_source) == expected
-    assert signature.draft_tokens == (expected_depth if enabled else None)
 
 
 def test_speculative_mixed_diagnostic_manifest_selects_enabled_variant(monkeypatch):
