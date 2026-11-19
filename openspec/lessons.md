@@ -31,3 +31,10 @@ entries you consulted.
 - Accelerator: before any console export, read the default profile and the running instance's `flare run` arguments (`ps`), diff the planned profile against it, and show the operator the fields that differ; check `git rev-list --count HEAD..deploy` is 0 before `build.sh`.
 - Source: add-qwen38-dense-dspark (2026-11-19)
 
+## a-replacement-core-keeps-the-replaced-profiles-capabilities
+
+- Scenario: exporting a core from a different recipe (the dense Qwen recipe) to replace the operator's served profile (the Flash Next recipe), by copying the profile and changing the recipe, model and draft.
+- Trap: the profile diff listed fields, not capabilities. The dense recipe prepared text only, so the copied profile's `export:--language-model-only false` had no effect and the served core rejected images. No artifact of the change mentioned image input, and no step compared `/v1/models` of the two cores. The operator found it after approval: "every single other build we've done includes vision".
+- Resolution: image input was added to the dense recipe in the same change, before the re-export.
+- Accelerator: at propose time, read the target recipe's `max_images`, `language_model_only` and context beside the replaced profile's recipe; after serving, diff the `flare` section of `/v1/models` (`max_images_per_prompt`, `input_modalities`, `max_model_len`, `max_concurrency`) against the replaced core's before asking for approval.
+- Source: add-qwen38-dense-dspark (2026-11-19)

@@ -46,6 +46,18 @@ See proposal.md for motivation. The dense Qwen recipe gains a second proposal me
 - Draft rotary is unchanged for both methods. The DSpark draft attends the whole request, so past 262,144 tokens its relative offsets exceed those its YaRN configuration covers; draft acceptance there is unmeasured and listed in `docs/TODO.md`.
 - Task 7 exports and serves the scaled core, on the operator's instruction.
 
+### Image input (operator addition during apply)
+
+The checkpoint stores a 27-layer vision encoder (333 BF16 tensors under `model.visual.`, 921,460,192 bytes, output width 5120) that the dense recipe did not load. The Flash Next recipe serves images from the same encoder geometry with quantized projections and output width 2560, and Helios implements the Qwen image preparation and layout (`QWEN_IMAGE_PREPARATION`, `QWEN_IMAGE_LAYOUT`): it uploads patches, publishes features into a per-request arena slot, and uploads three position rows per prompt token. Reuse follows the repository's order — import, pass arguments, widen with a default:
+
+- Encoder: `ignition.recipes.qwen38.vision.PreparedVision`, `VisionScratch`, `VisionMetadata` and `VisionWeights`, widened with an output width (default 2560), the rotary embedding class (default the Flash Next class), and unquantized projections when a loaded projection weight is a BF16 tensor. The Flash Next call sites pass none of them. Four `vision<patches>` graphs for 256, 1024, 4096 and 16384 patches, as that recipe prepares.
+- Feature storage and injection: the shared `ignition.components.vision_state.VisionState` and `PrefillVisionInputs` with `hidden=5120`, and `ignition.components.vision_delivery.PreparedFeaturePublication`, as the Inkling2 recipe wires them into `PreparedBatch(validate_prefill=...)` and its decoder. A dense-recipe module holds the upload fields and the generation that validates an upload, runs the encoder and publishes; every image recipe holds that pair, because it binds the recipe's encoder metadata.
+- Positions: Qwen image tokens carry three rotary positions (time, row, column), and text after an image continues from a position smaller than its token index. The dense decoder takes the three uploaded position rows in prefill, selects each rotary pair's axis by the checkpoint's interleaved `mrope_section` [11, 11, 10], and stores the offset between the next rotary position and the next token index in a `rope_delta` state-row region that decode and verification add to the token position. A text-only prompt has equal axes and a zero offset, which gives the positions the decoder computes today. The path exists only when vision is prepared: a language-only plan, the DFlash2 and DSpark layouts without vision, and the Elephant-1 recipe, which imports the dense decoder, keep their graphs and state rows.
+- Contract and frontend: `contract.prepare` declares the vision inputs, image tokens (`image_token_id` 248056), the Qwen preparation and layout identifiers and three position dimensions when vision is prepared; `ignition/preparation/frontend.py` accepts the checkpoint's `model_type` `qwen3_5` for the `qwen` image profile. No Helios change: the identifiers, bindings and upload paths are the ones the Flash Next recipe uses.
+- Declaration: `max_images=4`, `image_bytes`, `language_model_only=True`; the vision bytes join the device cost and the feature arena (image slots x 16384 x 5120 BF16) joins the fixed cost.
+
+Draft positions stay token indices. Mixed prefill is not prepared; the Flash Next recipe refuses it with DFlash2 as well.
+
 ### Validation
 
 - CPU: configuration validation, tensor mapping against the published header, method resolution through flag and configuration file, per-method limits, refusals, declarations.

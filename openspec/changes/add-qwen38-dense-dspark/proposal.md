@@ -24,6 +24,10 @@ Assumed: the draft's confidence head is validated and not executed, as Kimi K3.1
 Assumed: DSpark prepares at most seven draft tokens, the draft's `block_size`.
 Assumed: the 4x YaRN profile is frequency-only rope interpolation of the target by four over its trained 262,144 tokens, declared as the checkpoint `daisyrose-27b-yarn4` (1,048,576 tokens), as `qwen3.8-flash-yarn4` declares it; the draft's rotary frequencies stay unscaled, the choice the archived change `2026-11-04-qwen38-dflash-rope-scaling` made, and acceptance past 262,144 tokens is a measurement, not a guarantee.
 - "The base profile was just for feasibility, I have zero intention of every running it." (2026-11-19, during apply)
+- "was this profile built with the vision tower?" / "The model card specifically states that the vision tower was intact" / "why was it not built this way to begin with when every single other build we've done includes vision?" (2026-11-19, during apply; the operator chose "Add it in this change" when asked whether to add image input to the dense recipe)
+
+Assumed: image input for the dense Qwen recipe is what the Flash Next recipe (`ignition/recipes/qwen38/`) serves: up to four images per request through the Qwen image preparation and layout that Helios already implements, with the checkpoint's BF16 vision encoder, and `--language-model-only` to prepare without it.
+Assumed: the drafts keep token-index positions on image prompts, as the Flash Next recipe's DFlash2 context does; draft acceptance on image prompts is a measurement, not a guarantee.
 
 Assumed: the core this change exports and serves is the 4x YaRN profile, started only on the operator's instruction; the 262,144-token profile is not exported.
 
@@ -43,6 +47,7 @@ The draft is the DFlash2 draft body with different attachments. Both have five n
 - Dense Qwen preparation carries the selected method through its configuration, state layout, page layout, weights, decoder feature capture and graph catalog.
 - Draft history under DSpark is paged storage addressed by the target's page table, so prefix reuse, snapshots, eviction and offload cover it through the shared paged-history mechanisms.
 - The dense Qwen recipe accepts a declared rope scaling of the target's rotary frequencies and declares the checkpoint `daisyrose-27b-yarn4` with a 1,048,576-token context.
+- The dense Qwen recipe prepares the checkpoint's vision encoder and accepts up to four images per request; `--language-model-only` prepares text alone. The served DaisyRose core accepts images, as the console profile it replaces does.
 - Documentation states the method, its commands, its storage, and its qualification; unrun checks go to `docs/TODO.md`.
 
 Non-goals: rope scaling of the draft's rotary frequencies; executing the confidence head or GPU prefix selection; `--draft-head-quantization`, `--draft-body-quantization` and `--online-mxfp8` conversion of the DSpark draft; tensor-parallel preparation; DSpark for the Flash Next recipe (`ignition/recipes/qwen38/`); any `helios/`, `flare/` or `flare-cli/` change.
