@@ -193,7 +193,7 @@ class Configuration:
             f'# model = "{model}"',
             f"# max_concurrency = {max_concurrency}",
             '# image_concurrency = 4          # active image requests; bounded by max_concurrency',
-            '# speculative_method = "mtp"    # proposal method; Qwen Flash also supports dflash2',
+            '# speculative_method = "mtp"    # proposal method; Qwen Flash also supports dflash2, Qwen3.8 27B also supports dspark',
             '# speculative_token_capacity = 8  # wider target graphs require batch * width within this limit',
             '# speculative_graph_budget = 64  # packed round graphs; excludes width-one and ordinary graphs',
             "", "[preparation]",

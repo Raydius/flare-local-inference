@@ -4,6 +4,34 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
 
 ## Open
 
+- [ ] Compare the prepared Qwen3.8-27B DSpark draft with the eager reference on the pinned draft
+      weights. `tests/reference/test_qwen38_dense_dspark.py::test_prepared_draft_matches_the_reference_on_the_pinned_weights`
+      is unrun: it needs an SM120 GPU with about 12 GiB free, `FLARE_QWEN38_DSPARK_SNAPSHOT` naming
+      `RadixArk/Qwen3.8-27B-DSpark` at `b9a5dbdf`, and `FLARE_QWEN38_DENSE_SNAPSHOT` naming a dense Qwen
+      checkpoint that stores `lm_head.weight` in BF16, such as `qwen3.8-27b-qad`. The same comparison
+      passes on fabricated weights (two layers, hidden size 512) on an RTX 5060 Ti.
+
+- [ ] Export, serve and measure a dense Qwen DSpark core. No `daisyrose-27b` or `qwen3.8-27b` core
+      has been exported with `--speculative-method dspark`: accepted tokens per round and code-edit
+      throughput at concurrency 1 and 8 with seven drafts at fixed width eight, the loaded device
+      memory, and the `daisyrose-27b` checkpoint's stored and device bytes (declared equal to
+      `qwen3.8-27b`'s, whose tensor layout it shares) are unmeasured, and the DSpark state-row, page
+      and draft bytes in `ignition/recipes/qwen38_dense/recipe.py` are computed from the layouts.
+      Loading a DFlash2 core exported before the DSpark method was declared is also unrun.
+
+- [ ] Prepare a DSpark draft for the dense Qwen recipe past 262,144 tokens of context. The draft's
+      YaRN configuration covers the recipe's native context only; no checkpoint of the recipe
+      declares a longer context with a DSpark draft.
+
+- [ ] Decide whether to execute the Qwen3.8-27B DSpark confidence head. The head is validated for
+      shape and not loaded; prefix selection uses completed acceptance on the host.
+
+- [ ] Run a complete DSpark round for the dense Qwen recipe below the export. The CUDA tests in
+      `tests/recipes/test_qwen38_dense_dspark_cuda.py` capture the draft's context writer and proposal
+      block and supply the accepted counts a round would produce; no test runs
+      `PreparedParallelDraftRound` with the target decoder, sampling, verification and commit on
+      fabricated weights.
+
 - [ ] Decide what Elephant-1 does for an answer longer than one token. Decode after the question
       block is causal. A request readmitted after preemption takes its generated tokens into the
       question block, and ends with an error when they repeat the block-end marker; no test drives

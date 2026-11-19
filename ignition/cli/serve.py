@@ -319,7 +319,7 @@ def _prepare(args):
                      f" · autotune effort {plan.autotune_effort} · collective tuning {plan.collective_tuning}{ladder_name}"
                      f"{' · native dense activations' if plan.native_dense_activations else ''}"
                      f"{' · MoE decode A16 / prefill A4' if plan.force_moe_decode_a16 else ''}"
-                     f"{' · DFlash2 proposals' if plan.speculation is not None and plan.speculation.method == 'dflash2' else ''}"
+                     f"{display.proposals(plan.speculation)}"
                      f"{' · joint tuning' if plan.joint_tuning else ''}"
                      f"{' · BF16 sharded hyperconnections' if plan.shard_hyperconnections else ''}")
     if args.config is None and not configuration.exists:

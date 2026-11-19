@@ -234,7 +234,8 @@ class Plan:
                 raise UsageError(
                     f"benchmark graph preparation is not supported for {self.checkpoint.alias} on {self.world_size} GPUs"
                 )
-            if selection.speculation_study and not self.recipe.speculation_study:
+            if selection.speculation_study and (not self.recipe.speculation_study or (
+                    self.speculation is not None and self.speculation.method == "dspark")):
                 raise UsageError(f"speculation studies require a recipe that declares speculation_study ({self.checkpoint.alias} does not)")
             required_widths = (8,) if selection.speculation_study else selection.selected_verification_widths
             if not selection.prefill_chunk and (self.speculation is None
@@ -483,6 +484,9 @@ def fit(recipe: Recipe, checkpoint: Checkpoint, gpus: tuple[Gpu, ...], *, concur
             raise UsageError(
                 f"--vocabulary-parallel-sampling has no TP{len(gpus)} gather; select {allowed} GPUs"
             )
+        # The dense Qwen DSpark draft shares the target's vocabulary head (upstream's Kimi DSpark converts its own).
+        if recipe.name == "qwen38_dense" and speculation.method == "dspark" and speculation.draft_head_quantization is not None:
+            raise UsageError("--draft-head-quantization: the DSpark draft uses the target's vocabulary head")
         for head in ("draft", "markov"):
             value = getattr(speculation, f"{head}_head_quantization")
             if value is not None and value not in getattr(recipe, f"{head}_head_quantizations"):

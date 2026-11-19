@@ -243,6 +243,8 @@ class SpeculativeMethod:
     draft_bytes: int | None = None
     # Files of the method's external draft, which a `--draft-model` folder supplies in place of the pinned download.
     draft_files: tuple[str, ...] = ()
+    # Most draft tokens the method prepares; None keeps the recipe's `max_draft_tokens`.
+    max_draft_tokens: int | None = None
 
 
 @dataclass(frozen=True)
@@ -372,6 +374,13 @@ class Recipe:
                     checkpoint.ranks is not None and set(checkpoint.ranks) != set(checkpoint.plain_ranks)):
                 raise ValueError(f"{checkpoint.alias} declares costs with and without speculation for different sizes")
             self.check_rope_scaling(checkpoint)
+
+    def draft_token_limit(self, method: str | None) -> int:
+        """Most draft tokens a plan may prepare with `method`: the method's own maximum, or the recipe's."""
+        declared = self.speculative_methods.get(method)
+        if declared is None or declared.max_draft_tokens is None:
+            return self.max_draft_tokens
+        return declared.max_draft_tokens
 
     def check_rope_scaling(self, checkpoint: Checkpoint):
         """Refuse a context or rope scaling that does not extend this recipe's native context."""
