@@ -7,7 +7,10 @@
 from types import MappingProxyType
 from pathlib import Path
 
-from ignition.recipes.declaration import Checkpoint, RankCosts, RankUsage, Recipe, SamplingDefaults, SamplingRange, Speculation
+from ignition.recipes.declaration import (Checkpoint, RankCosts, RankUsage, Recipe, SamplingDefaults, SamplingRange,
+                                          Speculation, SpeculativeMethod)
+
+_DRAFT_FILES = ("config.json", "model.safetensors")
 
 
 def prepare(snapshot, plan, *, compile_forwards, kernel_cache, progress, retain_graphs=False,
@@ -19,11 +22,19 @@ def prepare(snapshot, plan, *, compile_forwards, kernel_cache, progress, retain_
     speculation = plan.speculation
     drafting = {}
     if speculation is not None:
-        from huggingface_hub import snapshot_download
-        from .draft_config import REPOSITORY, REVISION
+        method = speculation.method or RECIPE.speculation.method
+        # A `--draft-model` folder replaces the DSpark download; the DFlash2 draft always comes from its pin.
+        draft = plan.draft_model if method == "dspark" else None
+        if draft is None:
+            from huggingface_hub import snapshot_download
+            if method == "dspark":
+                from .dspark_config import REPOSITORY, REVISION
+            else:
+                from .draft_config import REPOSITORY, REVISION
 
-        drafting = dict(draft_snapshot=Path(snapshot_download(REPOSITORY, revision=REVISION,
-            cache_dir=plan.hub_cache, allow_patterns=("config.json", "model.safetensors"))),
+            draft = snapshot_download(REPOSITORY, revision=REVISION, cache_dir=plan.hub_cache,
+                                      allow_patterns=_DRAFT_FILES)
+        drafting = dict(draft_snapshot=Path(draft), speculative_method=method,
             draft_head_quantization=speculation.draft_head_quantization,
             speculative_graph_budget=speculation.graph_budget or 64)
     selection = plan.benchmark_selection
@@ -62,7 +73,12 @@ RECIPE = Recipe(
         Checkpoint(alias="qwen3.8-27b-qad", repository="local-inference-lab/Qwen3.8-27B-NVFP4-QAD",
         revision="b9389787cbb5a09fbcf3517bdf673b5a56b16b02", architecture="Qwen3_5ForConditionalGeneration",
         stored_bytes=25_578_292_192, device_bytes=27_761_099_776, draft_bytes=3_953_666_560,
-        expansion_bytes=1_619_001_344)),
+        expansion_bytes=1_619_001_344),
+        # A fine-tune stored with the tensor names, shapes and formats of `qwen3.8-27b`.
+        Checkpoint(alias="daisyrose-27b", repository="RadixArk/DaisyRose-27B-NVFP4",
+        revision="c4d85c5dfad123426555c22f4e24bb15381f0bdb", architecture="Qwen3_5ForConditionalGeneration",
+        stored_bytes=21_921_428_072, device_bytes=24_104_235_656, draft_bytes=3_953_666_560,
+        expansion_bytes=307_871_744)),
     context=262144, page_tokens=128, concurrency=32, max_concurrency=64, prefill_chunk=4096,
     speculation=Speculation(draft_tokens=7, token_capacity=128, packed_verification=True, graph_budget=64,
                             method="dflash2"), max_draft_tokens=15, verification_rows=0,
@@ -70,4 +86,9 @@ RECIPE = Recipe(
     # Reserve continuation memory for the supported sixteen-token verification capacity.
     ranks=MappingProxyType({1: RankCosts(193_865_984, 4_194_304, 4 << 30)}),
     plain_ranks=MappingProxyType({1: RankCosts(158_148_864, 4_194_304, 4 << 30)}),
+    # DSpark keeps draft history in ten FP8 page regions beside the target's and no ring in the state row;
+    # the row holds eight verification positions. The draft loads every tensor but its confidence head.
+    speculative_methods=MappingProxyType({"dspark": SpeculativeMethod(
+        ranks=MappingProxyType({1: RankCosts(166_340_864, 5_505_024, 4 << 30)}),
+        draft_bytes=3_714_705_920, draft_files=_DRAFT_FILES, max_draft_tokens=7)}),
 )

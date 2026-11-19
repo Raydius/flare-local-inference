@@ -70,6 +70,8 @@ for _container, _fields in (
     ('ignition.recipes.qwen38.moe.QwenMoeWeights', ('router', 'experts', 'shared')),
     ('ignition.recipes.qwen38.moe.SharedExpertWeights', ('gate_up', 'down', 'gate')),
     ('ignition.recipes.qwen38.decoder.DecoderLayerWeights', ('attention', 'moe')),
+    ('ignition.recipes.qwen38_dense.dspark_weights.DraftWeights',
+     ('projection', 'hidden_norm', 'context_kv', 'norm', 'markov_embedding', 'markov_head', 'layers')),
     # b12x packed linear weight objects hold the stored projection bytes.
     ('b12x.gemm.blockscaled._linear.MXFP8LinearWeight', ('weight',)),
     ('b12x.gemm.blockscaled._linear.TensorFP8LinearWeight',

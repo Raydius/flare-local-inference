@@ -12,12 +12,24 @@ from ignition.components.state import StateLayout
 from .config import PAGE_TOKENS
 
 
+def paged_draft(config, mtp):
+    """Whether the draft attends every accepted position, which keeps its history in pages instead of rings."""
+    return mtp and config.draft.attention.window is None
+
+
 def page_specs(config, *, mtp=False):
     size = PAGE_TOKENS * config.text["num_key_value_heads"] * config.text["head_dim"]
     for index, kind in enumerate(config.layers):
         if kind == "full_attention":
             for field in ("key", "value"):
                 yield f"layer{index}.{field}", (size,)
+    if paged_draft(config, mtp):
+        from .dspark_config import PAGE_DTYPE
+
+        a = config.draft.attention
+        for index in range(config.draft.layers):
+            for field, width in (("key", a.key_dim), ("value", a.value_dim)):
+                yield f"draft{index}.{field}", (PAGE_TOKENS * a.kv_heads * width * PAGE_DTYPE.itemsize,)
 
 
 def page_bytes(config, *, mtp=False):
@@ -33,7 +45,7 @@ def continuation_layout(config, *, mtp=False, verification_width=8):
             regions.extend(((f"layer{index}.convolution", (10240, 2 + verification_width if mtp else 3), torch.bfloat16),
                             (f"layer{index}.recurrent", (48, 128, 128), torch.float32)))
     regions.extend((name, shape, torch.uint8) for name, shape in page_specs(config, mtp=mtp))
-    if mtp:
+    if mtp and not paged_draft(config, mtp):
         from ignition.components.dflash2_geometry import draft_context_specs
         from ignition.components.parallel import TensorParallelShard
 
@@ -60,3 +72,11 @@ class ContinuationPool(PagedStateStorage):
         prefix = f"layer{layer}"
         return tuple(self.pages[f"{prefix}.{field}"].view(torch.float8_e4m3fn).view(shape)
                      for field in ("key", "value"))
+
+    def draft_attention(self, layer, config):
+        """One draft layer's key and value pages in the draft's page dtype."""
+        from .dspark_config import PAGE_DTYPE
+
+        a = config.draft.attention
+        return tuple(self.pages[f"draft{layer}.{field}"].view(PAGE_DTYPE).view(-1, PAGE_TOKENS, a.kv_heads, width)
+                     for field, width in (("key", a.key_dim), ("value", a.value_dim)))

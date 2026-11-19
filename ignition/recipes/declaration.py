@@ -164,8 +164,8 @@ class Speculation:
     def __post_init__(self):
         if self.mtp_only and self.draft_tokens < 1:
             raise ValueError("--mtp-only requires positive learned draft depth")
-        if self.method not in (None, "mtp", "dflash2"):
-            raise ValueError("speculative method must be omitted, mtp or dflash2")
+        if self.method not in (None, "mtp", "dflash2", "dspark"):
+            raise ValueError("speculative method must be omitted, mtp, dflash2 or dspark")
         if self.vocabulary_parallel_sampling and self.draft_tokens < 1:
             raise ValueError("vocabulary-parallel sampling requires positive learned draft depth")
         if self.vocabulary_parallel_sampling and self.markov_head_quantization == "nvfp4":
@@ -228,6 +228,8 @@ class SpeculativeMethod:
     draft_bytes: int | None = None
     # Files of the method's external draft, which a `--draft-model` folder supplies in place of the pinned download.
     draft_files: tuple[str, ...] = ()
+    # Most draft tokens the method prepares; None keeps the recipe's `max_draft_tokens`.
+    max_draft_tokens: int | None = None
 
 
 @dataclass(frozen=True)
@@ -326,7 +328,7 @@ class Recipe:
         if self.speculation is not None and set(self.plain_ranks) != set(self.ranks):
             raise ValueError("a recipe that speculates declares its costs without speculation for every rank count")
         for name, method in self.speculative_methods.items():
-            if name not in ("mtp", "dflash2") or set(method.ranks) != set(self.ranks):
+            if name not in ("mtp", "dflash2", "dspark") or set(method.ranks) != set(self.ranks):
                 raise ValueError("speculative methods require known names and every declared tensor-parallel size")
             if method.draft_bytes is not None and method.draft_bytes <= 0:
                 raise ValueError("speculative draft bytes must be positive")
@@ -338,6 +340,13 @@ class Recipe:
                     checkpoint.ranks is not None and set(checkpoint.ranks) != set(checkpoint.plain_ranks)):
                 raise ValueError(f"{checkpoint.alias} declares costs with and without speculation for different sizes")
             self.check_rope_scaling(checkpoint)
+
+    def draft_token_limit(self, method: str | None) -> int:
+        """Most draft tokens a plan may prepare with `method`: the method's own maximum, or the recipe's."""
+        declared = self.speculative_methods.get(method)
+        if declared is None or declared.max_draft_tokens is None:
+            return self.max_draft_tokens
+        return declared.max_draft_tokens
 
     def check_rope_scaling(self, checkpoint: Checkpoint):
         """Refuse a context or rope scaling that does not extend this recipe's native context."""

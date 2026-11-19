@@ -9,7 +9,7 @@ import argparse
 from ignition.recipes import recipes
 
 
-def recipe_help(model=None):
+def recipe_help(model=None, method=None):
     catalog = [(recipe, checkpoint) for recipe in recipes() for checkpoint in recipe.checkpoints]
     selected = next(((recipe, checkpoint) for recipe, checkpoint in catalog
                      if model in (checkpoint.alias, checkpoint.repository)), None)
@@ -45,7 +45,8 @@ def recipe_help(model=None):
         lines.extend((
             *([] if speculation.method is None else [
                 f"  --speculative-method: {', '.join(dict.fromkeys((speculation.method, *recipe.speculative_methods)))}; default {speculation.method}"]),
-            f"  --mtp-draft-tokens: 0..{recipe.max_draft_tokens}; default {speculation.draft_tokens}",
+            f"  --mtp-draft-tokens: 0..{recipe.draft_token_limit(method or speculation.method)};"
+            f" default {speculation.draft_tokens}",
             f"  Verification: {'adaptive' if speculation.adaptive else 'fixed width'} by default;"
             " --no-mtp excludes draft weights and state.",
             "  --mtp-draft-tokens 0 retains draft state and captures width-one rounds."))
@@ -100,6 +101,6 @@ class RecipeHelp(argparse.Action):
         super().__init__(option_strings=option_strings, dest=dest, nargs=0, default=default, help=help)
 
     def __call__(self, parser, namespace, values, option_string=None):
-        parser.epilog = recipe_help(getattr(namespace, "model", None))
+        parser.epilog = recipe_help(getattr(namespace, "model", None), getattr(namespace, "speculative_method", None))
         parser.print_help()
         parser.exit()

@@ -389,7 +389,7 @@ the target vocabulary head retains BF16 precision. For example:
 .venv/bin/ignition bench qwen3.8-27b-qad --online-mxfp8 --draft-head-quantization nvfp4 --gpus 0
 ```
 
-Use `--mtp-draft-tokens N` to select zero through fifteen prepared draft tokens.
+With DFlash2, use `--mtp-draft-tokens N` to select zero through fifteen prepared draft tokens.
 Width-one rounds retain draft context so adaptive verification can resume wider
 rounds. The proposal block, GDN correction records, and convolution rollback
 storage derive from the configured maximum verification width. Packed target
@@ -411,6 +411,48 @@ budget:
 The recipe context capacity is 262144 tokens.
 `--no-mtp` skips the draft download and omits its weights and state during preparation;
 `flare run CORE --mtp-draft-tokens 0` selects the core's ordinary graphs.
+
+`daisyrose-27b` selects the pinned `RadixArk/DaisyRose-27B-NVFP4` checkpoint at
+revision `c4d85c5d`, a fine-tune stored with the tensor names, shapes and
+formats of `nvidia/Qwen3.8-27B-NVFP4`. Every checkpoint of the recipe prepares
+with either proposal method or with `--no-mtp`.
+
+`--speculative-method dspark` prepares the pinned BF16
+`RadixArk/Qwen3.8-27B-DSpark` draft (revision `b9a5dbdf`) in place of DFlash2;
+`--draft-model FOLDER` reads `config.json` and `model.safetensors` from a folder
+instead of downloading them. The draft has five noncausal layers over the same
+five target layers and the target's embedding and vocabulary head. Its
+proposal block holds the pending token and six mask tokens, so it prepares
+zero through seven draft tokens and verification widths up to eight. It
+attends every accepted position of the request: each draft layer keeps FP8
+E4M3 keys and values in page regions beside the target's, addressed by the
+same page table, which raises the page cost from 4,194,304 to 5,505,024 bytes
+per 128 tokens and leaves no draft ring in the continuation row (166,340,864
+bytes per row at width eight). Rotary embedding is YaRN with factor 32 over
+8,192 positions and the attention factor `0.1 * ln(32) + 1`. A rank-256 Markov
+transition biases each proposal from the previously sampled token. The
+confidence head is not executed, so adaptive and fixed-width verification both
+prepare. `--draft-head-quantization`, `--draft-body-quantization` and
+`ignition bench --speculation-study` are refused with DSpark, and
+`--online-mxfp8` converts the target only.
+
+```sh
+.venv/bin/ignition export daisyrose-27b --gpus 0 --max-concurrency 8 \
+  --speculative-method dspark --mtp-draft-tokens 7 --no-mtp-adaptive-verification
+flare-cli/target/release/flare run CORE
+```
+
+DSpark qualification: the draft's context writer and proposal block run as
+captured CUDA graphs on an RTX 5060 Ti (SM120) with fabricated two-layer
+weights, where draft history is byte-identical for one prefill and chunked
+prefill, a round that accepts three of eight positions stores those three
+only, and logits agree with the eager reference
+`ignition/reference/qwen38_dense_dspark.py` within BF16 rounding. A served
+`daisyrose-27b` DSpark core, its acceptance and its throughput are not
+measured; [the follow-up list](TODO.md) names the unrun checks. The draft's
+model card reports mean accepted lengths of 3.3 to 4.1 tokens on code
+workloads at seven draft tokens under SGLang, a different runtime and
+hardware.
 
 For complete GPU graph round latency without core export, use:
 

@@ -22,7 +22,7 @@ HUB = Path.home() / ".cache/huggingface/hub"
 def test_declarations_import_without_model_dependencies():
     result = subprocess.run(
         [sys.executable, "-c", "import sys; from ignition.recipes import aliases; from ignition import planning;"
-         " import ignition.cli.preparation; assert aliases() == ('qwen3.8-flash', 'qwen3.8-flash-yarn4', 'qwen3.8-27b', 'qwen3.8-27b-qad', 'glm-5.3-flash', 'deepseek-v4.1-flash', 'deepseek-v4-flash', 'mimo-v2.6-pro-mopd', 'mimo-v2.6-flash-rl', 'kimi-k3-mxfp4-csf', 'kimi-k3', 'kimi-k3-dspark', 'kimi-k3.1-pro', 'step5-preview-nvfp4', 'nemotron-bolt-24gb', 'minimax-m3-1-flash', 'gemma-4-e2b', 'gemma-4-e4b', 'gemma-4-12b', 'gemma-4-26b-a4b', 'gemma-4-31b', 'gemma-4-e4b-nvfp4', 'gemma-4-12b-nvfp4', 'gemma-4-26b-a4b-nvfp4', 'gemma-4-31b-nvfp4', 'muse-spark-open-nvfp4', 'inkling-2-small-nvfp4', 'muse-glimmer-30b-nvfp4', 'elephant-1-9b');"
+         " import ignition.cli.preparation; assert aliases() == ('qwen3.8-flash', 'qwen3.8-flash-yarn4', 'qwen3.8-27b', 'qwen3.8-27b-qad', 'daisyrose-27b', 'glm-5.3-flash', 'deepseek-v4.1-flash', 'deepseek-v4-flash', 'mimo-v2.6-pro-mopd', 'mimo-v2.6-flash-rl', 'kimi-k3-mxfp4-csf', 'kimi-k3', 'kimi-k3-dspark', 'kimi-k3.1-pro', 'step5-preview-nvfp4', 'nemotron-bolt-24gb', 'minimax-m3-1-flash', 'gemma-4-e2b', 'gemma-4-e4b', 'gemma-4-12b', 'gemma-4-26b-a4b', 'gemma-4-31b', 'gemma-4-e4b-nvfp4', 'gemma-4-12b-nvfp4', 'gemma-4-26b-a4b-nvfp4', 'gemma-4-31b-nvfp4', 'muse-spark-open-nvfp4', 'inkling-2-small-nvfp4', 'muse-glimmer-30b-nvfp4', 'elephant-1-9b');"
          " assert not {'torch', 'transformers', 'flare_heliopause'} & set(sys.modules)"],
         cwd=ROOT, check=False, capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
@@ -110,7 +110,7 @@ def test_a_different_revision_of_a_declared_repository_is_not_the_pinned_checkpo
 
 @pytest.mark.parametrize("name", ["qwen", "Qwen3.8-Flash", "qwen3.8-flash@main"])
 def test_unknown_aliases_list_the_supported_aliases(name):
-    with pytest.raises(UsageError, match="supported models: qwen3.8-flash, qwen3.8-flash-yarn4, qwen3.8-27b, qwen3.8-27b-qad, glm-5.3-flash"):
+    with pytest.raises(UsageError, match="supported models: qwen3.8-flash, qwen3.8-flash-yarn4, qwen3.8-27b, qwen3.8-27b-qad, daisyrose-27b, glm-5.3-flash"):
         resolve(name)
 
 
@@ -344,3 +344,12 @@ def test_a_named_recipe_never_falls_back(tmp_path):
         resolve(str(tmp_path / "glm"), recipe_name="qwen99")
     with pytest.raises(UsageError, match="--recipe applies to a checkpoint directory MODEL"):
         resolve("qwen3.8-flash", recipe_name="qwen38")
+
+
+def test_daisyrose_resolves_to_its_pinned_dense_qwen_checkpoint():
+    model = resolve("daisyrose-27b")
+    assert model.recipe.name == "qwen38_dense"
+    assert model.checkpoint.repository == "RadixArk/DaisyRose-27B-NVFP4"
+    assert model.checkpoint.revision == "c4d85c5dfad123426555c22f4e24bb15381f0bdb"
+    assert model.source == "c4d85c5d"
+    assert resolve("RadixArk/DaisyRose-27B-NVFP4").checkpoint is model.checkpoint

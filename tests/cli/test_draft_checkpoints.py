@@ -202,3 +202,83 @@ def test_qwen38_dflash2_loads_a_draft_folder_or_the_pinned_download(monkeypatch,
     (folder / "model.safetensors").unlink()
     with pytest.raises(UsageError, match="lacks model.safetensors"):
         plan("dflash2", folder)
+
+
+def _dense_qwen(tmp_path, alias="daisyrose-27b"):
+    recipe = next(recipe for recipe in recipes() if recipe.name == "qwen38_dense")
+    checkpoint = next(checkpoint for checkpoint in recipe.checkpoints if checkpoint.alias == alias)
+    host = Host((planning.Gpu(0, "Blackwell", "GPU-0", 256 << 30, 250 << 30, (12, 0)),), None)
+    configuration = Configuration(tmp_path / "config.toml", {}, exists=True)
+
+    def plan(method, draft_model=None, **changes):
+        from dataclasses import replace
+
+        speculation = replace(recipe.speculation, method=method, **changes)
+        return derive(configuration, ResolvedModel(recipe, checkpoint), host, gpus="0",
+                      concurrency=Setting(4, "test"), speculation=speculation, draft_model=draft_model)
+
+    return recipe, plan
+
+
+def test_dense_qwen_loads_the_draft_its_method_pins_or_a_dspark_draft_folder(monkeypatch, tmp_path):
+    """DSpark reads `--draft-model` or its pinned download; DFlash2 downloads its own pin and accepts no folder."""
+    import huggingface_hub
+
+    from ignition.errors import UsageError
+    from ignition.recipes.qwen38_dense import draft_config, dspark_config
+
+    monkeypatch.setenv("HOME", str(tmp_path))
+    folder = _draft_folder(tmp_path, "config.json", "model.safetensors")
+    recipe, plan = _dense_qwen(tmp_path)
+    pinned = tmp_path / "pinned"
+    downloads = []
+
+    def download(repository, **options):
+        downloads.append((repository, options["revision"], options["allow_patterns"]))
+        return str(pinned)
+
+    monkeypatch.setattr(huggingface_hub, "snapshot_download", download)
+    monkeypatch.setitem(sys.modules, "ignition.recipes.qwen38_dense.bootstrap", SimpleNamespace(
+        PreparationConfig=lambda **options: SimpleNamespace(**options),
+        prepare=lambda snapshot, config, **options: config))
+
+    def prepared(plan):
+        return recipe.prepare(tmp_path / "target", plan, compile_forwards=True, kernel_cache=None, progress=None)
+
+    files = ("config.json", "model.safetensors")
+    from_folder = prepared(plan("dspark", folder))
+    assert from_folder.draft_snapshot == folder and from_folder.speculative_method == "dspark" and not downloads
+    assert prepared(plan("dspark")).draft_snapshot == pinned
+    assert downloads == [("RadixArk/Qwen3.8-27B-DSpark", "b9a5dbdf03bc999c6c73c426b19c2d9041cea393", files)]
+    assert downloads[0][:2] == (dspark_config.REPOSITORY, dspark_config.REVISION)
+    default = prepared(plan("dflash2"))
+    assert default.draft_snapshot == pinned and default.speculative_method == "dflash2"
+    assert downloads[1] == (draft_config.REPOSITORY, draft_config.REVISION, files)
+    with pytest.raises(UsageError, match="daisyrose-27b loads no external draft"):
+        plan("dflash2", folder)
+    with pytest.raises(UsageError, match="lacks model.safetensors"):
+        (folder / "model.safetensors").unlink()
+        plan("dspark", folder)
+
+
+def test_dense_qwen_dspark_costs_and_refusals(tmp_path):
+    from dataclasses import replace
+
+    from ignition.errors import UsageError
+    from ignition.preparation.selection import BenchmarkSelection
+
+    recipe, plan = _dense_qwen(tmp_path)
+    dspark, dflash = plan("dspark"), plan("dflash2")
+    assert (dspark.costs.state_row_bytes, dspark.costs.page_bytes) == (166_340_864, 5_505_024)
+    assert (dflash.costs.state_row_bytes, dflash.costs.page_bytes) == (193_865_984, 4_194_304)
+    assert dflash.weights_bytes - dspark.weights_bytes == 3_953_666_560 - 3_714_705_920
+    assert recipe.draft_token_limit("dspark") == 7 and recipe.draft_token_limit("dflash2") == 15
+    with pytest.raises(UsageError, match="the DSpark draft uses the target's vocabulary head"):
+        plan("dspark", draft_head_quantization="mxfp8")
+    with pytest.raises(UsageError, match="--draft-body-quantization: the DSpark draft keeps its checkpoint precision"):
+        plan("dspark", draft_body_quantization="mxfp8")
+    study = BenchmarkSelection(batches=(1,), speculation_study=True)
+    with pytest.raises(UsageError, match="speculation studies require Qwen3.8-27B DFlash2"):
+        replace(dspark, benchmark_selection=study)
+    assert replace(dflash, benchmark_selection=study).benchmark_selection is study
+    assert plan("dflash2", draft_head_quantization="mxfp8").speculation.draft_head_quantization == "mxfp8"

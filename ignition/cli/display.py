@@ -23,6 +23,16 @@ def error(message: str) -> None:
 
 
 
+# Proposal sources a plan report names; any other method is the target's MTP module.
+PROPOSAL_SOURCES = {"dflash2": "DFlash2", "dspark": "DSpark"}
+
+
+def proposals(settings) -> str:
+    """Name a draft-model proposal source for the startup line; empty for the MTP module or no speculation."""
+    source = None if settings is None else PROPOSAL_SOURCES.get(settings.method)
+    return "" if source is None else f" · {source} proposals"
+
+
 def speculation(settings, *, brief: bool = False) -> str:
     """Describe speculation settings: the drafts verified per round and where they come from.
 
@@ -42,5 +52,5 @@ def speculation(settings, *, brief: bool = False) -> str:
     catalog = " · MTP-only graphs" if settings.mtp_only else ""
     if brief:
         return depth + selection + precision + parallel + catalog
-    source = "DFlash2" if settings.method == "dflash2" else "MTP module"
+    source = PROPOSAL_SOURCES.get(settings.method, "MTP module")
     return f"{depth} per round · {source}" + selection + precision + parallel + catalog

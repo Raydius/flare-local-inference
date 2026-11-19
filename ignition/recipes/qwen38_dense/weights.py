@@ -48,14 +48,20 @@ class ModelWeights:
 
     @classmethod
     def load(cls, manifest, device, *, progress=None, mtp=False, draft_snapshot=None,
-             online_mxfp8=False, draft_head_quantization=None):
+             online_mxfp8=False, draft_head_quantization=None, speculative_method="dflash2"):
         from transformers import Qwen3_5TextConfig, Qwen3_5TextModel
 
         config = ModelConfig.load(manifest.snapshot)
         if draft_head_quantization is not None and "lm_head" in config.quantization:
             raise ValueError("draft head conversion requires BF16 checkpoint vocabulary weights")
+        dspark = mtp and speculative_method == "dspark"
+        if dspark and draft_head_quantization is not None:
+            raise ValueError("the DSpark draft uses the target's vocabulary head")
         if mtp:
-            from .draft_config import load as load_draft_config
+            if dspark:
+                from .dspark_config import load as load_draft_config
+            else:
+                from .draft_config import load as load_draft_config
             config = replace(config, draft=load_draft_config(draft_snapshot, config))
         tree = canonical_tree(Qwen3_5TextModel, Qwen3_5TextConfig.from_dict(config.text))
         projections = {}
@@ -178,7 +184,13 @@ class ModelWeights:
                 projections[name] = combined
         draft = None
         draft_head = None
-        if mtp:
+        if dspark:
+            from .dspark_weights import DraftWeights
+
+            # The DSpark draft keeps its checkpoint precision under `--online-mxfp8`.
+            draft = DraftWeights.load(draft_snapshot, config.draft, device, TensorParallelShard(0, 1),
+                                      progress=progress)
+        elif mtp:
             from ignition.components.dflash2_weights import DraftWeights
             draft = DraftWeights.load(draft_snapshot, config.draft, device, TensorParallelShard(0, 1),
                                       progress=progress, online_mxfp8=online_mxfp8)

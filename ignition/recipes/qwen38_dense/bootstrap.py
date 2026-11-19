@@ -49,7 +49,7 @@ from .contract import prepare as prepare_contract
 from .decoder import PreparedDecoder, Scratch
 from .pool import ContinuationPool, continuation_layout, page_bytes
 from .weights import ModelWeights
-from .dflash import SpeculativePreparation
+from . import dflash, dspark
 
 
 @dataclass(frozen=True)
@@ -75,6 +75,8 @@ class PreparationConfig:
     kernel_cache: Path | None = None
     benchmark_selection: BenchmarkSelection | None = None
     mtp: bool = True
+    # Proposal method prepared when `mtp` is set: "dflash2" or "dspark".
+    speculative_method: str = "dflash2"
     draft_snapshot: Path | None = None
     speculative_graph_budget: int = 64
     speculative_widths: tuple[int, ...] = (1, 2, 3, 4, 5, 6, 7, 8)
@@ -86,8 +88,16 @@ class PreparationConfig:
         if self.mtp_only and (not self.mtp
                 or max(self.speculative_widths, default=1) <= 1 or self.speculative_fixed_width == 1):
             raise ValueError("--mtp-only requires enabled learned speculation with positive draft depth")
+        if self.speculative_method not in ("dflash2", "dspark"):
+            raise ValueError("Qwen dense proposal method must be dflash2 or dspark")
         if self.speculative_widths and max(self.speculative_widths) > 16:
             raise ValueError("Qwen dense supports at most fifteen draft tokens")
+        if self.dspark and max(self.speculative_widths, default=1) > 8:
+            raise ValueError("Qwen dense DSpark supports at most seven draft tokens")
+        if self.dspark and self.draft_head_quantization is not None:
+            raise ValueError("the DSpark draft uses the target's vocabulary head")
+        if self.dspark and self.benchmark_selection is not None and self.benchmark_selection.speculation_study:
+            raise ValueError("speculation studies require DFlash2")
         request_capacity(self.max_active)
         selection = self.benchmark_selection
         if selection is not None:
@@ -118,11 +128,15 @@ class PreparationConfig:
         if self.draft_head_quantization is not None and not self.mtp:
             raise ValueError("draft head quantization requires DFlash2")
         if self.mtp and self.draft_snapshot is None:
-            raise ValueError("Qwen DFlash2 preparation requires a draft checkpoint")
+            raise ValueError("Qwen speculative preparation requires a draft checkpoint")
         parallel_speculative_shapes(self.max_active, self.speculative_widths, self.speculative_token_capacity,
             self.speculative_graph_budget, fixed_width=self.speculative_fixed_width)
         if self.speculative_fixed_width is not None and self.speculative_fixed_width not in self.speculative_widths:
             raise ValueError("fixed verification width must belong to the prepared catalog")
+
+    @property
+    def dspark(self):
+        return self.mtp and self.speculative_method == "dspark"
 
     @property
     def speculative_round_shapes(self):
@@ -201,7 +215,7 @@ def prepare(snapshot, config, *, progress=None, core_storage):
     transient.enter_context(core_storage.transient())
     weights = ModelWeights.load(manifest, device, progress=progress, mtp=config.mtp,
         draft_snapshot=config.draft_snapshot, online_mxfp8=config.online_mxfp8,
-        draft_head_quantization=config.draft_head_quantization)
+        draft_head_quantization=config.draft_head_quantization, speculative_method=config.speculative_method)
     release_unused()
     study_widths = (() if config.benchmark_selection is None
                     else config.benchmark_selection.selected_study_widths)
@@ -259,12 +273,13 @@ def prepare(snapshot, config, *, progress=None, core_storage):
             submission_sequence=sequence, **completion.buffers())
         speculation = None
         if config.mtp and config.speculative_round_shapes:
-            speculation = SpeculativePreparation(weights, pool, requests, inputs, decode_storage,
+            owner = dspark.SpeculativePreparation if config.dspark else dflash.SpeculativePreparation
+            speculation = owner(weights, pool, requests, inputs, decode_storage,
                 completion=completion, frame=frame, sequence=sequence, session=session, workspace=arena,
                 verification_width=config.verification_width)
         study_owners = {}
         for study_width in study_widths:
-            study_owners[study_width] = SpeculativePreparation(weights, pool, requests, inputs, decode_storage,
+            study_owners[study_width] = dflash.SpeculativePreparation(weights, pool, requests, inputs, decode_storage,
                 completion=completion, frame=frame, sequence=sequence, session=session, workspace=arena,
                 study_width=study_width)
     scoring = PromptScoring.allocate(config, device, buffers, frame=frame)
@@ -298,8 +313,10 @@ def prepare(snapshot, config, *, progress=None, core_storage):
                         scoring=scoring if kind == "scored_prefill" else None,
                         vocabulary_runtime=None, coordinator=coordinator, session=session, name=name, workspace=arena)
                     batch = PreparedBatch(inputs, requests, m, mode=mode, shard=weights.shard, pool=pool)
-                    context = (partial(PreparedContext, runtime=None, coordinator=None,
-                        compact_prefill=mode == "prefill") if enabled else None)
+                    context = None
+                    if enabled:
+                        context = dspark.PreparedContext if config.dspark else partial(
+                            PreparedContext, runtime=None, coordinator=None, compact_prefill=mode == "prefill")
                     forward = PreparedGeneration(decoder, batch, completion, frame, sequence, runtime=None,
                         coordinator=coordinator, session=session, name=name + ".generation", workspace=arena,
                         context_factory=context)

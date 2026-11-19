@@ -407,9 +407,12 @@ class PreparedDecoder:
             name=name + ".prompt")
         self.head = PreparedVocabularyProjection(scratch.hidden, weights.head, scratch.logits, scratch.logits,
             runtime=vocabulary_runtime, coordinator=coordinator, session=session, name=name + ".head", activation_mode="auto", workspace=workspace).functional(session=session)
+        # A windowed draft keeps a prefill chunk's trailing window; an unwindowed draft keeps every position.
+        window = None if weights.draft is None else config.draft.attention.window
         self.context_capture = (PreparedContextCapture(metadata,
-            config.hidden * len(config.draft.target_layers), config.draft.attention.window,
-            compact_prefill=mode == "prefill").functional() if weights.draft is not None else None)
+            config.hidden * len(config.draft.target_layers), window,
+            compact_prefill=mode == "prefill" and window is not None).functional()
+            if weights.draft is not None else None)
         self.auxiliary = (None if self.context_capture is None else torch.empty(
             self.context_capture.shape, dtype=torch.bfloat16, device=source.device))
         self.replay = None

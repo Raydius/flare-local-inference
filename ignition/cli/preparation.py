@@ -217,7 +217,7 @@ def stream_overlap(args, model: ResolvedModel) -> bool:
 def speculation(args, model: ResolvedModel, configuration: Configuration | None = None) -> Speculation | None:
     """Apply the command line's speculation overrides to the recipe's settings; None disables speculation."""
     recipe, alias = model.recipe, model.checkpoint.alias
-    default, limit = recipe.speculation, recipe.max_draft_tokens
+    default = recipe.speculation
     method_flag = getattr(args, "speculative_method", None)
     method = None if default is None else default.method
     if configuration is not None:
@@ -254,6 +254,7 @@ def speculation(args, model: ResolvedModel, configuration: Configuration | None 
 
     if method is not None and method != default.method and method not in recipe.speculative_methods:
         raise UsageError(f"--speculative-method {method}: {alias} does not prepare this proposal method")
+    limit = recipe.draft_token_limit(method)
     drafts = default.draft_tokens if args.mtp_draft_tokens is None else args.mtp_draft_tokens
     if not 0 <= drafts <= limit:
         raise UsageError(f"--mtp-draft-tokens must be 0 through {limit}; --no-mtp disables speculation")
