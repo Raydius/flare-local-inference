@@ -7,7 +7,20 @@ the DSpark drafter in
 `deepseek-ai/DeepSeek-V4.1-Flash-1017` on SM120/121. This document specifies
 those three drafters. Other recipes declare their own learned drafters through
 `Recipe.speculation` in `ignition/recipes/declaration.py` and use the shared
-transaction, completion, and scheduling contracts described here;
+transaction, completion, and scheduling contracts described here. A recipe
+lists further proposal methods in `Recipe.speculative_methods`; each has its
+own costs, draft files and, optionally, its own draft-token limit. The dense
+Qwen recipe (`ignition/recipes/qwen38_dense/`) declares two: DFlash2, its
+default, and DSpark, which prepares `RadixArk/Qwen3.8-27B-DSpark`. The DSpark
+block holds the pending token and six mask tokens, and block position `i`
+proposes draft `i + 1`. Five noncausal layers attend every accepted position
+of the request through draft key and value pages that the request's target
+page table addresses, so the runtime's prefix reuse, snapshots, eviction and
+offload cover draft history as paged key/value history. A rank-256 Markov
+transition from the previously sampled token biases each position's logits.
+The draft's confidence head is validated and not executed; prefix selection
+stays on the host. [Model preparation](model-preparation.md#qwen38-27b)
+states its commands, storage and qualification.
 `ignition --help` lists each recipe's default and maximum draft counts. Python prepares
 weights, kernels, storage and CUDA graphs; Rust schedules requests and launches
 graphs. Acceptance and token feedback remain on the device. Speculative serving

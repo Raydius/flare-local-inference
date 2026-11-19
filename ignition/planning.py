@@ -237,6 +237,8 @@ class Plan:
                 )
             if selection.speculation_study and not self.recipe.speculation_study:
                 raise UsageError(f"speculation studies require a recipe that declares speculation_study ({self.checkpoint.alias} does not)")
+            if selection.speculation_study and self.speculation is not None and self.speculation.method == "dspark":
+                raise UsageError("speculation studies require Qwen3.8-27B DFlash2")
             required_widths = (8,) if selection.speculation_study else selection.selected_verification_widths
             if not selection.prefill_chunk and (self.speculation is None
                     or not set(required_widths) <= set(self.speculation.widths)):
@@ -486,6 +488,10 @@ def fit(recipe: Recipe, checkpoint: Checkpoint, gpus: tuple[Gpu, ...], *, concur
             raise UsageError(
                 f"--vocabulary-parallel-sampling has no TP{len(gpus)} gather; select {allowed} GPUs"
             )
+        if speculation.method == "dspark" and speculation.draft_head_quantization is not None:
+            raise UsageError("--draft-head-quantization: the DSpark draft uses the target's vocabulary head")
+        if speculation.method == "dspark" and speculation.draft_body_quantization is not None:
+            raise UsageError("--draft-body-quantization: the DSpark draft keeps its checkpoint precision")
         for head in ("draft", "markov"):
             value = getattr(speculation, f"{head}_head_quantization")
             if value is not None and value not in getattr(recipe, f"{head}_head_quantizations"):
