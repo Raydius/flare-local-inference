@@ -15,7 +15,7 @@ See proposal.md for motivation. The dense Qwen recipe gains a second proposal me
 
 - `ignition/recipes/qwen38_dense/recipe.py` declares `speculative_methods={"dspark": SpeculativeMethod(...)}` with measured rank costs, `draft_bytes`, `draft_files=("config.json", "model.safetensors")` and `max_draft_tokens=7`, and the checkpoint `daisyrose-27b` with its pinned revision and measured byte counts.
 - `prepare` selects the draft repository by method: the DFlash2 pin in `draft_config.py`, or the DSpark pin in the new `dspark_config.py`; a `--draft-model` folder replaces the DSpark download as it does for Flash Next (`ignition/recipes/qwen38/recipe.py:62`).
-- DSpark plans refuse `--draft-head-quantization`, `--draft-body-quantization`, `--online-mxfp8` and speculation studies with a usage error naming the method, as `ignition/recipes/kimi31/recipe.py:24` refuses draft-body conversion for its DSpark.
+- DSpark plans refuse `--draft-head-quantization`, `--draft-body-quantization` and speculation studies with a usage error naming the method, as `ignition/recipes/kimi31/recipe.py:24` refuses draft-body conversion for its DSpark. `--online-mxfp8` is accepted and converts the target only; the DSpark draft keeps its checkpoint precision.
 
 ### Draft configuration and weights (new modules)
 
@@ -44,7 +44,7 @@ See proposal.md for motivation. The dense Qwen recipe gains a second proposal me
 - `recipe.py` declares `daisyrose-27b-yarn4` with `context=1_048_576` and `RopeScaling(4., 262144)` and passes the plan checkpoint's scaling to `PreparationConfig`, which raises its context ceiling to the scaling's and requires the 262,144 anchor. Declaring one scaled checkpoint also admits `--rope-parameters` for the recipe's other checkpoints (`ignition/cli/preparation.py` `rope_scaled`), which is how a console profile of a checkpoint folder selects it.
 - `ModelWeights.load` checks the anchor against the checkpoint's `max_position_embeddings` and records the scaling on `ModelConfig`; `decoder.py` builds its 32 inverse frequencies with `ignition.components.rotary.interpolated_frequencies` when a scaling is present. The preparation identity gains a `rope_scaling` entry only when present.
 - Draft rotary is unchanged for both methods. The DSpark draft attends the whole request, so past 262,144 tokens its relative offsets exceed those its YaRN configuration covers; draft acceptance there is unmeasured and listed in `docs/TODO.md`.
-- No export of a scaled core is part of this change's tasks until the operator asks for it.
+- Task 7 exports and serves the scaled core, on the operator's instruction.
 
 ### Validation
 
@@ -102,3 +102,7 @@ Consensus feedback recorded verbatim:
 - Tasks reframed: task 7 survives with rewritten criteria and a `reframed:` line.
 - Lesson: openspec/lessons.md#serve-from-the-operators-running-profile — the operator's default console profile specifies a served package; copy it and change only the change's subject.
 
+
+## Reuse decision after verification (operator, 2026-11-19)
+
+The verification audit (`verification.md`, Reused findings 1 to 3) found three recipe-local re-implementations of shared DFlash2 code: the weight loader and shape table in `dspark_weights.py` (shared: `ignition/components/dflash2_weights.py`, which has a `projector` switch), `rotate` in `dspark.py` (shared: `_rotary` in `ignition/components/dflash2.py`), and `PreparedContext` in `dspark.py` (shared: `PreparedContext` in the same component). The operator chose "Fix by reusing shared code": widen the shared components with optional arguments that default to today's behaviour, test on GPU 1, then re-export and re-approve the DaisyRose core.
