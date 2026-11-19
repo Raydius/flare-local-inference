@@ -130,7 +130,7 @@ def test_dspark_owner_sizes_a_seven_position_block_scored_from_the_pending_token
     assert (owner.draft_scratch.tokens, owner.draft_scratch.block_size) == (2 * 7, 7)
     assert owner.draft_scratch.logit_shape == (14, config.vocabulary)
     assert owner.forwards.markov is PreparedMarkov
-    assert owner.forwards.context.func is dspark.PreparedContext and owner.forwards.draft.func is dspark.PreparedDraft
+    assert owner.forwards.context.func is dspark.prepared_context and owner.forwards.draft.func is dspark.PreparedDraft
     assert owner.records.delta.shape == (48, 2, 48, 8, 128)
     assert config.draft.noise_token == 248070
     assert dspark.tail_pages(7) == 2

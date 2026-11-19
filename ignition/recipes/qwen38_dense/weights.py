@@ -190,11 +190,11 @@ class ModelWeights:
         draft = None
         draft_head = None
         if dspark:
-            from .dspark_weights import DraftWeights
+            from . import dspark_weights
 
             # The DSpark draft keeps its checkpoint precision under `--online-mxfp8`.
-            draft = DraftWeights.load(draft_snapshot, config.draft, device, TensorParallelShard(0, 1),
-                                      progress=progress)
+            draft = dspark_weights.load(draft_snapshot, config.draft, device, TensorParallelShard(0, 1),
+                                        progress=progress)
         elif mtp:
             from ignition.components.dflash2_weights import DraftWeights
             draft = DraftWeights.load(draft_snapshot, config.draft, device, TensorParallelShard(0, 1),

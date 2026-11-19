@@ -211,13 +211,12 @@ def test_prepared_draft_matches_the_reference_on_the_pinned_weights():
     from b12x.preparation import PreparationSession
     from safetensors import safe_open
 
-    from ignition.components.dflash2_weights import DraftLayerWeights
+    from ignition.components.dflash2_weights import DraftLayerWeights, DraftWeights
     from ignition.components.parallel import TensorParallelShard
     from ignition.components.weights import MLPWeights
     from ignition.preparation.scratch import ScratchArena
     from ignition.recipes.qwen38_dense import dspark_config
     from ignition.recipes.qwen38_dense.config import ModelConfig
-    from ignition.recipes.qwen38_dense.dspark_weights import DraftWeights
     from tests.recipes import test_qwen38_dense_dspark_cuda as prepared
 
     snapshot = Path(os.environ["FLARE_QWEN38_DSPARK_SNAPSHOT"])
@@ -251,7 +250,7 @@ def test_prepared_draft_matches_the_reference_on_the_pinned_weights():
     q = draft_config.attention.heads * draft_config.attention.key_dim
     draft = DraftWeights(tensors["fc.weight"], tensors["hidden_norm.weight"],
         torch.cat([layer.qkv[q:] for layer in layers]), tensors["norm.weight"],
-        tensors["markov_head.markov_w1.weight"], tensors["markov_head.markov_w2.weight"], tuple(layers))
+        tuple(layers), None, tensors["markov_head.markov_w1.weight"], tensors["markov_head.markov_w2.weight"])
     weights = SimpleNamespace(config=SimpleNamespace(hidden=target.hidden, vocabulary=target.vocabulary,
         text=target.text, draft=draft_config), shard=TensorParallelShard(0, 1), draft=draft,
         embedding=embedding, head=head)

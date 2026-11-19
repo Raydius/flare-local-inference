@@ -36,10 +36,9 @@ def small_config():
 
 @pytest.fixture(scope="module")
 def weights():
-    from ignition.components.dflash2_weights import DraftLayerWeights
+    from ignition.components.dflash2_weights import DraftLayerWeights, DraftWeights
     from ignition.components.parallel import TensorParallelShard
     from ignition.components.weights import MLPWeights
-    from ignition.recipes.qwen38_dense.dspark_weights import DraftWeights
 
     generator = torch.Generator(device="cuda").manual_seed(8191)
 
@@ -54,8 +53,8 @@ def weights():
         scale(HIDDEN), scale(HIDDEN), MLPWeights(matrix(2 * INTERMEDIATE, HIDDEN), matrix(HIDDEN, INTERMEDIATE)),
         None, None) for _ in range(LAYERS))
     draft = DraftWeights(matrix(HIDDEN, TAPS * HIDDEN), scale(HIDDEN),
-        torch.cat([layer.qkv[q:] for layer in layers]).contiguous(), scale(HIDDEN),
-        matrix(VOCABULARY, RANK), matrix(VOCABULARY, RANK), layers)
+        torch.cat([layer.qkv[q:] for layer in layers]).contiguous(), scale(HIDDEN), layers, None,
+        markov_embedding=matrix(VOCABULARY, RANK), markov_head=matrix(VOCABULARY, RANK))
     return SimpleNamespace(config=small_config(), shard=TensorParallelShard(0, 1), draft=draft,
         embedding=matrix(VOCABULARY, HIDDEN), head=matrix(VOCABULARY, HIDDEN))
 
@@ -130,14 +129,14 @@ class Harness:
     def __init__(self, weights, session, arena, *, chunk):
         from ignition.components.dflash2 import DraftScratch
         from ignition.recipes.kimi3.dspark import PreparedMarkov
-        from ignition.recipes.qwen38_dense.dspark import PreparedContext, PreparedDraft
+        from ignition.recipes.qwen38_dense.dspark import PreparedDraft, prepared_context
 
         self.pages = Pages()
         self.contexts = {}
         for name, tokens in (("chunk", chunk), ("round8", 8), ("round1", 1)):
             source = torch.zeros((tokens, TAPS * HIDDEN), dtype=torch.bfloat16, device="cuda")
             batch, counts = metadata(tokens), torch.zeros(1, dtype=torch.int32, device="cuda")
-            context = PreparedContext(weights, source, batch, self.pages, session=session,
+            context = prepared_context(weights, source, batch, self.pages, session=session,
                                       name=f"dspark{chunk}.{name}.context", workspace=arena)
             self.contexts[name] = SimpleNamespace(source=source, batch=batch, counts=counts, context=context)
         self.block = metadata(2 * BLOCK, rows=2, samples=2 * BLOCK)

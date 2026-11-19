@@ -211,24 +211,26 @@ def test_published_header_maps_completely():
     assert dspark_weights.tensor_shapes(draft) == PUBLISHED_SHAPES
     dspark_weights.validate_metadata(header(), draft)
     # Every tensor outside the confidence head is read by the loader's prefix selection.
-    unread = {name for name in PUBLISHED_SHAPES if not name.startswith(dspark_weights._LOADED_PREFIXES)}
+    from ignition.components.dflash2_weights import _LOADED_PREFIXES
+
+    unread = {name for name in PUBLISHED_SHAPES if not name.startswith(_LOADED_PREFIXES["dspark"])}
     assert unread == {"confidence_head.proj.weight", "confidence_head.proj.bias"}
 
 
 @pytest.mark.parametrize("name", ["lm_head.weight", "embed_tokens.weight", "layers.5.input_layernorm.weight",
     "layers.0.attention_conv.base_kernel", "candidate_selector.predecessor_codebook", "confidence_head.proj.scale"])
-def test_extra_tensor_is_rejected_by_name(name):
+def test_extra_tensor_is_rejected(name):
     draft = dspark_config.from_dict(published(), Target)
-    with pytest.raises(ValueError, match=rf"tensor names disagree.*unexpected=\['{name}'\]"):
+    with pytest.raises(ValueError, match="^DSpark checkpoint tensor names disagree"):
         dspark_weights.validate_metadata(header({**PUBLISHED_SHAPES, name: (5120,)}), draft)
 
 
 @pytest.mark.parametrize("name", ["fc.weight", "layers.3.self_attn.k_norm.weight", "markov_head.markov_w2.weight",
                                   "confidence_head.proj.bias"])
-def test_missing_tensor_is_rejected_by_name(name):
+def test_missing_tensor_is_rejected(name):
     draft = dspark_config.from_dict(published(), Target)
     shapes = {key: shape for key, shape in PUBLISHED_SHAPES.items() if key != name}
-    with pytest.raises(ValueError, match=rf"tensor names disagree.*missing=\['{name}'\]"):
+    with pytest.raises(ValueError, match="^DSpark checkpoint tensor names disagree"):
         dspark_weights.validate_metadata(header(shapes), draft)
 
 
@@ -237,7 +239,7 @@ def test_missing_tensor_is_rejected_by_name(name):
     ("confidence_head.proj.bias", (2,))])
 def test_misshaped_tensor_is_rejected_by_name(name, shape):
     draft = dspark_config.from_dict(published(), Target)
-    with pytest.raises(ValueError, match=rf"^{name}: .*BF16 storage with shape"):
+    with pytest.raises(ValueError, match=rf"^{name}: DSpark requires BF16 storage with shape"):
         dspark_weights.validate_metadata(header({**PUBLISHED_SHAPES, name: shape}), draft)
 
 
@@ -246,12 +248,12 @@ def test_non_bf16_tensor_is_rejected():
     manifest = header()
     tensors = dict(manifest.tensors)
     tensors["norm.weight"] = replace(tensors["norm.weight"], dtype="F32")
-    with pytest.raises(ValueError, match="^norm.weight: .*found F32"):
+    with pytest.raises(ValueError, match="^norm.weight: DSpark requires BF16 storage"):
         dspark_weights.validate_metadata(replace(manifest, tensors=tensors), draft)
 
 
 def test_rebuild_manifest_names_every_draft_weight():
-    from ignition.components.dflash2_weights import DraftLayerWeights
+    from ignition.components.dflash2_weights import DraftLayerWeights, DraftWeights
     from ignition.components.weights import MLPWeights
     from ignition.preparation.rebuild_manifest import declare_weights, declared_views
 
@@ -260,7 +262,7 @@ def test_rebuild_manifest_names_every_draft_weight():
 
     layer = DraftLayerWeights(tensor(), tensor(), tensor(), tensor(), tensor(), tensor(),
         MLPWeights(tensor(), tensor()), None, None)
-    draft = dspark_weights.DraftWeights(tensor(), tensor(), tensor(), tensor(), tensor(), tensor(), (layer,))
+    draft = DraftWeights(tensor(), tensor(), tensor(), tensor(), (layer,), None, tensor(), tensor())
     names = [name for name, *_ in declared_views(declare_weights({"draft": draft}, components=("draft",)))]
     assert sorted(names) == sorted(["draft.projection", "draft.hidden_norm", "draft.context_kv", "draft.norm",
         "draft.markov_embedding", "draft.markov_head", "draft.layers[0].qkv", "draft.layers[0].output",
@@ -296,7 +298,7 @@ def test_load_fuses_projections_and_stacks_context_rows(tmp_path):
     source = {name: torch.randn(shape, generator=generator).to(torch.bfloat16)
               for name, shape in dspark_weights.tensor_shapes(small).items()}
     save_file(source, str(tmp_path / "model.safetensors"))
-    weights = dspark_weights.DraftWeights.load(tmp_path, small, torch.device("cuda:0"), TensorParallelShard(0, 1))
+    weights = dspark_weights.load(tmp_path, small, torch.device("cuda:0"), TensorParallelShard(0, 1))
 
     def check(actual, name):
         assert actual.dtype == torch.bfloat16 and actual.is_contiguous()

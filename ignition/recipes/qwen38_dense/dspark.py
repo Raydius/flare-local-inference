@@ -16,9 +16,8 @@ from functools import partial
 from types import SimpleNamespace
 
 import torch
-from transformers.models.qwen3.modeling_qwen3 import rotate_half
 
-from ignition.components.dflash2 import DraftScratch
+from ignition.components.dflash2 import DraftScratch, PreparedContext, _rotary
 from ignition.components.embedding import PreparedShardedEmbedding
 from ignition.components.linear import prepare_projection
 from ignition.components.mlp import PreparedMLP
@@ -33,14 +32,6 @@ from . import dflash
 from .config import PAGE_TOKENS
 
 
-def rotate(values, positions, inverse, gain):
-    """Qwen3's rotate-half rotary embedding with the YaRN gain multiplied into the FP32 cosine and sine."""
-    frequencies = positions.clamp_min(0).float()[:, None] * inverse[None]
-    angles = torch.cat((frequencies, frequencies), -1)
-    cos, sin = (angles.cos() * gain).to(values.dtype), (angles.sin() * gain).to(values.dtype)
-    return values * cos[:, None] + rotate_half(values) * sin[:, None]
-
-
 def tail_pages(block):
     """Private pages that hold a committed partial page followed by one proposal block."""
     return (PAGE_TOKENS - 1 + block + PAGE_TOKENS - 1) // PAGE_TOKENS
@@ -53,55 +44,18 @@ def tail_slots(metadata, pages):
     return torch.where((m.positions >= 0) & (m.lengths[m.requests] > 0), slot, -1)
 
 
-class PreparedContext:
-    """Write accepted target features into every draft layer's key and value pages.
+def prepared_context(weights, auxiliary, metadata, pool, **options):
+    """The shared draft context writer storing into every draft layer's key and value pages.
 
     The stored keys and values depend only on a token's position and target features, so one
     prefill, chunked prefill and verification rounds leave the same history for the same tokens.
     Positions a round does not accept receive no slot.
     """
-
-    def __init__(self, weights, auxiliary, metadata, pool, *, session, name, workspace, examples=None):
-        config, draft = weights.config, weights.draft
-        c, a = config.draft, config.draft.attention
-        eps, device, tokens = c.text["rms_norm_eps"], auxiliary.device, auxiliary.shape[0]
-        self.inverse, self.gain = persistent_copy(c.frequencies(device)), c.rotary_gain
-        self.key_shape = (tokens, a.kv_heads, a.key_dim)
-        self.value_shape = (tokens, a.kv_heads, a.value_dim)
-
-        def empty(role, shape, dtype=torch.bfloat16):
-            return declaration_tensor(examples, "dspark.context." + role, shape, dtype, device)
-
-        projected = empty("projected", (tokens, config.hidden))
-        self.project = prepare_projection(auxiliary, draft.projection, projected, session=session,
-            name=name + ".project", workspace=workspace).functional(session=session)
-        self.norm = canonical_norm(draft.hidden_norm, eps)
-        kv = empty("kv", (tokens, c.layers * a.kv_heads * (a.key_dim + a.value_dim)))
-        self.project_kv = prepare_projection(projected, draft.context_kv, kv, session=session,
-            name=name + ".kv", workspace=workspace).functional(session=session)
-        self.layers = []
-        for index, layer in enumerate(draft.layers):
-            slots = torch.full((tokens,), -1, dtype=torch.int64, device=device)
-            writer = PreparedPagedKVWriter(empty("key", self.key_shape), empty("value", self.value_shape),
-                *pool.draft_attention(index, config), slots, session=session, name=f"{name}.{index}.write",
-                caller_owned_placeholders=True).functional()
-            self.layers.append((canonical_norm(layer.key_norm, eps), writer))
-
-    def functional(self):
-        return self
-
-    def __call__(self, auxiliary, counts, metadata):
-        m = metadata
-        slots = context_slots(m, counts, page_tokens=PAGE_TOKENS)
-        kv = self.project_kv(self.norm(self.project(auxiliary)))
-        width = self.key_shape[1] * self.key_shape[2]
-        chunks = kv.view(kv.shape[0], len(self.layers), -1)
-        for index, (norm, writer) in enumerate(self.layers):
-            key = rotate(norm(chunks[:, index, :width].view(self.key_shape)), m.positions, self.inverse, self.gain)
-            writer(key, chunks[:, index, width:].view(self.value_shape).contiguous(), slots)
-
-    def scratch_tensors(self):
-        return ()
+    draft = weights.config.draft
+    return PreparedContext(weights, auxiliary, metadata, pool, runtime=None, coordinator=None,
+        pages=partial(pool.draft_attention, config=weights.config),
+        slots=partial(context_slots, page_tokens=PAGE_TOKENS),
+        inverse=persistent_copy(draft.frequencies(auxiliary.device)), gain=draft.rotary_gain, **options)
 
 
 class DraftAttention:
@@ -157,8 +111,8 @@ class DraftAttention:
         m = metadata
         q, k, v = self.qkv(source).split(tuple(shape[1] * shape[2] for shape in
                                                 (self.query_shape, self.key_shape, self.value_shape)), -1)
-        query = rotate(self.q_norm(q.view(self.query_shape)), m.positions, self.inverse, self.gain)
-        key = rotate(self.k_norm(k.view(self.key_shape)), m.positions, self.inverse, self.gain)
+        query = _rotary(self.q_norm(q.view(self.query_shape)), m.positions, self.inverse, self.gain)
+        key = _rotary(self.k_norm(k.view(self.key_shape)), m.positions, self.inverse, self.gain)
         tail_key, tail_value = self.stage_tail(key, v.view(self.value_shape).contiguous(), m)
         lengths = torch.where(m.lengths > 0, m.starts.int() + m.lengths, 0)
         attended = self.attention(query, k_cache=self.key_pages, v_cache=self.value_pages, cache_seqlens=lengths,
@@ -233,7 +187,7 @@ class SpeculativePreparation(dflash.SpeculativePreparation):
         self.draft_scratch = DraftScratch.allocate(weights.config.draft, weights.shard,
             requests.capacity * block, pool.backing.device, block_size=block)
         self.forwards = SimpleNamespace(decoder=self.forwards.decoder,
-            context=partial(PreparedContext, examples=self.examples),
+            context=partial(prepared_context, examples=self.examples),
             draft=partial(PreparedDraft, embedding=weights.tree.embed_tokens.weight, head=weights.head,
                           examples=self.examples),
             markov=PreparedMarkov)

@@ -34,7 +34,13 @@ class DraftLayerWeights:
 
 
 # Projector-less DFlash drafts name the context projection and its norm under ``encoder``.
-_PROJECTION_NAMES = {"dflash2": ("fc", "hidden_norm"), "dflash": ("encoder.fc", "encoder.output_norm_enc")}
+_PROJECTION_NAMES = {"dflash2": ("fc", "hidden_norm"), "dflash": ("encoder.fc", "encoder.output_norm_enc"),
+                     "dspark": ("fc", "hidden_norm")}
+# A DSpark draft stores the layers without convolutions or a selector, a low-rank Markov transition,
+# and a confidence head.
+# The confidence head is not executed: its tensors are checked for shape and never read.
+_LOADED_PREFIXES = {"dspark": ("fc.", "hidden_norm.", "norm.", "layers.", "markov_head.")}
+_FAMILY = {"dflash2": "DFlash2", "dflash": "DFlash2", "dspark": "DSpark"}
 
 
 @dataclass(frozen=True)
@@ -45,6 +51,9 @@ class DraftWeights:
     norm: torch.Tensor
     layers: tuple[DraftLayerWeights, ...]
     selector: dict | None
+    # DSpark only: the transition's replicated embedding rows and its head, partitioned by vocabulary row.
+    markov_embedding: torch.Tensor | None = None
+    markov_head: torch.Tensor | None = None
 
     @classmethod
     def load(cls, snapshot, config, device, shard, *, progress=None, online_mxfp8=False, projector="dflash2"):
@@ -63,7 +72,8 @@ class DraftWeights:
         def pack(weight):
             return quantize_bf16_linear_as_mxfp8(weight) if online_mxfp8 else weight
 
-        with DirectWeightLoader(manifest, device, progress=progress, progress_label="Load draft weights") as loader:
+        with DirectWeightLoader(manifest, device, prefixes=_LOADED_PREFIXES.get(projector), progress=progress,
+                                progress_label="Load draft weights") as loader:
             def matrix(prefix, rows=None, columns=None, *, temporary=None):
                 return loader.load_tensor(prefix + ".weight", extent=(
                     slice(*(rows or (None, None))), slice(*(columns or (None, None)))),
@@ -98,17 +108,28 @@ class DraftWeights:
                 values = loader.load_tensors(("candidate_selector.hidden_projection.weight",
                     "candidate_selector.predecessor_codebook", "candidate_selector.successor_codebook"))
                 selector = dict(zip(("projection", "predecessor", "successor"), values, strict=True))
+            markov_embedding = markov_head = None
+            if projector == "dspark":
+                markov_embedding = matrix("markov_head.markov_w1", temporary=False)
+                markov_head = matrix("markov_head.markov_w2", temporary=False,
+                                     rows=shard.partition(c["vocab_size"], alignment=64))
         context = pack((torch.cat if online_mxfp8 else persistent_cat)(context_parts))
-        return cls(projection, hidden_norm, context, norm, tuple(layers), selector)
+        return cls(projection, hidden_norm, context, norm, tuple(layers), selector, markov_embedding, markov_head)
 
 
-def validate_metadata(manifest, config, projector="dflash2"):
+def tensor_shapes(config, projector="dflash2"):
+    """Shape of every tensor a draft checkpoint with this configuration stores, by tensor name."""
     c = config.text
     h, i = c["hidden_size"], c["intermediate_size"]
     q, kv, head = c["num_attention_heads"] * c["head_dim"], c["num_key_value_heads"] * c["head_dim"], c["head_dim"]
     projection_name, hidden_norm_name = _PROJECTION_NAMES[projector]
     expected = {projection_name + ".weight": (h, h * len(config.target_layers)),
                 hidden_norm_name + ".weight": (h,), "norm.weight": (h,)}
+    if projector == "dspark":
+        rank = c["markov_rank"]
+        expected.update({"markov_head.markov_w1.weight": (c["vocab_size"], rank),
+            "markov_head.markov_w2.weight": (c["vocab_size"], rank),
+            "confidence_head.proj.weight": (1, h + rank), "confidence_head.proj.bias": (1,)})
     d = c["dflash_config"] if projector == "dflash2" else None
     if d is not None:
         expected.update({"candidate_selector.hidden_projection.weight": (d["selector_rank"], h),
@@ -126,9 +147,14 @@ def validate_metadata(manifest, config, projector="dflash2"):
         for name in ("attention_conv", "mlp_conv"):
             expected[p + name + ".base_kernel"] = (2, d["conv_kernel_size"], h)
             expected[p + name + ".kernel_projection.weight"] = (2 * d["conv_kernel_size"] * (h // d["conv_group_size"]), h)
+    return expected
+
+
+def validate_metadata(manifest, config, projector="dflash2"):
+    expected, family = tensor_shapes(config, projector), _FAMILY[projector]
     if set(manifest.tensors) != set(expected):
-        raise ValueError("DFlash2 checkpoint tensor names disagree with its architecture")
+        raise ValueError(f"{family} checkpoint tensor names disagree with its architecture")
     for name, shape in expected.items():
         tensor = manifest.tensors[name]
         if tensor.shape != shape or tensor.dtype != "BF16":
-            raise ValueError(f"{name}: DFlash2 requires BF16 storage with shape {shape}")
+            raise ValueError(f"{name}: {family} requires BF16 storage with shape {shape}")
