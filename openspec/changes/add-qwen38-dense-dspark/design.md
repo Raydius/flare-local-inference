@@ -39,6 +39,13 @@ See proposal.md for motivation. The dense Qwen recipe gains a second proposal me
 - `decoder.py`: under `dspark`, feature capture keeps every position of a prefill chunk; the compact trailing-window capture stays DFlash2-only.
 - Draft-disabled graphs write no draft pages, as they write no DFlash2 rings today; Helios serves one mode per process.
 
+### Target rope scaling (operator addition during apply)
+
+- `recipe.py` declares `daisyrose-27b-yarn4` with `context=1_048_576` and `RopeScaling(4., 262144)` and passes the plan checkpoint's scaling to `PreparationConfig`, which raises its context ceiling to the scaling's and requires the 262,144 anchor. Declaring one scaled checkpoint also admits `--rope-parameters` for the recipe's other checkpoints (`ignition/cli/preparation.py` `rope_scaled`), which is how a console profile of a checkpoint folder selects it.
+- `ModelWeights.load` checks the anchor against the checkpoint's `max_position_embeddings` and records the scaling on `ModelConfig`; `decoder.py` builds its 32 inverse frequencies with `ignition.components.rotary.interpolated_frequencies` when a scaling is present. The preparation identity gains a `rope_scaling` entry only when present.
+- Draft rotary is unchanged for both methods. The DSpark draft attends the whole request, so past 262,144 tokens its relative offsets exceed those its YaRN configuration covers; draft acceptance there is unmeasured and listed in `docs/TODO.md`.
+- No export of a scaled core is part of this change's tasks until the operator asks for it.
+
 ### Validation
 
 - CPU: configuration validation, tensor mapping against the published header, method resolution through flag and configuration file, per-method limits, refusals, declarations.
@@ -86,3 +93,12 @@ Consensus feedback recorded verbatim:
 - `helios/src/core/conversion.rs:2717` — core combination does not compare the recorded method — declined: the dense recipe prepares one tensor-parallel size, so two dense cores are never combined
 - `ignition/preparation/rebuild_manifest.py:279` — a weights dataclass missing from the allowlist in `ignition/components/weights.py` is walked whole — fixed: 3
 - `ignition/components/paged_attention.py:127` — whether the paged-decode kernel accepts FP8, noncausal, unwindowed tail pages at this geometry was not determinable without b12x installed — fixed: 5 (checked at preparation; BF16 pages otherwise)
+
+## Reframe
+
+- Wrong assumption: task 7 treated the serving configuration as the change's to choose: "the concurrency the operator serves (at most 8)", a profile of its own name and template, and an image built from the branch wherever it stood. The corrections disproved each part: the operator serves 16 sequences, as `Qwen3.6`, with the Quinn chat template, from images on `deploy`.
+- Corrected model: the served package is the operator's default console profile with only the change's subject replaced. That profile (`2026-11-10-flare-dflash2-mxfp8-a16-1794383054083-copy-261115_213526`, read through `GET /api/profiles`) carries `max_num_seqs` 16, `served_model_name` "Qwen3.6", `chat_template_path` `~/models/raydius/quinn-template/chat_template.jinja`, and the run fields `--generation-defaults`, `--prefix-cache-memory 48G`, `--scheduler-policy throughput` and `--kv-cache-limit memory`. The export differs from it in the model folder, `--recipe qwen38_dense`, the DSpark draft folder and method, the image, the native 262,144-token context, and the options that do not apply to the dense recipe or the DSpark draft (rope parameters, online MXFP8, draft head conversion, A16 decode, embedding-table storage). The branch is rebased onto `deploy` before `build.sh` (`ignition/recipes/qwen38_dense/recipe.py` and `bootstrap.py` are unchanged by the rebase; range-diff shows both commits `=`).
+- Approach delta: the profile is derived from the default profile by a recorded field diff instead of being composed; run fields are copied; the image is built at the rebased commit e092796f; the operator's stated wishes (16 sequences, template, served name, no 4x package yet) are the done-when.
+- Tasks reframed: task 7 survives with rewritten criteria and a `reframed:` line.
+- Lesson: openspec/lessons.md#serve-from-the-operators-running-profile — the operator's default console profile specifies a served package; copy it and change only the change's subject.
+

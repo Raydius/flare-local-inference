@@ -112,6 +112,20 @@ The recipe SHALL declare the alias `daisyrose-27b` for `RadixArk/DaisyRose-27B-N
 - **WHEN** `ignition export daisyrose-27b` is planned
 - **THEN** the plan names the pinned repository and revision and the dense Qwen recipe
 
+### Requirement: A dense Qwen checkpoint may extend its context by declared rope scaling
+
+The recipe SHALL declare `daisyrose-27b-yarn4`, the `daisyrose-27b` checkpoint with a 1,048,576-token context through frequency-only rope interpolation by four over the trained 262,144 tokens. Preparation SHALL accept a context above 262,144 tokens only with a declared scaling anchored at 262,144, and SHALL interpolate only the target's rotary frequencies; draft rotary frequencies SHALL be unchanged. A preparation without scaling SHALL keep its frequencies and its preparation identity.
+
+#### Scenario: The scaled alias resolves
+
+- **WHEN** `ignition export daisyrose-27b-yarn4` is planned
+- **THEN** the plan's declared context is 1,048,576 tokens and its rope scaling has factor 4 over 262,144
+
+#### Scenario: A larger context without scaling is refused
+
+- **WHEN** dense Qwen preparation is configured with 1,048,576 tokens of context and no rope scaling
+- **THEN** it raises naming the 262,144-token ceiling
+
 ### Requirement: Existing cores and DFlash2 preparation are unchanged
 
 A core exported before this capability SHALL load and serve without re-export. DFlash2 preparation of the recipe SHALL declare the same state-row layout, page regions and page cost as before.

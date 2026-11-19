@@ -408,7 +408,8 @@ budget:
   --online-mxfp8 --draft-head-quantization mxfp8
 ```
 
-The recipe context capacity is 262144 tokens.
+The recipe context capacity is 262144 tokens; `daisyrose-27b-yarn4` and
+`--rope-parameters` extend it by declared rope scaling.
 `--no-mtp` skips the draft download and omits its weights and state during preparation;
 `flare run CORE --mtp-draft-tokens 0` selects the core's ordinary graphs.
 
@@ -416,6 +417,13 @@ The recipe context capacity is 262144 tokens.
 revision `c4d85c5d`, a fine-tune stored with the tensor names, shapes and
 formats of `nvidia/Qwen3.8-27B-NVFP4`. Every checkpoint of the recipe prepares
 with either proposal method or with `--no-mtp`.
+
+`daisyrose-27b-yarn4` is the same checkpoint with a 1,048,576-token context:
+frequency-only rope interpolation by four over the trained 262,144 tokens, the
+declaration `qwen3.8-flash-yarn4` uses. `--rope-parameters` selects the same
+scaling for a checkpoint folder of this recipe. Only the target's rotary
+frequencies are interpolated; draft frequencies are unchanged with either
+proposal method. No core of this recipe has been exported with rope scaling.
 
 `--speculative-method dspark` prepares the pinned BF16
 `RadixArk/Qwen3.8-27B-DSpark` draft (revision `b9a5dbdf`) in place of DFlash2;
