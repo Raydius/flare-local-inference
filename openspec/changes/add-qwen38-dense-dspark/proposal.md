@@ -11,6 +11,9 @@ Type: feature
 - "This seems like a clear case for a method on qwen38_dense unless you think otherwise"
 - "I was actually mistaken, this is the correct checkpoint model card: https://huggingface.co/RadixArk/DaisyRose-27B-NVFP4"
 - "We can make context scaling a followup, but I wanted to just validate the feasibility"
+- "I want to go ahead and start prepping the 4x YaRN profile also." (2026-11-18, during apply)
+- "do not package the 4x yet" / "first rebase onto deploy" (2026-11-19, during apply)
+- "also use Chat Template `raydius/quinn-template/chat_template.jinja`" / "served model name should be Qwen3.6" (2026-11-19, the served profile)
 
 Assumed: DSpark is a second learned proposal method of the dense Qwen recipe, selected with `--speculative-method dspark` or `[models."ALIAS"] speculative_method = "dspark"`; DFlash2 stays the recipe default.
 Assumed: the draft is pinned to `RadixArk/Qwen3.8-27B-DSpark` revision `b9a5dbdf03bc999c6c73c426b19c2d9041cea393`, and the target `RadixArk/DaisyRose-27B-NVFP4` revision `c4d85c5dfad123426555c22f4e24bb15381f0bdb` joins the recipe's checkpoints under the alias `daisyrose-27b`.
@@ -19,7 +22,10 @@ Assumed: the draft attends every accepted position of the request, as its config
 Assumed: the draft's rotary embedding applies the attention factor that its YaRN configuration implies, `0.1 * ln(32) + 1`.
 Assumed: the draft's confidence head is validated and not executed, as Kimi K3.1 Pro treats the same head; prefix selection stays on the host so fixed-width verification remains available.
 Assumed: DSpark prepares at most seven draft tokens, the draft's `block_size`.
-Not included: context scaling past 262,144 tokens — "We can make context scaling a followup"
+Assumed: the 4x YaRN profile is frequency-only rope interpolation of the target by four over its trained 262,144 tokens, declared as the checkpoint `daisyrose-27b-yarn4` (1,048,576 tokens), as `qwen3.8-flash-yarn4` declares it; the draft's rotary frequencies stay unscaled, the choice the archived change `2026-11-04-qwen38-dflash-rope-scaling` made, and acceptance past 262,144 tokens is a measurement, not a guarantee.
+- "The base profile was just for feasibility, I have zero intention of every running it." (2026-11-19, during apply)
+
+Assumed: the core this change exports and serves is the 4x YaRN profile, started only on the operator's instruction; the 262,144-token profile is not exported.
 
 ## Why
 

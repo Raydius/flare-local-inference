@@ -19,9 +19,12 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
       and draft bytes in `ignition/recipes/qwen38_dense/recipe.py` are computed from the layouts.
       Loading a DFlash2 core exported before the DSpark method was declared is also unrun.
 
-- [ ] Prepare a DSpark draft for the dense Qwen recipe past 262,144 tokens of context. The draft's
-      YaRN configuration covers the recipe's native context only; no checkpoint of the recipe
-      declares a longer context with a DSpark draft.
+- [ ] Export and qualify a rope-scaled dense Qwen core. `daisyrose-27b-yarn4` declares 1,048,576
+      tokens by frequency-only interpolation of the target; no core has been exported with it, the
+      scaled decoder has not run on a GPU, and target quality past 262,144 tokens is unmeasured. The
+      DSpark draft attends the whole request with unscaled rotary frequencies whose YaRN
+      configuration covers 262,144 positions, so draft acceptance past that length is also
+      unmeasured.
 
 - [ ] Decide whether to execute the Qwen3.8-27B DSpark confidence head. The head is validated for
       shape and not loaded; prefix selection uses completed acceptance on the host.
