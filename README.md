@@ -9,7 +9,7 @@ Maintenance workflow: [FORK.md](FORK.md).
 
 Published builds: the serving image `ghcr.io/raydius/hyperflare-inference:<version>`, built from this branch by `.github/workflows/container.yml` on each `vX.Y.Z` tag ([docs/container.md](docs/container.md#publish)), and the prepared Qwen 3.8 core [`raydollete/Qwen3.8-Flash-Next-HyperFlare-A16-Abliterated-1M`](https://huggingface.co/raydollete/Qwen3.8-Flash-Next-HyperFlare-A16-Abliterated-1M), which runs on that image.
 
-"Still needed" is judged against upstream `ba42481a` (2026-11-19), the stack base. None of the active patches' features is present there: `--generation-defaults` and serving overrides, `RopeScaling` and `--rope-parameters`, the `muse_glimmer_nvfp4` recipe, history-draft copies on parallel-draft rounds, mixed speculative rounds exported without a sampler, `--recipe` / `--draft-model`, the `elephant1` recipe, block-end markers and text prefill spans, and a persisting L2 cache limit bounded by the serving device.
+"Still needed" is judged against upstream `ba42481a` (2026-11-19), the stack base. None of the active patches' features is present there: `--generation-defaults` and serving overrides, `RopeScaling` and `--rope-parameters`, the `muse_glimmer_nvfp4` recipe, history-draft copies on parallel-draft rounds, `--recipe` / `--draft-model`, the `elephant1` recipe, block-end markers and text prefill spans, and a persisting L2 cache limit bounded by the serving device.
 
 ## Active patches
 
@@ -53,9 +53,6 @@ Published builds: the serving image `ghcr.io/raydius/hyperflare-inference:<versi
 - **Copy-depth acceptance attribution (`6657f7e5`)** — added 2026-11-04 · Serving (`helios/`)
   - What it does: The scheduler routes each accepted depth of a round to the copy curve when its copy bit is set, so `--history-drafts` copies no longer inflate the MTP/DFlash2 acceptance curve the packed-round allocator reads
   - **Still needed:** Yes — upstream `AcceptanceProfile::observe` still takes no copy mask (an upstream defect for MTP too; no PR yet)
-- **Mixed speculative export fixes (`ecb6c1dc`, `388d3d21`)** — added 2026-10-31 · Prepared (`ignition/`)
-  - What it does: Builds the packed mixed decoder without verification aliasing (`sampler=False`) and emits the proposal depth of mixed rounds with speculation
-  - **Still needed:** Yes — open upstream as [PR #211](https://github.com/NVIDIA/spark-local-inference/pull/211)
 - **`ignition export --recipe` / `--draft-model` (`2c8ba959`)** — added 2026-11-02 · Prepared (`ignition/cli`)
   - What it does: `--recipe` names the recipe that prepares a local checkpoint directory; `--draft-model` supplies a local draft folder
   - **Still needed:** Yes — upstream has neither flag. No two recipes share an architecture since `qwen38_dflash` was retired, so `--recipe` selects nothing: it confirms that the named recipe declares the directory's architecture
@@ -77,6 +74,9 @@ Published builds: the serving image `ghcr.io/raydius/hyperflare-inference:<versi
 
 ## Retired patches
 
+- **Mixed speculative export fixes (`ecb6c1dc`, `388d3d21`)** — added 2026-10-31, retired 2026-11-19
+  - What it did: Built the packed mixed decoder with verification off and `sampler=False`, because verification mode aliased the sample rows to the hidden rows and rejected the mixed round's scratch, and emitted the proposal depth of mixed rounds with speculation
+  - **Why retired:** Upstream closed [PR #211](https://github.com/NVIDIA/spark-local-inference/pull/211) on 2026-11-18 as superseded: `d68ed8f5` aliases the sample rows only when their shape equals the hidden rows' (never in a mixed round, so verification mode builds no sampler and aliases nothing, which is what `sampler=False` did), and `4a24d78a` derives the draft depth of speculative mixed graphs. The depth hunk had already folded into upstream's code; the decoder flag, the mixed-round call and the depth assertions in `tests/preparation/test_execution.py` now match `ba42481a`. On the retiring commit the Qwen mixed, execution, bootstrap, speculative-state, DFlash2 and parallel-draft CPU suites pass, and on GPU 1 `tests/recipes/test_qwen38_mixed_cuda.py` passes 24 of 24. Packages exported with the patch keep loading
 - **DFlash2 recipe `qwen38_dflash` (`8046cf12`, fold `df9a23d1`, `05289f11`, `cd47b4d8`)** — added 2026-10-31, retired 2026-11-10
   - What it did: Served Qwen3.8-Flash-Next with the `incoai/Qwen3.8-Flash-Next-DFlash2` block draft through a recipe of its own: aliases `qwen3.8-flash-dflash2` and `qwen3.8-flash-dflash2-yarn4`, a pin of `local-inference-lab/Qwen3.8-Flash-Next-NVFP4-MXFP8-CSF-QAD@dc5b8ab2`, mixed prefill rounds embedding a DFlash2 draw, and history drafts on its rounds
   - **Why retired:** Upstream's `qwen38` recipe serves the same draft (`--speculative-method dflash2`). Measured at 16 sequences and a 1,048,576-token context on one RTX PRO 6000 (`qualify/results/dflash2-paths-c16/README.md`), the fork recipe reached 535.1 and 355.6 `code_edit` tok/s at concurrency 1 and 8 against 555.9 and 436.7 for upstream's path with the MXFP8 draft, held 909,312 KV tokens (the server refused a 1M prompt), and exported in 92 minutes against 28. Decode throughput during concurrent long prefill was not measured and is not a workload this fork needs. Lost with it: mixed prefill and history drafts for Qwen 3.8 DFlash2 packages, the QAD pin (that repository id now resolves to `qwen38` with MTP proposals unless `dflash2` is given), the tools `dflash2_tap_check.py` and `mixed_prefill_check.py`, and the CUDA parity check of the shared draft component against the reference on the pinned Flash-Next draft. Packages exported with the recipe keep loading
