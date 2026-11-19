@@ -9,8 +9,9 @@ Type: feature
 - "what's your recommendation?" — the operator accepted the recommended base (upstream's moving tip, unpinned) and the probe-before-planning order with "yes"
 - "ok let's do the base tip then" — `main` moves to `upstream/main` first, before the stack
 - "yes" — the backup tags and the throwaway probe run before the plan is written
-- Not included: re-export and re-measurement of the served arm Q, Muse Glimmer c16 and Elephant-1 cores — the operator accepted "What I'd keep out: re-export and re-measurement … the same split you asked for on 2026-11-15" with "yes"; `flare inspect` of existing entries stays in scope
+- Not included: re-export and re-measurement of the served cores — the operator accepted "What I'd keep out: re-export and re-measurement … the same split you asked for on 2026-11-15" with "yes"; `flare inspect` of existing entries stays in scope
 
+Assumed: the cores kept out of re-export are whichever entries the console serves at the time — the Qwen, Muse Glimmer and Elephant entries as of 2026-11-18, the same split as on 2026-11-15; the console's configuration is the source of truth for which profiles those are, and this set is the author's reading of the accepted exclusion, not a list the operator gave. `flare inspect` and serving an existing core for a functional check stay in scope.
 Assumed: the change rebases `base/current`, `patch/00`, `patch/01`, `patch/03`, `patch/06`, `patch/07` and `deploy` onto `upstream/main` `1a532755` with `scripts/fork/rebase.sh`'s command (`git rebase --onto <base> base/current deploy --update-refs`), keeping both sides' behaviour at each stop, as on 2026-11-15.
 Assumed: `main` was already fast-forwarded to `1a532755` and pushed to `origin` on 2026-11-18 by `scripts/fork/sync.sh`, so the change starts at `base/current`; the pre-flight re-fetch still runs and retargets the plan if upstream moved again.
 Assumed: backup tags `backup/pre-rebase-20261118-*` already exist at the eight refs; the rebase is force-pushed ref-by-ref with `--force-with-lease` against them at the end, `base/current` last.

@@ -8,7 +8,7 @@ Binding constraints for every task (AGENTS.md, FORK.md, this change's design.md)
 - Replayed commits continue with `git -c core.hooksPath=/dev/null rebase --continue` and keep their historical `Design-Signed-Off-By` trailers. Every commit this change writes runs with the hook on and is acknowledged against `docs/design-review.md` digest `1af4`, and is reviewed against `/home/rjdollete/dev/flare-local-inference/.agents/skills/repo-prose/SKILL.md` before committing.
 - Images are built, and exports and serving run, in the container from a committed ref (`~/LocalApps/vllm-env/build/flare-ignition/build.sh`), never with the host toolchain. Heavy commands run one file at a time under a 14 GiB watchdog on the real PID (`systemd-run --user --scope -p MemoryMax=14G`), and processes are stopped only by PID.
 - GPU 0 is the owner's console instance: never touched with `docker stop`; GPU 1 is the gate card.
-- Re-export and served re-measurement of the arm Q, Glimmer c16 and Elephant cores are out of scope (operator exclusion); `flare inspect` and serving an existing core for a functional check are in.
+- Re-export and served re-measurement of the entries the console serves — the Qwen, Muse Glimmer and Elephant entries — are out of scope (operator's standing exclusion); `flare inspect` and serving an existing core for a functional check are in.
 - No audit reports, receipts or hash inventories.
 
 Concurrency: graph
