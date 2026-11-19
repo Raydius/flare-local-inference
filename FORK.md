@@ -146,6 +146,26 @@ base/current (tag → an upstream commit)
   acknowledgments; the record commit acknowledges `1af4`. Host CPU, image, Rust and GPU 1
   gates run after this commit and before the push. Pre-rebase refs:
   `backup/pre-rebase-20261118-*` tags.
+  **2026-11-19: moved to upstream `ba42481a`** (15 commits; #396 keeps request-written token
+  spellings literal in Jinja prompts, #401 ends the Selene rank restore channels only after
+  every window is assembled, #400 counts host-cache hits and reused tokens when a restore
+  succeeds, #399 warns when a prefix-cache pool has no local host tier to cascade from, #392
+  counts pool put-grant pages from the accepted record, #368 prints checkpoint source rejection
+  reasons on rank zero, #367 ends the Compile model forwards phase as failed when compilation
+  fails, #403 re-pins FlashInfer to `598c8547` with the GLM decode-pooling negative-slot and
+  multi-peer PCIe collective fixes, design checklist digest `1af4`). Three of 133 replayed
+  commits conflicted and kept both sides on upstream's structure: the FlashInfer pin, the
+  `docs/TODO.txt` rename with upstream's six new entries folded into `docs/TODO.md`, and Muse
+  Glimmer's `bracketed_prompt` helper ported onto upstream's token-id-based rewrite of
+  `expand_prompt`, which takes `prompt_token_ids` and drops `ImagePrompt.text`; Glimmer's
+  expansion path and the profile dispatch pass token ids. No commit dropped. The FlashInfer
+  pin is re-cut on `598c8547` as `Raydius/flashinfer@cf1ac676a`, carrying only stub rejection
+  and the `compile_compress` program cache: two of the fork's three eviction cases fail on
+  unmodified `598c8547` and pass on the re-cut. The `gdn-head-ratio` image patch is re-cut on
+  `598c8547` as `a2f9c47a0` and applies unchanged. No patch retired. Conflicted commits were
+  continued with the hook off, so replayed commits keep their original acknowledgments; the
+  record commit acknowledges `1af4`. Host CPU, image and Rust gates run after this commit and
+  before the push. Pre-rebase refs: `backup/pre-rebase-20261119-*` tags.
 - **Moving to a newer upstream:** `scripts/fork/sync.sh`, then
   `scripts/fork/rebase.sh upstream/main` (or a sha; the tip defaults to `deploy`). The script
   refuses a tip that shares a commit with another branch (`--update-refs` would skip it).
