@@ -11,20 +11,20 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
       checkpoint that stores `lm_head.weight` in BF16, such as `qwen3.8-27b-qad`. The same comparison
       passes on fabricated weights (two layers, hidden size 512) on an RTX 5060 Ti.
 
-- [ ] Export, serve and measure a dense Qwen DSpark core. No `daisyrose-27b` or `qwen3.8-27b` core
-      has been exported with `--speculative-method dspark`: accepted tokens per round and code-edit
-      throughput at concurrency 1 and 8 with seven drafts at fixed width eight, the loaded device
-      memory, and the `daisyrose-27b` checkpoint's stored and device bytes (declared equal to
-      `qwen3.8-27b`'s, whose tensor layout it shares) are unmeasured, and the DSpark state-row, page
-      and draft bytes in `ignition/recipes/qwen38_dense/recipe.py` are computed from the layouts.
-      Loading a DFlash2 core exported before the DSpark method was declared is also unrun.
+- [ ] Measure the served dense Qwen DSpark core at fixed concurrency. The exported DaisyRose
+      core (16 sequences, 1,048,576-token context) has no code-edit throughput or acceptance
+      trials at concurrency 1 and 8 (`qualify/dflash2_console_probe.py`, one fresh start per
+      trial). The DSpark state-row, page and draft bytes and the `daisyrose-27b` checkpoint bytes
+      in `ignition/recipes/qwen38_dense/recipe.py` are computed from the layouts and not replaced
+      by `flare inspect` figures. Loading a DFlash2 core exported before the DSpark method was
+      declared is also unrun.
 
-- [ ] Export and qualify a rope-scaled dense Qwen core. `daisyrose-27b-yarn4` declares 1,048,576
-      tokens by frequency-only interpolation of the target; no core has been exported with it, the
-      scaled decoder has not run on a GPU, and target quality past 262,144 tokens is unmeasured. The
-      DSpark draft attends the whole request with unscaled rotary frequencies whose YaRN
-      configuration covers 262,144 positions, so draft acceptance past that length is also
-      unmeasured.
+- [ ] Qualify the rope-scaled dense Qwen core past 262,144 tokens beyond passkey retrieval. The
+      served DaisyRose core retrieves a passkey from 319,795- and 1,009,836-token prompts; no
+      task-quality measurement exists at those lengths. The DSpark draft attends the whole request
+      with unscaled rotary frequencies whose YaRN configuration covers 262,144 positions; its
+      acceptance past that length is known only from the probe's short replies (1.9 to 3.2
+      accepted drafts per round), not from long outputs.
 
 - [ ] Decide whether to execute the Qwen3.8-27B DSpark confidence head. The head is validated for
       shape and not loaded; prefix selection uses completed acceptance on the host.
