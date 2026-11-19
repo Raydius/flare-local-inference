@@ -126,6 +126,35 @@ The recipe SHALL declare `daisyrose-27b-yarn4`, the `daisyrose-27b` checkpoint w
 - **WHEN** dense Qwen preparation is configured with 1,048,576 tokens of context and no rope scaling
 - **THEN** it raises naming the 262,144-token ceiling
 
+### Requirement: The dense Qwen recipe accepts images
+
+The dense Qwen recipe SHALL prepare the checkpoint's vision encoder and accept up to four images per request through the Qwen image preparation and layout, with either proposal method or with speculation disabled. Image tokens SHALL take the three rotary positions the canonical model assigns, and text after an image SHALL continue from the canonical position. `--language-model-only` SHALL prepare the recipe without the encoder and reject images.
+
+#### Scenario: Prepared image features match the canonical encoder
+
+- **WHEN** the prepared encoder and `transformers`' vision model run the same patches with the checkpoint's vision weights
+- **THEN** the merged features agree within a bound derived from BF16 arithmetic
+
+#### Scenario: Positions follow the canonical model
+
+- **WHEN** a prompt holds text, an image and more text
+- **THEN** the decoder's rotary angles equal those of `transformers`' three-axis positions for every token, and decode continues from the canonical next position
+
+#### Scenario: A text prompt is unchanged
+
+- **WHEN** a prompt holds no image
+- **THEN** every token's three positions equal its token index and the position offset is zero
+
+#### Scenario: Language-only preparation
+
+- **WHEN** `--language-model-only` is planned for a dense Qwen checkpoint
+- **THEN** no vision graph or image storage is prepared, the state row has no position-offset region, and the core rejects images
+
+#### Scenario: The served core answers an image request
+
+- **WHEN** the served DaisyRose core receives a chat request with an image
+- **THEN** it reports image input in `/v1/models` and answers from the image's content
+
 ### Requirement: Existing cores and DFlash2 preparation are unchanged
 
 A core exported before this capability SHALL load and serve without re-export. DFlash2 preparation of the recipe SHALL declare the same state-row layout, page regions and page cost as before.
