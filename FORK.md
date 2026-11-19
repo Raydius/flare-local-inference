@@ -13,7 +13,8 @@ the Claude Opus 5.5 kernel/optimization ban) do not apply here — the operator 
 them. The hook is nonetheless enabled in this clone (`core.hooksPath=.githooks` in
 `.git/config`), so every commit needs one `Design-Signed-Off-By` acknowledgment as
 `docs/design-review.md` describes. Patches that prove worth it now go upstream as PRs from
-`pr/*` branches cut on `upstream/main` (#211 and #212, opened 2026-11-04/05).
+`pr/*` branches cut on `upstream/main` (#211 and #212, opened 2026-11-04/05; #211 closed
+2026-11-18 as superseded by upstream, its patch retired 2026-11-19).
 `AGENTS.md`'s architecture and package-compatibility rules still describe how Flare works;
 break them knowingly, not by accident.
 
