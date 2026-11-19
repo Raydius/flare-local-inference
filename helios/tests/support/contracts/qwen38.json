@@ -58,6 +58,7 @@
     "image_tokens": {
       "feature_token": 248056,
       "span": null
-    }
+    },
+    "block_end_marker": []
   }
 }
