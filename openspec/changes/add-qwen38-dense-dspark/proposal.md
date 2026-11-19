@@ -48,7 +48,7 @@ The draft is the DFlash2 draft body with different attachments. Both have five n
 - Dense Qwen preparation carries the selected method through its configuration, state layout, page layout, weights, decoder feature capture and graph catalog.
 - Draft history under DSpark is paged storage addressed by the target's page table, so prefix reuse, snapshots, eviction and offload cover it through the shared paged-history mechanisms.
 - The dense Qwen recipe accepts a declared rope scaling of the target's rotary frequencies and declares the checkpoint `daisyrose-27b-yarn4` with a 1,048,576-token context.
-- The dense Qwen recipe prepares the checkpoint's vision encoder and accepts up to four images per request; `--language-model-only` prepares text alone. The served DaisyRose core accepts images, as the console profile it replaces does.
+- The dense Qwen recipe prepares the checkpoint's vision encoder and accepts up to four images per request; `--language-model-only` prepares text alone. The DaisyRose core served on GPU 0 was exported language-only; no core with image input is exported in this change.
 - Documentation states the method, its commands, its storage, and its qualification; unrun checks go to `docs/TODO.md`.
 
 Non-goals: rope scaling of the draft's rotary frequencies; executing the confidence head or GPU prefix selection; `--draft-head-quantization`, `--draft-body-quantization` and `--online-mxfp8` conversion of the DSpark draft; tensor-parallel preparation; DSpark for the Flash Next recipe (`ignition/recipes/qwen38/`); any `helios/`, `flare/` or `flare-cli/` change.
@@ -66,8 +66,10 @@ None.
 ## Impact
 
 - `ignition/recipes/declaration.py`, `ignition/cli/__init__.py`, `ignition/cli/preparation.py`, `ignition/cli/help.py`, `ignition/cli/display.py`, `ignition/cli/serve.py`, `ignition/cli/config.py`, `ignition/planning.py`: the method name, the per-method draft-token maximum, and the refusals.
-- `ignition/components/weights.py`: the draft weights declaration for the rebuild manifest.
-- `ignition/recipes/qwen38_dense/`: `recipe.py`, `bootstrap.py`, `weights.py`, `pool.py`, `decoder.py`, `config.py`, and three new modules.
+- `ignition/components/weights.py`, `ignition/components/dflash2_weights.py`, `ignition/components/dflash2.py`: the draft weights declaration for the rebuild manifest, the `dspark` tensor set of the shared draft loader, and optional page storage, slots, frequencies and gain on the shared context writer.
+- `ignition/components/paged_tma.py`: the SM120 FP8 paged prefill kernel call passes the kernel's last parameter.
+- `ignition/recipes/qwen38/vision.py`, `ignition/preparation/frontend.py`: an output width, a rotary embedding class and unquantized projections on the Flash Next vision encoder, and `model_type` `qwen3_5` for the `qwen` image profile.
+- `ignition/recipes/qwen38_dense/`: `recipe.py`, `bootstrap.py`, `weights.py`, `pool.py`, `decoder.py`, `config.py`, `contract.py`, and four new modules.
 - `docs/mtp-design.md`, `docs/cli-design.md`, `docs/model-preparation.md`, `docs/TODO.md`.
 - Tests under `tests/cli/`, `tests/recipes/` and `tests/reference/`.
 - No Protobuf, core-format or Helios change: the draft's history uses the existing paged key/value region kind, and the rounds use the existing speculative graph contract. Cores exported before this change load unchanged.
