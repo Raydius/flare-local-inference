@@ -20,6 +20,6 @@
 - Rebase stops: five conflicted files (`docs/TODO.txt`, `pyproject.toml`, `uv.lock`, `qualify/speculative_benchmark.py`, `tests/reference/test_speculative_benchmark.py`), each with a written rule in design.md step 4; expected range-diff 120 `=` and 5 `!` (`de8ada69`, `6cbf42d4`, `cb071b57`, `6f2c9d5b`, `4128ea63`).
 - Checklist digest moved `ed22` → `1af4`: acknowledge `1af4` on commits this change writes only; replayed commits continue with `core.hooksPath=/dev/null`.
 
-**Standing owner holds.** Re-export and served re-measurement of the arm Q, Glimmer c16 and Elephant cores are out of scope. GPU 0 is the owner's console — never `docker stop` it; GPU 1 is the gate card. Heavy runs one file at a time under a 14 GiB watchdog on the real PID. Images and serving from committed refs via `~/LocalApps/vllm-env/build/flare-ignition/build.sh`.
+**Standing owner holds.** Re-export and served re-measurement of the entries the console serves — the Qwen, Muse Glimmer and Elephant entries — are out of scope. GPU 0 is the owner's console — never `docker stop` it; GPU 1 is the gate card. Heavy runs one file at a time under a 14 GiB watchdog on the real PID. Images and serving from committed refs via `~/LocalApps/vllm-env/build/flare-ignition/build.sh`.
 
 **Unverified.** No GPU execution of the rebased stack; gates 3.1–3.3 have not run. The operator's "review it again, what's missing?" was answered with the artifact and bomb-squad state; no artifact edit followed that last clean lint.
