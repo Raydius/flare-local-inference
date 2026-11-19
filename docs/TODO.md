@@ -35,6 +35,13 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
       `PreparedParallelDraftRound` with the target decoder, sampling, verification and commit on
       fabricated weights.
 
+- [ ] Prepare Elephant-1 with the dense Qwen decoder that reads rope scaling and image input.
+      Elephant-1 builds `ignition.recipes.qwen38_dense.decoder.PreparedDecoder` with its own
+      configuration, weights and pool, which declare no rope scaling, vision encoder or rotary
+      offset region. `tests/preparation/test_weight_declarations.py` covers the weight roots on
+      CPU; no test builds the decoder with Elephant-1's configuration, and no Elephant-1
+      preparation or export has run against this decoder.
+
 - [ ] Test the dense Qwen DSpark and rope-scaling paths that no test reaches.
       No test continues a request from a cached prefix or a resumed request and compares its
       draft pages. For rope scaling, no test reaches
