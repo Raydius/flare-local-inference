@@ -466,7 +466,7 @@ accept two value heads per key head. The FlashInfer revision pinned in
 `pyproject.toml` accepts only three; [docs/TODO.md](TODO.md) tracks the pin.
 
 ```sh
-.venv/bin/ignition export elephant-1-9b --gpus 0 --max-concurrency 2
+.venv/bin/ignition export elephant-1-9b --gpus 0 --max-concurrency 4
 flare-cli/target/release/flare run CACHE_ENTRY --gpus 0 \
   --memory-limit 0.88 --kv-cache-limit concurrency
 ```
@@ -484,8 +484,14 @@ held every letter for 132 of the 157 questions with at most 20 options.
 Core `gb202-tp1-202611171634` was exported on an RTX PRO 6000 Blackwell (GB202)
 at concurrency 2. Served with the flags above on an RTX 5060 Ti with 16 GB,
 beside about 1.7 GB of desktop use, the `flare` process held 10,428 MiB after
-answering the probe set below, inside the 12 GB the recipe targets; the causal
-core with 2,048-token prefill chunks held 9,608 MiB. On that card a 16,301-token
+answering the probe set below; the causal
+core with 2,048-token prefill chunks held 9,608 MiB. Core
+`gb202-tp1-202611200624`, exported the same way at concurrency 4, held
+11,596 MiB (12.16 GB) on that card, inside the 12.5 GB the recipe targets: its
+KV cache holds four 16,384-token contexts (2.3 GiB, 65,536 tokens), and four
+concurrent questions of about 9,030 tokens each returned every option letter's
+logprob in 12.8 to 14.8 s, their prefills running one at a time. The probe set
+below was scored on the concurrency-2 core. On that card a 16,301-token
 prompt prefilled in 6.3 s from an empty prefix cache, a 12,045-token one in
 4.6 s and a 4,086-token one in 1.5 s, and a second question over a cached
 16,236-token prefix answered in 0.07 s

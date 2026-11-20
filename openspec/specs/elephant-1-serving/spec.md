@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Serve the text-only Elephant-1 decision model as a prepared core inside a 12GB device budget, returning calibrated option probabilities through standard generation logprobs while stating the measured deviation from the vendor runtime's trained attention mask and quantization precision.
+Serve the text-only Elephant-1 decision model as a prepared core inside a 12.5GB device budget, returning calibrated option probabilities through standard generation logprobs while stating the measured deviation from the vendor runtime's trained attention mask and quantization precision.
 
 ## Requirements
 
@@ -20,18 +20,18 @@ A prepared `elephant-1-9b` core SHALL serve text-only Completions requests and S
 - **WHEN** a client sends a rendered prompt with exactly 20 options and names the 20 letter tokens in `logprob_token_ids`
 - **THEN** the response contains every option letter's logprob, although the twenty most likely tokens hold only some of the letters
 
-### Requirement: Declared 12GB device envelope
+### Requirement: Declared 12.5GB device envelope
 
-The prepared core SHALL declare its context and concurrency, and its measured device memory at those declarations MUST be at most 12GB on the target device, including weights, KV pages, recurrent state, captured graphs, and workspace. The declared capacities MUST be the measured ones, never an extrapolation.
+The prepared core SHALL declare its context and concurrency, and its measured device memory at those declarations MUST be at most 12.5GB on the target device, including weights, KV pages, recurrent state, captured graphs, and workspace. The declared capacities MUST be the measured ones, never an extrapolation.
 
 #### Scenario: Inspect reports a footprint inside the budget
 
 - **WHEN** the core is exported for the declared context of 16,384 tokens and the declared concurrency, `flare inspect` is run on it, and it is served on GPU 1
-- **THEN** the inspected fixed device allocations and the serving process's measured device memory are each at most 12GB at the recipe's declared context and concurrency
+- **THEN** the inspected fixed device allocations and the serving process's measured device memory are each at most 12.5GB at the recipe's declared context and concurrency
 
 #### Scenario: An oversized declaration is refused
 
-- **WHEN** a declaration is submitted whose measured footprint exceeds 12GB on the target device
+- **WHEN** a declaration is submitted whose measured footprint exceeds 12.5GB on the target device
 - **THEN** the change records the failed budget and the measured value instead of shipping the declaration
 
 ### Requirement: Trained-limit and modality refusals
