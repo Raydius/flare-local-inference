@@ -83,7 +83,7 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
       Measure which packed projections carry the error, and the share of the logit precision, before
       changing `packed_plan` in `ignition/recipes/elephant1/config.py`.
 
-- [ ] Run `flare inspect` on Elephant-1 core `gb202-tp1-202611171634` and state its fixed device
+- [ ] Run `flare inspect` on Elephant-1 cores `gb202-tp1-202611171634` and `gb202-tp1-202611200624` and state their fixed device
       allocations in the Elephant-1 section of [model preparation](model-preparation.md#elephant-1).
       That core was exported with `pack_body_nvfp4` storing only the swizzled block scales and with
       the 16,384-token prefill chunk, so the serving process's 10,428 MiB does not isolate the
