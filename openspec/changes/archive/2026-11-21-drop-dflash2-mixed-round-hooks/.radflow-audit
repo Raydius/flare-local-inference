@@ -1,0 +1,13 @@
+deltas 0
+670de0a64b0ddff28ebde5f4055dda4ba8cfa531 .claude/handoff.md
+0c5528be3e9b23347306f9a062c5d5ebb37b0442 README.md
+44a9e032f8a3ac1b09a26c9ab1ba15105561f39c ignition/components/dflash2_weights.py
+708fb0c71408a49c9dcb043ea671d9876e5f37f3 ignition/recipes/qwen38/decoder.py
+b8a722ca4b00a0992f21c21c1202fda4cdbf90d1 ignition/recipes/qwen38/mixed_state.py
+8e76cf756357834974b4a0cf728f6f4c605bc4a0 ignition/recipes/qwen38/speculative_state.py
+09ada27bc99fea8654f9d0c0bc49cbd782ecb42c ignition/recipes/qwen38/state.py
+e37794190f468772dfbeed40ae475113c6d65689 openspec/changes/drop-dflash2-mixed-round-hooks/design.md
+55b4956c2d463ead569a6109f4808f5caa73a945 openspec/changes/drop-dflash2-mixed-round-hooks/proposal.md
+22b1902f9cc5bb6c76766617ebdfc8e8e80bb2e9 openspec/changes/drop-dflash2-mixed-round-hooks/tasks.md
+050091c3f26fd02a1a9480b53fcfa30edec9fe89 tests/recipes/muse_glimmer_nvfp4/test_draft_weights.py
+17b2cd1515f88f2bc8580b03d988e9475bc38e4e tests/recipes/test_qwen38_mixed.py
