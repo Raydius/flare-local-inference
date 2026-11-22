@@ -38,3 +38,11 @@ entries you consulted.
 - Resolution: image input was added to the dense recipe in the same change, before the re-export.
 - Accelerator: at propose time, read the target recipe's `max_images`, `language_model_only` and context beside the replaced profile's recipe; after serving, diff the `flare` section of `/v1/models` (`max_images_per_prompt`, `input_modalities`, `max_model_len`, `max_concurrency`) against the replaced core's before asking for approval.
 - Source: add-qwen38-dense-dspark (2026-11-19)
+
+## a-declared-cost-may-be-a-reservation-not-an-allocation
+
+- Scenario: a test that ties a recipe's declared `RankCosts.state_row_bytes` to the prepared continuation layout ran for the dense Qwen recipe and found 193,865,984 declared bytes against a 186,001,664-byte prepared row.
+- Trap: the mismatch was reported as a recipe defect, and the test was changed to demand equality at the prepared width, without reading the commit or documentation that set the constant. The operator asked "Did he document a reason for expanding it?"; the commit `7303efb1` and `docs/model-preparation.md` both state it.
+- Resolution: the declaration is the planning reservation for the widest verification the recipe supports (`max_draft_tokens + 1` positions); narrower preparations allocate a smaller row. The test compares the declaration with the layout at that maximum and requires the prepared row to be smaller.
+- Accelerator: before reporting a declared constant as wrong, run `git log -S<constant>` for the commit that set it and grep `docs/` for the number; a recipe comment beside the constant is part of the declaration.
+- Source: tie-dense-qwen-row-to-reserved-maximum (2026-11-22)
