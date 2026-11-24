@@ -72,7 +72,7 @@ class RopeScaling:
 
     `original_max_position_embeddings` is the checkpoint's trained context: the anchor
     the recipe's `context` declares for it. Serving context extends by `factor` through
-    the interpolation `ignition.components.rotary.interpolated_frequencies` applies, with
+    the interpolation `hyperflare_recipes.components.rotary.interpolated_frequencies` applies, with
     no attention-temperature change. A checkpoint that declares rope scaling also declares
     its extended serving `context`; recipes without a declaration serve the native context.
     """

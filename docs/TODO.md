@@ -11,13 +11,15 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
       checkpoint that stores `lm_head.weight` in BF16, such as `qwen3.8-27b-qad`. The same comparison
       passes on fabricated weights (two layers, hidden size 512) on an RTX 5060 Ti.
 
+
 - [ ] Measure the served dense Qwen DSpark core at fixed concurrency. The exported DaisyRose
       core (16 sequences, 1,048,576-token context) has no code-edit throughput or acceptance
       trials at concurrency 1 and 8 (`qualify/dflash2_console_probe.py`, one fresh start per
       trial). The DSpark state-row, page and draft bytes and the `daisyrose-27b` checkpoint bytes
-      in `ignition/recipes/qwen38_dense/recipe.py` are computed from the layouts and not replaced
+      in `hyperflare_recipes/recipes/qwen38_dense/recipe.py` are computed from the layouts and not replaced
       by `flare inspect` figures. Loading a DFlash2 core exported before the DSpark method was
       declared is also unrun.
+
 
 - [ ] Qualify the rope-scaled dense Qwen core past 262,144 tokens beyond passkey retrieval. The
       served DaisyRose core retrieves a passkey from 319,795- and 1,009,836-token prompts; no
@@ -26,14 +28,17 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
       acceptance past that length is known only from the probe's short replies (1.9 to 3.2
       accepted drafts per round), not from long outputs.
 
+
 - [ ] Decide whether to execute the Qwen3.8-27B DSpark confidence head. The head is validated for
       shape and not loaded; prefix selection uses completed acceptance on the host.
+
 
 - [ ] Run a complete DSpark round for the dense Qwen recipe below the export. The CUDA tests in
       `tests/recipes/test_qwen38_dense_dspark_cuda.py` capture the draft's context writer and proposal
       block and supply the accepted counts a round would produce; no test runs
       `PreparedParallelDraftRound` with the target decoder, sampling, verification and commit on
       fabricated weights.
+
 
 - [ ] Export and serve a dense Qwen core with image input, and qualify what GPU 1 cannot hold.
       The dense decoder with three-axis positions, image-feature injection and the stored position
@@ -50,22 +55,25 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
       test environments: the host has no `flare_heliopause`, and the flare-ignition image's
       extension lacks `validate_prepared_contract`.
 
+
 - [ ] Prepare Elephant-1 with the dense Qwen decoder that reads rope scaling and image input.
-      Elephant-1 builds `ignition.recipes.qwen38_dense.decoder.PreparedDecoder` with its own
+      Elephant-1 builds `hyperflare_recipes.recipes.qwen38_dense.decoder.PreparedDecoder` with its own
       configuration, weights and pool, which declare no rope scaling, vision encoder or rotary
       offset region. `tests/preparation/test_weight_declarations.py` covers the weight roots on
       CPU; no test builds the decoder with Elephant-1's configuration, and no Elephant-1
       preparation or export has run against this decoder.
 
+
 - [ ] Test the dense Qwen DSpark and rope-scaling paths that no test reaches.
       No test continues a request from a cached prefix or a resumed request and compares its
       draft pages. For rope scaling, no test reaches
-      the anchor refusal in `ignition/recipes/qwen38_dense/weights.py`, the `rope_scaling` entry
+      the anchor refusal in `hyperflare_recipes/recipes/qwen38_dense/weights.py`, the `rope_scaling` entry
       of the dense recipe's preparation identity, or the frequency selection in
-      `ignition/recipes/qwen38_dense/decoder.py`:
+      `hyperflare_recipes/recipes/qwen38_dense/decoder.py`:
       `test_scaled_target_frequencies_interpolate_only_the_slow_pairs` calls
-      `ignition.components.rotary.interpolated_frequencies` directly. The served DaisyRose core
+      `hyperflare_recipes.components.rotary.interpolated_frequencies` directly. The served DaisyRose core
       exercises prefix reuse and the scaled decoder without asserting on them.
+
 
 - [ ] Decide what Elephant-1 does for an answer longer than one token. Decode after the question
       block is causal. A request readmitted after preemption takes its generated tokens into the
@@ -74,6 +82,7 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
       which none of this touches.
       See the Elephant-1 section of [model preparation](model-preparation.md#elephant-1).
 
+
 - [ ] Reduce the Elephant-1 core's NVFP4 deviation. The served core differs from the BF16 forward
       under the served mask by a 0.021 mean probability delta against a 0.01 bound (0.956 argmax
       agreement), and that comparison does not
@@ -81,7 +90,8 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
       `qualify/results/elephant1-decision-parity/stage-b-precision.json` every difference between two
       option log-probabilities on the core side is a multiple of 1/32, and the reference head is FP32.
       Measure which packed projections carry the error, and the share of the logit precision, before
-      changing `packed_plan` in `ignition/recipes/elephant1/config.py`.
+      changing `packed_plan` in `hyperflare_recipes/recipes/elephant1/config.py`.
+
 
 - [ ] Run `flare inspect` on Elephant-1 cores `gb202-tp1-202611171634` and `gb202-tp1-202611200624` and state their fixed device
       allocations in the Elephant-1 section of [model preparation](model-preparation.md#elephant-1).
@@ -89,9 +99,11 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
       the 16,384-token prefill chunk, so the serving process's 10,428 MiB does not isolate the
       432,406,528 bytes of row-major scales the earlier core `gb202-tp1-202611161942` held.
 
+
 - [ ] Pin a FlashInfer revision whose Gated DeltaNet prefill and decode operators accept two value
       heads per key head. Elephant-1 preparation fails with the revision in `pyproject.toml`, which
       requires three.
+
 
 - [ ] Run the checks the Elephant-1 recipe left unrun: the
       complete Helios test suite with the persisting L2 cache size bounded by the serving device
@@ -100,96 +112,69 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
       (needs assigned tensor-parallel devices) and `tests/recipes/test_qwen38_exact_checkpoints.py`
       (needs `FLARE_QWEN38_SNAPSHOT`).
 
-- [ ] Fold Muse Glimmer's attention back onto Muse Spark's. `ignition/recipes/muse_glimmer_nvfp4/attention.py`
+
+- [ ] Fold Muse Glimmer's attention back onto Muse Spark's. `hyperflare_recipes/recipes/muse_glimmer_nvfp4/attention.py`
       takes packed metadata per forward and returns local values, which `PreparedGeneration` and
-      `PreparedParallelDraftRound` require; `ignition/recipes/muse_spark/attention.py` binds its metadata
+      `PreparedParallelDraftRound` require; `hyperflare_recipes/recipes/muse_spark/attention.py` binds its metadata
       and scratch at construction. Remove the Glimmer module when Spark's attention accepts per-forward
       metadata, by importing it with Glimmer's separate gate projection and unnormalized gate input.
 
-- [ ] Compare Inkling 2 effort-zero generation with the canonical target using
-      the static NVFP4 checkpoint. Native TP4 emits analysis in content_text and
-      violates exact-output prompts; a long-prefix lookup also intermittently
-      reaches its 1024-token output limit. The TML prompt matches tml-renderers 0.4.1.
-      Preserve the failing zero-effort cases in tests/server/test_inkling2.py.
-
-- [ ] Qualify Inkling 2 numerical agreement at long contexts and on fully
-      populated large vision graphs. Canonical vision comparisons cover at most
-      256 live patches.
 
 - [ ] Fix native TP4 shutdown reporting "free(): double free detected in tcache 2"
       after server drain with Inkling 2 cores. Reproduces with compiled and
       uncompiled graphs; preserve the successful request drain and GPU release.
 
+
 - [ ] Make test_explicit_worker_budget_compiles_and_replays_a_catalog account for
       host memory admission. Its nine-worker assertion requires 296 GiB available
       under the 32 GiB worker allowance and 8 GiB headroom; smaller hosts admit fewer.
 
-- [ ] Ensure Rust bridge updates relink the WinUI executable during incremental
-      builds. MSBuild can retain flare-winui.exe after the bridge library changes;
-      verify loose and single-file outputs without requiring /t:Rebuild.
 
-- [ ] qwen38's `_identity` (`ignition/recipes/qwen38/bootstrap.py:247`) records the DFlash2 draft as
+- [ ] qwen38's `_identity` (`hyperflare_recipes/recipes/qwen38/bootstrap.py:247`) records the DFlash2 draft as
       the pinned repository and revision plus the draft's `config.json` text, also when
       `--draft-model` supplied a folder. Two packages prepared from draft folders with the same
       configuration and different weights share an identity, and Helios seeds prefix-cache digests
       from it (`helios/src/cache/hash.rs:37`). Hashing the draft's shard headers into the identity
       re-keys every existing DFlash2 package of this recipe.
 
+
 - [ ] Declare the history-draft copy inputs on the remaining recipes that use the shared
-      parallel-draft round: DeepSeek V4 (`ignition/recipes/deepseek4/bootstrap.py:387`),
-      DeepSeek V4.1 (`ignition/recipes/deepseek41/bootstrap.py:260`), Kimi K3
-      (`ignition/recipes/kimi3/bootstrap.py:360`), MiniMax M3.1
-      (`ignition/recipes/minimax_m3/bootstrap.py:384`), Gemma 4
-      (`ignition/recipes/gemma4/bootstrap.py:425`), Step-5
-      (`ignition/recipes/step5/bootstrap.py:262`). Each needs a served qualification before its
+      parallel-draft round: DeepSeek V4 (`hyperflare_recipes/recipes/deepseek4/bootstrap.py:387`),
+      DeepSeek V4.1 (`hyperflare_recipes/recipes/deepseek41/bootstrap.py:260`), Kimi K3
+      (`hyperflare_recipes/recipes/kimi3/bootstrap.py:360`), MiniMax M3.1
+      (`hyperflare_recipes/recipes/minimax_m3/bootstrap.py:384`), Gemma 4
+      (`hyperflare_recipes/recipes/gemma4/bootstrap.py:425`), Step-5
+      (`hyperflare_recipes/recipes/step5/bootstrap.py:262`). Each needs a served qualification before its
       package admits `--history-drafts`.
+
 
 - [ ] Packed-prefix confidence is recorded from the learned token at positions a copy later
       replaces (`ignition/components/split_draft.py:103` via
       `ignition/components/parallel_draft.py:401`), biasing prefix allocation for copies.
 
-- [ ] Expose the selected deployment's rebuild metadata in flare inspect --json.
-      Payload cores report rebuild: null even when DeploymentBody.rebuild is present.
-
-- [ ] Validate GLM TP4/TP8 A16 expert preparation through export and native replay.
-      Verify DirectWeightLoader.load_nvfp4_experts keeps only final scale layouts
-      in persistent storage when loading expanded CSF scales.
-
-- [ ] Preserve explicit A16 activation arithmetic in SM103 MXFP8 projections.
-      QuantizedProjection does not pass activation_mode to sm103_projection.query_for;
-      PackedProjectionQuery.mode chooses quantized activations from output width.
-      Trace affected recipes and validate on SM103 before changing the shared path.
 
 - [ ] Preflight file-descriptor capacity before TP core assembly opens every
       payload file and cache lease. Report the required limit before partially
       assembling ranks; see heliopause/src/export/core.rs and model-preparation.md.
 
+
 - [ ] Prevent healthy TP forward compilation from exhausting the two-hour Gloo
       timeout in ForwardCache._prepare_ranks when idle ranks gather outcomes.
       Preserve compiler failure and dead-peer detection while waiting for work.
+
 
 - [ ] Restore loading and serving for cores with separate proposal and verification
       graphs, whose operation identifiers 10, 11, and 13 are reserved in
       helios/proto/runtime_core.proto. Validate their original captured graphs
       through native serving without re-export or re-signing.
 
-- [ ] Evaluate combined MXFP8 GDN QKV/Z/B/A projections for Qwen3.8 Flash Next
-      through the shared loading and execution path that Qwen3.8 dense uses
-      (in_proj_qkvzba in ignition/components/gated_delta.py). Preserve TP
-      partitioning and compare complete graph latency against the separate QKV/Z
-      and B/A projections with stream overlap.
-
-- [ ] Integrate the shared fused head normalization/RoPE and output gating that
-      Qwen3.8 dense uses (ignition/components/head_norm_rope.py and head_gate.py)
-      into Qwen3.8 Flash Next's QSA wrapper where arithmetic and layouts match.
-      Preserve sparse selection, cache-only execution, and TP behavior; validate
-      replay and graph latency.
 
 - [ ] Review threaded-rank rejection state in helios/src/execution/threaded.rs
       and helios/src/execution/threaded/protocol.rs. Duplicate rank-zero completions
       overwrite stored payloads before rejection; frames leave the queue before
       agreement and timing validation. Verify ownership and poison handling through
       poll_ranks and close, beyond the existing bookkeeping-helper tests.
+
 
 - [ ] Qualify actual threaded executor completion and shutdown on assigned CUDA
       devices after partial Prepare/Commit dispatch, failure after local enqueue,
@@ -198,20 +183,12 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
       final use. Extend helios/src/execution/threaded/cuda_tests.rs; see
       verification/helios-lifecycle/README.md#assumptions-and-limits.
 
+
 - [ ] Check socket rank coordination in helios/src/execution/parallel.rs against
       readiness, completion identity/order, partial dispatch, and drain/release
       invariants. TLA+ correspondence covers the threaded helpers; extend coverage
       to the socket coordinator and peer control loop.
 
-- [ ] Validate full-width INT64 expert IDs in b12x W4A16 route packing,
-      reductions, and MoE calibration. These paths narrow IDs before range
-      checks; add captured replay coverage for IDs outside the INT32 range.
-
-- [ ] Find the cause of GLM-5.3 Flash device error 6 (INVALID_SPECULATION) at
-      TP4 with 16 concurrent requests on DGX Spark: KDA layers 29, 40, and 44
-      produce NaN outputs. Validate the page-table-extent sparse indexer on Spark
-      in the same run; it is validated on SM120 only. Drive the workload with
-      scripts/repro_glm_batched_speculation.py.
 
 - [ ] Qualify qwen3.8-flash-yarn4 long-context serving: prepare and export the rope-scaled
       package, measure the extended score-workspace chunking and graph bytes, and validate
@@ -224,40 +201,34 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
       1,000k prompt tokens × needle depths 0.1, 0.5, 0.9) and the native 262k MTP package passes its
       3/3 cells at 200k; image requests and score-workspace measurements remain open.
 
+
 - [ ] Qualify measured-work checkpoint selection and history-rewrite reuse through
       Qwen, GLM, DeepSeek, MiMo, Step, and Nemotron services with warm timing
       catalogs, host copy-out pressure, and tensor-parallel execution. See
       core-design.md#exact-endpoint-capture and scheduling-runtime-design.md.
 
-- [ ] Qualify capacity-blocked host restores and demand recency for individual checkpoints
-      through exported Kimi K3.1 cores under concurrent long prompts, immediate
-      continuations, and aliased snapshot pressure. Compare reused tokens, request
-      latency, throughput, snapshot backing pages, and storage skips with equivalent
-      clocks and cache budgets; include prompt-end and message-boundary follow-ups.
-      Remove after native serving confirms restoration progress and retention behavior;
-      CPU scheduler and worker tests do not establish serving performance.
 
 - [ ] Correct the 10-byte core payload fixtures in Orbit agent tests
       running_groups_are_stopped_and_outlive_their_controller_session and
       groups_run_together_on_disjoint_gpus_and_status_lists_them; their transfer
       ranges and file-size assertions currently require 13 bytes.
 
+
 - [ ] Validate multi-window image prefill, prefix skipping, and CPU record reuse
       through DeepSeek, MiMo, Kimi, and Nemotron services. Extend Step TP4 coverage
       to host cache tiers and image-request preemption, cancellation, and shallower
       restore. See prefix-cache-offload.md.
 
+
 - [ ] Make test_cache_memory.py's reservation workload force checkpoint backing
       reclamation under growable admission. Large output limits alone do not
       reserve their full page extent; the resident-prompts case exercises pressure.
 
-- [ ] Investigate Step 5 seeded request repeatability: repeated completions with
-      seeds 119 or 1234 and unchanged sampling defaults produce different text using
-      step5-tp4-mtp3-c16-fp8kv-signed.safetensors, including prompt-cache hits.
 
 - [ ] Orbit: mDNS discovery, the fabric check with a ring-order proposal,
       preparation through agents (PREPARE, `flare orbit prepare`), and
       reconciliation (`flare orbit apply`). See orbit-proposals.md.
+
 
 - [ ] Restore preparation/serving RoCE proxy parity once FlashInfer main includes
       the sequence-limit guard and protocol verification additions. The pinned
@@ -267,98 +238,33 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
       Confirm with a multi-host core prepared from the pin whether serving
       rejects it. See roce-ring.md#protocol-model-and-runtime-checks.
 
+
 - [ ] Validate the unbuffered Windows core guard and parallel disk workers with
       complete DeepSeek Engram serving and with complete Qwen PLE serving;
       fixture tests cover row delivery only. See windows.md#serve-a-prepared-core
       and cli-design.md.
 
+
 - [ ] Validate Windows prefix-cache offload across the other recipes and TP ranks;
       Qwen3.8 Flash TP1 disk-only and RAM/disk round trips are the only validated
       configurations. See windows.md#serve-a-prepared-core.
+
 
 - [ ] Validate numeric weight metadata in complete model exports across packed
       formats and TP ranks, including a fresh Nemotron Bolt Spark export and
       Windows text/image/speculative replay. SM103 execution and CSF repacking
       need GPU validation beyond metadata tests. See windows.md#serve-a-prepared-core.
 
-- [ ] Validate compiler-owned temporaries in complete GLM and Kimi exports. Migrate
-      Step, Muse, and MiMo from graph-buffer pools, then validate complete exports.
-      Exercise native text/image transitions, speculative rollback, and full graph
-      catalogs with tensor parallelism. Measure fixed memory and KV capacity. See
-      performance-work.md#cross-model-scratch-planning.
-
-- [ ] Fix Int32 partial-output address overflow in FlashInfer dense MLA split
-      stores for Kimi prefill4096; use element offsets that cover the allocated
-      tensor. Validate with Compute Sanitizer and the unchanged attention reference.
-
-- [ ] Resolve CUDA_ERROR_ILLEGAL_ADDRESS when serving a 6112-token prompt from
-      Kimi K3.1 Pro core gb202-tp16-202611111208, exported with concurrency 2 and
-      prefill capacity 4096. Short text and image requests complete. Repeat the
-      long prompt in a fresh native serving process before closing this item.
-
-- [ ] Resolve Step TP8 package publication exceeding the 128 MiB envelope limit
-      after all 111 graphs capture. Preserve bounded package loading and validate
-      the complete package through native serving.
-
-- [ ] Size DeepSeek V4 and MiMo one-shot all-reduce channels from their actual
-      callers; prefills of at least 1024 rows use separate DMA channels. Preserve
-      MiMo's full-prefill context-gather capacity when separating those bounds.
-
-- [ ] Scope TP4 Simple peer-push all-reduce in FlashInfer/b12x: four-rank payload
-      ownership, publication ordering, scratch/epoch reuse, and preparation-time
-      autotuning against existing collectives. Cover graph replay, concurrent
-      channels, rollover, and complete-collective latency on the target topology.
-
-- [ ] Review fusion of pooled DeepSeek V4.1 indexer lengths: captured graphs split
-      clamp from amax and retain explicit copy kernels. Measure complete GPU steps
-      before changing shared storage lowering.
-
-- [ ] Measure direct expert-sum output writes in DeepSeek V4 and Qwen3.8 MoE;
-      pooled add-then-copy expressions can retain an extra device copy. Check
-      Step 5 separately because its expert sum uses FP32 intermediates.
-
-- [ ] Validate vision and speculative temporary storage in complete exported cores
-      across Qwen, GLM, DeepSeek V4, MiMo, Step, and Nemotron. Measure
-      fixed memory and KV capacity with full catalogs and tensor parallelism;
-      exercise alternating text/image graphs, proposal/verification, and rollback.
-      See performance-work.md#cross-model-scratch-planning.
-
-- [ ] Validate cooperative Inductor reductions in full vision-enabled exports of
-      kimi-k3-mxfp4-csf, step5-preview-nvfp4, mimo-v2.6-pro-mopd, glm-5.3-flash,
-      and nemotron-bolt-24gb. Exercise every vision capacity, TP kernel agreement,
-      frozen preparation-cache reload, and native image replay. RADIO at
-      single rank and TP2 and a full Qwen3.8 export are validated. Nemotron
-      compiles its complete catalog and replays RADIO at 1024 patches; other
-      vision capacities need native checks. The other listed full-model
-      vision paths are untested. See model-preparation.md#environment-setup.
-
-- [ ] Investigate Qwen Flash Next vision's canonical-reference accuracy failure
-      with Qwen3.8-Flash-Next-NVFP4-MXFP8-CSF-QAD: relative L2 0.09977 exceeds
-      0.03 with both bound and invocation-local temporaries. Native image requests
-      pass but do not establish the encoder's numerical reference.
-
-- [ ] Resolve checkpoint reference failures before claiming full numerical
-      validation: GLM KDA prefix relative L2 0.02715 exceeds 0.01, Nemotron B8
-      context 0.010005 exceeds 0.01, and Step sparse attention layer 91 error
-      0.008425 exceeds 0.008. Each failure also reproduces with bound temporary storage.
-
-- [ ] Check DeepSeek V4/V4.1 continuation-row requirements during speculation.
-      parallel_draft.py consumes request_state_rows[:, 0], while their graph
-      contracts reserve one row per verification token. Validate native proposal,
-      verification, and rollback before reducing the declared execution rows.
-
-- [ ] Add Nemotron Bolt video preprocessing, timestamps, and frame-feature pruning.
-
-- [ ] Measure DeepSeek V4's sharded Markov projection against replicated weights;
-      DeepSeek V4.1 uses replication to remove per-draft vocabulary gathers.
 
 - [ ] Validate native runtime-core export on Windows, including unbuffered
       bulk I/O, positioned tails, and cache reuse.
+
 
 - [ ] Resolve fixed external-address core loading collisions: cuInit's
       randomized 8.0625 GiB host VA reservation can cover a recorded high 1 GiB
       window. test_core_replays_without_python with fixed_core_fixture.py
       and exec_handover reproduces with both Python and native exporters.
+
 
 - [ ] Qualify retained graph costs and funded remeasurement in live Helios:
       idle/resume, concurrent decode latency, cost-change recovery, and queued
@@ -366,29 +272,19 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
       latency measurements; measure GPU replay, queueing, and host planning separately.
       See scheduling-runtime-design.md#funded-timing-refresh.
 
+
 - [ ] Extend the two-frame submission window to nonterminal prefill with
       device-owned continuation positions and fenced cache reservations.
+
 
 - [ ] Qualify prompt scoring on remaining recipes and cache lifecycles;
       see docs/logprobs-design.md for TP4 costs and numerical limits.
 
-- [ ] Validate embedding readiness timestamps in full Qwen3.8 PLE serving and
-      cross-node RoCEnante TP cores for Qwen3.8 and DeepSeek V4.1.
 
 - [ ] Measure cross-host rank handoff polling and completion yielding: CPU time,
       request p99, and complete-round latency under active and idle workloads.
       See helios/src/execution/parallel.rs and performance-work.md.
 
-- [ ] Profile cached CSF FC1 metadata in FlashInfer for register pressure, spills,
-      occupancy, and complete DeepSeek V4.1 graph latency.
-
-- [ ] Investigate DeepSeek V4.1 grouped MoE CSF plan selection with representative
-      routes: compare inline reconstruction and separate expansion in complete
-      graphs before adding a preparation override. See performance-work.md.
-
-- [ ] Run DeepSeek V4 packed-context native replay with its checkpoint and measure
-      exported V4/V4.1 cores with packed context projections. Compare GLM's
-      shared-expert launch order when the configured checkpoint shards are available.
 
 - [ ] Qualify TP resharding for full-model use. Export compressed Qwen TP1 and
       native TP2 cores, complete combine and clean-cache acquisition, compare
@@ -399,30 +295,10 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
       derivation replay and signed multi-host distribution only. See
       core-format-design.md.
 
-- [ ] Invalidate b12x preparation discovery's cached compiler context when
-      Inductor selects a different libdevice in the same process. Repeated GPU
-      test preparation can restore program keys for the preceding library.
-
-- [ ] Investigate Nemotron repeated-image prefix reuse in
-      tests/server/test_nemotron.py::test_image_cache_identity: native serving of
-      NVIDIA-Nemotron-3.5-Bolt-74B-A9B-24GB reports 281 cached tokens for a repeated
-      287-token prompt; image answers and token identity assertions pass.
-
-- [ ] Validate native debug-serve asset descriptors for Step-5, MiniMax M3,
-      MiMo V2, Qwen3.8 dense, and DeepSeek V4.1. Their tokenizer descriptors omit
-      sha256 before PreparedModel.start_server; launches remain untested.
 
 - [ ] Reduce the host-bridge cost of the 512-thread selected barrier gather for
       512-byte rows at 1 MiB per rank: 20.1% above the best measured geometry.
 
-- [ ] Validate the shared MXFP8 projection FP32 split-reduction default on Qwen3.8
-      MoE, GLM KDA/MLA, and other attention consumers with their checkpoints.
-      BF16 atomic reduction exceeds the shared operator bounds at Qwen3.8 dense
-      layer 1 output; the other consumers have no checkpoint coverage.
-
-- [ ] Validate complete RadixArk/Kimi-K3.1-Dflash2-Preview speculative rounds,
-      acceptance quality, and native core serving. Component and draft-body
-      checks do not cover proposal sampling, verification, and acceptance together.
 
 - [ ] Repair the Debian package build. packaging/debian/Dockerfile builds
       flare-cli/Cargo.toml without copying flare-cli/ into the build stage,
@@ -432,111 +308,95 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
       helios/licenses/*.txt. Close when scripts/build_deb.sh produces a package
       that contains every license file.
 
+
 - [ ] Confirm and repair `flare orbit run ORG/NAME`. The agent's DOWNLOAD reply
       names the cache entry directory (download in flare-cli/src/orbit/agent.rs),
       the controller passes that path to STAT (resolve_core_from in
       flare-cli/src/orbit/controller.rs), and STAT accepts only a regular file.
       Close when a repository launch reaches rank start in a test.
 
+
 - [ ] Replace "package" with "core" in Ignition help text: the `--mtp-only`
       description in ignition/cli/__init__.py and ignition/cli/help.py reads
       "package requires speculation at runtime".
 
-- [ ] Compare Kimi K3.1 output-sharded latent prefill and staged history gathers
-      against selected-record prefill. Validate dynamic KV peer mappings through
-      fresh core export and native loading. See model-preparation.md.
 
 - [ ] Reduce export memory with deferred graph executables and packed sparse
       initializers. Preflight aggregate metadata bounds before payload publication.
       Preserve core compatibility. See runtime-core-design.md.
 
+
 - [ ] Extend cached-weight reuse to retained tensor ranges when allocations
       disappear or compatible views move independently. See preparation-development.md.
 
-- [ ] Diagnose the TP16 eager-versus-compiled serial output mismatch in
-      tests/recipes/test_kimi31_query_overlap_tp16_cuda.py at 8192-token history.
-      Both candidate exchanges differ in nine output bytes on the repeated
-      17-token context; cache contents, query bytes, and selected IDs match exactly.
 
 - [ ] Measure the serving cost of the 258-field completion_logprobs output and of
       width-masked mixed-graph merges on an exported core against a core whose
       last extent is 42. Close when the cost is measured and accepted or reduced.
       See helios/manifest.md.
 
+
 - [ ] Re-measure scored-prefill throughput for DeepSeek V4.1 Flash TP4 with
       requests that do not set echo. The 0.50x (K=0) and 0.37x (K=20) ratios in
       logprobs-design.md include Completions echo-array formatting.
 
+
 - [ ] Make tests/server/test_coding_clients.py report or assert the codex and
       claude versions it runs. api.md states the qualified client versions and no
       test checks them.
+
 
 - [ ] Decide whether default request parameters (thinking, reasoning effort,
       sampling, output limit) get a configuration mechanism beyond
       [server] thinking_token_budget. Close when cli-design.md specifies the keys
       and precedence or states that none exist.
 
-- [ ] Add a shared check that zeroes every export-disposable range before
-      replaying each captured graph, and run it for every recipe's graph catalog.
-      tests/recipes/test_glm53_indexer_cuda.py does this for one operator. See
-      preparation-development.md.
 
 - [ ] Qualify one-process multi-context process images beyond two GPUs: four
       ranks, graphs containing b12x spin-barrier collectives, and fixed-address
       import of a shareable handle in a second process. See same-process-tp.md.
 
-- [ ] Measure the compact GDN recurrence's capacity and write-traffic savings in
-      complete speculative rounds against full checkpoint columns. See
-      mtp-design.md.
-
-- [ ] Qualify Qwen3.8 Flash at TP4 end to end: export and native serving through
-      flare run. See model-preparation.md.
-
-- [ ] Qualify DeepSeek V4.1 --vocabulary-parallel-sampling above one concurrent
-      request at TP4. Close when complete-model serving passes at the recipe's
-      default concurrency.
 
 - [ ] Verify the gb202_pcie_tp4.json profile menus by independent replay on each
       PCIe topology class, and add a procedure that regenerates the ladder files
       in ignition/preparation/ladders/; the repository has none.
 
-- [ ] Correct the QSA tuning label in ignition/recipes/qwen38/tuning.py, which
+
+- [ ] Correct the QSA tuning label in hyperflare_recipes/recipes/qwen38/tuning.py, which
       reads "fixed attention_splits=16" while the QSA declaration uses the
       library's default partition policy (core-design.md).
+
 
 - [ ] Budget the SM120 TMA tile path's device reservation, about 3.6 GiB per
       context when loaded, in the Helios memory plan, or establish that no
       prepared b12x kernel loads that path. See runtime-core-design.md.
+
 
 - [ ] Publish Orbit rank files through the shared model cache in
       helios/src/core/cache.rs. The agent stores them in its own range store,
       flare-cli/src/core_cache.rs, so peer serving receivers do not read rank
       data staged by flare orbit push. See core-format-design.md and orbit.md.
 
+
 - [ ] Implement the recipe importer that validates a prepared-weight catalog and
       the core rebuild command designed in runtime-core-design.md.
 
-- [ ] Qualify GLM full-model numerical acceptance for its sparse-selection and
-      atomic-reduction paths: component bounds on matched operands and measured
-      repeatability. See core-design.md.
 
 - [ ] Run the host offload isolation measurements for the memory tier and the
       composite store with qualify/host_cache_isolation.py. Every threshold in
       prefix-cache-offload.md section 4 must hold before derived host-store
       defaults are implemented.
 
-- [ ] Run multi-rank host offload acceptance for Qwen TP2, GLM TP4, and DeepSeek
-      TP4 with Engram tables in disk mode, using qualify/host_cache.py. Close
-      when every rank shows identical results and transfer byte counts match the
-      cache geometry.
 
 - [ ] Add a fault-injection test across rank processes for sharded-store partial
       failure: when one rank fails a store, rank zero unlinks the other ranks'
       files. Only the bookkeeping has unit coverage.
 
+
 - [ ] Test record sharing between a pooled instance whose ranks span hosts and a
       single-process instance of the same TP width: restore a record written by
       one into the other.
+
 
 - [ ] Resolve pool-only host retention for ranks on separate hosts.
       prefix-cache-offload.md section 1 allows it, while ModelRuntime::start in
@@ -544,27 +404,33 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
       selene/src/offload/sharded.rs creates only with a record directory. Close
       when a multi-host pool-only launch serves or the documents exclude it.
 
+
 - [ ] Decide whether durable Selene manager records are isolated by pool name. A
       manager started with a different --name on the same --root recovers the
       records under its own name (selene-manager/src/disk.rs). Close when the
       name is bound into the stored scope with a recovery test, or the behavior
       is specified as intended.
 
+
 - [ ] Log each Selene manager quarantine event once, as PROTOCOL.md section 7.4
       specifies; the manager logs only a failed RDMA queue-pair teardown
       (selene-manager/src/data/channel.rs).
+
 
 - [ ] Cover shared-memory rank agents in the Selene manager restart hold. A rank
       agent is not written to the holders file (selene-manager/src/pool/ranks.rs),
       so a restarted manager does not hold reused regions for an agent that
       outlives rank zero. See PROTOCOL.md section 8.6.
 
+
 - [ ] Add a two-host data-channel procedure over TCP and TLS, with pass
       conditions, to selene-manager/docs/qualification.md; the suites in
       selene-manager/tests/ use loopback only.
 
+
 - [ ] Confirm the O_DIRECT startup-exit cause in selene-manager/docs/operating.md;
       Store::open in selene-manager/src/store.rs probes only io_uring.
+
 
 - [ ] Correct comments in selene/proto/selene.proto that contradict the
       implementation: the location of instance_id and scope_id (they are in
@@ -575,24 +441,29 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
       selene-manager/deploy/compose-network.yaml, which binds --metrics to the
       container's loopback.
 
+
 - [ ] Qualify RoCE ring transport beyond GLM-5.3 Flash TP4 on four DGX Sparks:
       other recipes, TP2 and TP3, and --roce-chain on hosts cabled as a chain.
       Close each when preparation, export, native serving, signed-core
       verification, and coordinated shutdown complete on that configuration.
       See roce-ring.md.
 
+
 - [ ] Qualify x86_64 RoCE serving on RDMA hardware; its coverage is functional,
       over Soft-RoCE. See multi-host.md.
+
 
 - [ ] Decide whether flare orbit run passes the operator's --transfer-streams to
       serving ranks. It passes 1 unless prestaging or fetching from a node other
       than rank zero (flare-cli/src/orbit/controller.rs), while orbit.md gives a
       default of 8.
 
+
 - [ ] Decide whether the container runs under a UID absent from its user
       database. Flare exits when the home directory cannot be resolved
       (home_directory in flare/src/environment.rs), and the image defines only
       UID 10001. See container.md.
+
 
 - [ ] Qualify the remaining Windows serving configurations on RTX Spark N1X:
       concurrent generation, where Qwen3.8 27B requests can emit EOS early and
@@ -601,14 +472,22 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
       address collision; and format-4 and format-6 container loading. See
       windows.md#serve-a-prepared-core.
 
+
 - [ ] Give process_nonce and secret in selene/src/shared/identity.rs a Windows
       random source; they open /dev/urandom, so the selene test suite is not
       qualified on Windows.
+
 
 - [ ] Qualify the Windows desktop client beyond Windows 11 ARM64: x64 linking and
       inference, Flare.exe on a machine without the development environment,
       transfer interruption, switching under load, accessibility, and recovery
       from sleep or GPU reset. See flare-winui/README.md.
+
+
+- [ ] Ensure Rust bridge updates relink the WinUI executable during incremental
+      builds. MSBuild can retain flare-winui.exe after the bridge library changes;
+      verify loose and single-file outputs without requiring /t:Rebuild.
+
 
 - [ ] Run .github/workflows/release.yml on GitHub-hosted runners through
       workflow_dispatch; it has never run there. The run must establish that
@@ -619,70 +498,71 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
       Windows session can open the desktop window. Close when one dispatched run
       passes on all four runners. See release.md.
 
+
 - [ ] Review THIRD_PARTY_NOTICES.md's statement of the terms under which the
       Windows desktop archive redistributes the Windows App SDK and Visual C++
       runtime files. Close when the project owner has approved the wording.
+
 
 - [ ] Publish Debian packages with releases and update the APT repository from
       them. release.yml builds no .deb, and no tracked tool builds or signs an
       APT index. See debian.md and release.md.
 
+
 - [ ] Gate the Triton kernel-resolution freeze guard on planning state rather than module name:
       `b12x/compile_plan.py:548-556` and `:587-593` only check `b12x.*` JITs, so an unprepared
       Ignition kernel can lower during capture without `raise_if_kernel_resolution_frozen` firing.
+
 
 - [ ] Retire the manual `_NATIVE_JITS` registrations in `ignition/components/moe_sm103.py:353,383`
       and `ignition/components/sm103_projection.py:254` now that planning eviction covers every
       JIT module (`_PLANNED_TRITON_JITS`); they opt those kernels into retention reclaim, which other
       Ignition kernels do not get.
 
+
 - [ ] Retention reclaim (`b12x/compile_plan.py:141-156`, `evict_unretained_triton`) skips
       non-registered Ignition Triton kernels, so losing warp candidates stay module-loaded after
       tuning. Measure the retained footprint and decide whether Ignition kernels should join the
       reclaim.
 
+
 - [ ] Give reproducer 4 in `tests/preparation/test_aot.py` a pad value other than 63 so it pins
       the destination-write ordering rule independently of the masked-fill value.
 
-- [ ] Test Kimi K3.1 latent-column reduce-scatter plus one FP32 RMS-statistic
-      all-reduce per token before other MoE collective changes. Compare against the
-      latent all-reduce at TP16, prefill 4096, context 0. Preserve BF16 normalization
-      rounding and validate numerical agreement and complete graph latency. The
-      candidate reduces latent replication but adds a serial collective stage.
-
-- [ ] Honor `--expert-scale-compression` native in Kimi K3 and K3.1 preparation and
-      report the default encoding accurately. The shared loader always uses CSF, and the
-      declared resident weight estimate already includes compression. Wire the option
-      through loading and add native-scale memory costs and tests.
-
-- [ ] Repair runtime collective-policy fixtures in `tests/cli/test_planning.py`.
-      `test_every_recipe_passes_collective_policy_to_preparation` rewrites a TP4 ladder to
-      DeepSeek V4.1 TP3 or Muse Spark TP8; b12x rejects those gather and word-exchange
-      candidates before the preparation handoff is tested.
 
 - [ ] Decide whether an XTML typed argument value that is not valid JSON is retained as
       a string, as tagged and DeepSeek string="false" values are.
       `helios/src/output/xtml.rs` fails the call with "invalid XTML JSON argument". Close
       when XTML retains the text with tests, or `docs/api.md` states that the difference
       is intended.
+
 - [ ] Add parser-start tests in `helios/tests/parser_start.rs` for MiniMax M3, Muse
       Spark and dense Qwen3.8, whose Jinja prompts skip a marker spelled by request
       text, with each checkpoint tokenizer and prepared chat template; the test
       environment has none of them. Close when each recipe has a generation-prompt
       case and a continued-message case.
 
-- [ ] Run `tests/frontend/test_muse_spark.py` against the Muse Spark checkpoint. Its
-      expected token IDs for request text that spells controls (`<|eot|>`,
-      `<image>`, `<|start|>`, `<|eom|>`) encode request-owned spans without the
-      added vocabulary, as `tests/frontend/test_nemotron.py` does, and have not
-      been run because the checkpoint is gated and unavailable to the test
-      environment. Close when the test passes against the checkpoint.
 
-- [ ] Check the literal-token path against tokenizers whose pre-tokenizer prepends
-      a space (Metaspace): a region re-encoded without the added vocabulary can
-      then tokenize differently from the first pass. The pinned tokenizer assets
-      do not use it. Close when frontend tests cover such a tokenizer or loading
-      rejects it.
+- [ ] Qualify `strict: true` function tools on a TMLv0 core (ToolParserKind::TmlJson, e.g.
+      Inkling 2) served by `flare run`. Check Chat Completions and Responses, buffered and
+      streamed, including max_tokens and max_output_tokens truncation. Close when a served
+      TMLv0 core passes those checks and the result is recorded.
+
+- [ ] Add metadata-only publisher-key review for legacy cores whose verification opens
+      companion files before acquisition has fetched them. The desktop key import dialog
+      verifies payload-core catalogs before downloading companions; legacy review still
+      requires the files that VerifiedCore::open reads. Verify a legacy acquisition with
+      an unknown key and missing companions.
+
+- [ ] Report rebuild_weights for payload cores in flare inspect --json. Payload inspection
+      reports the selected deployment's rebuild manifest but leaves each rank's
+      rebuild_weights unset, so the JSON reports null. Remove when payload and logical-
+      resource cores report the same per-rank counts for one rebuild manifest.
+
+- [ ] Measure the latency and peak host memory of the extra encoding pass over a prompt
+      region that spells a control, on a GB10 (DGX Spark) host. Close when a committed
+      harness measures both against the headroom described at Frontend::push_segment
+      (helios/src/frontend/mod.rs) and the cost is accepted or reduced.
 
 - [ ] Record request ranges for the DeepSeek and Inkling native encoders. Their
       prompts tokenize request text as ordinary text but carry no
@@ -691,21 +571,7 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
       when a spelled DSML opener in a continued message does not start ToolBody
       and a spelled reasoning opener does not start Reasoning, with tests for both.
 
-- [ ] Accept or reduce the latency of a Jinja prompt that spells a control token:
-      the region between added tokens that contains the spelling is encoded a
-      second time. `helios/benches/template.rs` times only the template renderer and
-      does not tokenize, so no committed harness covers this. A one-off timing of
-      `Frontend::render_chat` on one user message (16 CPU cores) took 0.52 to 0.54 s
-      for 300,000 GLM-5.3 tokens without a spelled control and 1.1 s with one
-      `<think>` spelling inside the message; for 600,000 tokens it took 1.1 s and
-      2.2 to 2.3 s. Close when a committed harness measures it and the cost is
-      accepted or reduced.
-
-- [ ] Run `helios/tests/ordinary_tokens.rs` against the tokenizers it cannot load in
-      the test environment: MiniMax M3, Kimi K3 and K3.1, Muse Spark, Inkling 2
-      and dense Qwen3.8. It checks that request text without a control tokenizes
-      the same with and without the added vocabulary, that a request spelling no
-      control renders the first-pass encoding of its text, that spelling a control
-      leaves the controls the template writes unchanged, and that text spelling an
-      added token that is neither special nor named by the chat template (a
-      lexical token) keeps that token. Close when each tokenizer passes it.
+- [ ] Run helios/tests/ordinary_tokens.rs against the tokenizers the test environment
+      lacks: MiniMax M3, Kimi K3 and K3.1, Muse Spark, Inkling 2 and dense Qwen3.8, and
+      read each one's pre-tokenizer for Metaspace (see the test header). Close when each
+      passes and none uses Metaspace, or loading rejects one that does.
