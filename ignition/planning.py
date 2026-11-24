@@ -234,9 +234,10 @@ class Plan:
                 raise UsageError(
                     f"benchmark graph preparation is not supported for {self.checkpoint.alias} on {self.world_size} GPUs"
                 )
-            if selection.speculation_study and (not self.recipe.speculation_study or (
-                    self.speculation is not None and self.speculation.method == "dspark")):
+            if selection.speculation_study and not self.recipe.speculation_study:
                 raise UsageError(f"speculation studies require a recipe that declares speculation_study ({self.checkpoint.alias} does not)")
+            if selection.speculation_study and self.speculation is not None and self.speculation.method == "dspark":
+                raise UsageError("speculation studies require Qwen3.8-27B DFlash2")
             required_widths = (8,) if selection.speculation_study else selection.selected_verification_widths
             if not selection.prefill_chunk and (self.speculation is None
                     or not set(required_widths) <= set(self.speculation.widths)):
