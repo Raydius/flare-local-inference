@@ -18,6 +18,20 @@ them. The hook is nonetheless enabled in this clone (`core.hooksPath=.githooks` 
 `AGENTS.md`'s architecture and package-compatibility rules still describe how Flare works;
 break them knowingly, not by accident.
 
+**Two repositories (since 2026-11-24).** Upstream split its model recipes, non-Helios
+components, fixtures, reference implementations, model tests, `qualify/` and `uv.lock` into
+`local-inference-lab/hyperflare-recipes`, which installs core `ignition` from git. The fork
+follows: this repository carries the core patches, and `Raydius/hyperflare-recipes`
+(clone `~/dev/hyperflare-recipes`, `origin` = the fork, `upstream` = local-inference-lab,
+push `DISABLE`) carries the recipe patches on its own `main` mirror and `deploy` stack, with
+no patch branches. Its `pyproject.toml` sources `ignition` from this fork by exact `rev`,
+and its `uv.lock` pins that sha and the FlashInfer fork pin. `scripts/fork/sync.sh` and
+`rebase.sh` run in either clone. After every move of this `deploy`, bump the recipe fork:
+set the `ignition` `rev` to the new `deploy` sha, run `uv lock --upgrade-package ignition`
+there, and commit. The image recipe (`~/LocalApps/vllm-env/build/flare-ignition/build.sh
+<core-ref> <recipe-ref>`) refuses a recipe lock that pins a different core sha. A change
+that touches both sides lands in both repositories.
+
 ## Remotes
 
 | Remote     | URL                                                  | Role                      |
@@ -167,6 +181,25 @@ base/current (tag → an upstream commit)
   continued with the hook off, so replayed commits keep their original acknowledgments; the
   record commit acknowledges `1af4`. Host CPU, image and Rust gates run after this commit and
   before the push. Pre-rebase refs: `backup/pre-rebase-20261119-*` tags.
+  **2026-11-24: moved to upstream `c0c4f798`** (`v0.3.2`, 64 commits, including upstream's
+  core/recipes split `da037284`/`17bb3c4a`, the registry inversion and shared
+  `BasePreparationConfig` `1bf68649`, dense Qwen image input #386 and the Transformers 5.23.0
+  requirement #456; design checklist digest `eb2f`) and split the fork into this core stack
+  and `Raydius/hyperflare-recipes`. The 154-commit stack was replayed once onto `c0c4f798`
+  plus a revert of `17bb3c4a`, so every conflict resolved against upstream's moved files with
+  core and recipes in one tree and one CPU gate; then a path rule split it: the recipe half
+  applied by `git format-patch`/`git am` onto the recipe repository's split commit
+  `4541fcb` (byte-identical recipe tree) and rebased onto its `main`, and the core half
+  rewritten by `git filter-branch` (recipe paths reset to the revert's blobs) and rebased
+  onto `c0c4f798`, dropping the revert. Every split commit carries `Split-From: <combined
+  sha>`; 15 recipe-only commits left the core stack. Dropped: the fork's dense Qwen image
+  input (`1f486f63`, `751eeefc`) for #386; emptied as superseded: the Transformers-release
+  patch and the `kv_tile_ranges` call fix. FlashInfer re-pinned in the recipe fork at
+  `Raydius/flashinfer@d73da5c4` (upstream's locked `0aa01681` plus the two eviction fixes;
+  two of three cases fail without them). `scripts/fork/sync.sh` now keeps a fork tag that
+  shares a name with an upstream tag (`v0.2.3`). Pre-rebase refs:
+  `backup/pre-rebase-20261124-*` tags; plan, stops and gate evidence:
+  `openspec/changes/rebase-deploy-onto-upstream-2fe05e15/`.
 - **Moving to a newer upstream:** `scripts/fork/sync.sh`, then
   `scripts/fork/rebase.sh upstream/main` (or a sha; the tip defaults to `deploy`). The script
   refuses a tip that shares a commit with another branch (`--update-refs` would skip it).
