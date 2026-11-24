@@ -26,7 +26,13 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
 fi
 
 say "Fetching ${UPSTREAM_REMOTE} (branches + tags, pruning stale refs)"
-git fetch --prune --tags "${UPSTREAM_REMOTE}"
+git fetch --prune --no-tags "${UPSTREAM_REMOTE}"
+# A fork release tag may share a name with an upstream tag; git refuses to
+# clobber it, which must not stop the mirror. Keep the fork's tag and say so.
+if ! tag_out="$(git fetch --tags "${UPSTREAM_REMOTE}" 2>&1)"; then
+  printf '%s\n' "${tag_out}" | grep 'would clobber' >&2 || { printf '%s\n' "${tag_out}" >&2; exit 1; }
+  warn "Kept the fork's tag(s) above; ${UPSTREAM_REMOTE} uses the same name(s) for other commits."
+fi
 
 # Fast-forward the mirror branch without leaving the current checkout.
 current_branch="$(git symbolic-ref --quiet --short HEAD || echo '')"
