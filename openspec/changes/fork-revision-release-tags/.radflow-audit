@@ -1,0 +1,14 @@
+deltas 2
+7bdba8a1356f161fb9d195eb7281c666f142d96b .github/workflows/container.yml
+43f68af397d2e0a948debf0000d730f4f3a063b4 .github/workflows/release.yml
+cbed960ad57260edf2364a30df786818ce8ac95c README.md
+0f32439b4466781fe4546e5c2a53f011b68e904e docs/container.md
+bac2f93215dc9d3e655445e2b49200d2609458bb docs/release.md
+04f037fd09e2041a11992f321ba02b1c283e2221 openspec/changes/fork-revision-release-tags/design.md
+22e6ceed9bac82b4db60342093a13f8a8ba7b978 openspec/changes/fork-revision-release-tags/proposal.md
+c8ab2fa712dc54b65c3a213c01bdd2de745fc1a3 openspec/changes/fork-revision-release-tags/specs/release-versioning/spec.md
+2975b547b6ff427844365e2588dbb0289f7b3dd3 openspec/changes/fork-revision-release-tags/tasks.md
+29e297e7f1b2083616cac6f2afd9c442bfe991bf scripts/fork/sync.sh
+992fc9328a12071a563ddf534257f8e03fe81cf3 scripts/set_release_version.py
+5ebee003f82a61afa1ddf54be2838d3aa9b5ee6c tests/test_fork_sync.py
+351a853511eff7e0d41a67c9dce32713edbcb275 tests/test_set_release_version.py

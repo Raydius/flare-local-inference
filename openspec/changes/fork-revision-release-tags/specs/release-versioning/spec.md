@@ -11,7 +11,9 @@ output — must report so a consumer can identify the exact patch set it obtaine
 A tag push SHALL start the release and container workflows only when the tag matches
 `vMAJOR.MINOR.PATCH` or `vMAJOR.MINOR.PATCH-r<DIGITS>`, where each version component is a
 non-negative decimal integer without leading zeros and `<DIGITS>` is one or more decimal
-digits with no leading zero. No other ref SHALL start either workflow.
+digits with no leading zero. No other ref SHALL publish a release: a ref outside both forms
+starts no run at all, and the leading-zero form the trigger glob admits anyway
+(`v0.3.2-r01`) is refused by each workflow's guard step before a version is resolved.
 
 #### Scenario: Bare release tag publishes
 - **WHEN** a tag `v0.3.4` is pushed to the repository's default branch
@@ -23,8 +25,10 @@ digits with no leading zero. No other ref SHALL start either workflow.
 
 #### Scenario: Unaccepted ref is ignored
 - **WHEN** a tag in any other form is pushed (`v0.3.2-R1`, `v0.3.2-rc1`, `v0.3.2-r`,
-  `v0.3.2-r01`, `v0.3.2-r1-2`, or `v0.3`)
-- **THEN** neither workflow runs and the push reports no release
+  `v0.3.2-r1-2`, or `v0.3`)
+- **THEN** no release and no version-tagged image is published — the push starts no run for a
+  ref outside both forms, and a run that the trigger glob admits is failed by the guard step
+  naming the ref
 
 ### Requirement: One version string per release
 The release version SHALL be the tag name with its leading `v` removed, and every published

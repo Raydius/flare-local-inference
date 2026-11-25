@@ -33,5 +33,5 @@ Concurrency: graph
   owns: read-only
   evidence: `git ls-remote origin refs/tags/v0.3.2-r1` → remote tag object `d9fb81a1`, peeling to `de89d0c8fd`; `gh run list` shows Container `45545753707` and Release `45545753522` both triggered by the `v0.3.2-r1` push
   evidence: Container run `completed success` (`image` job); the registry tag list returns `0.3.2-r1` and `sha-de89d0c8fdfc06d48b2594c46cbc2b96e4a3430a`; `docker run --rm` on the published image prints `flare 0.3.2-r1` and `run --help` contains `--generation-defaults`, `--max-context-tokens`, `--chat-template`; manifest digest `3704cd54b984d27d9aad55b99b88e397c63ed7cd463822e6b2d549365f407739` under algorithm sha256
-  evidence: Release run `completed success`; `gh release view v0.3.2-r1` → `draft=false prerelease=false assets=flare-linux-amd64.tgz,flare-linux-arm64.tgz,flare-windows-amd64.zip,flare-windows-amd64.zip`
+  evidence: Release run `completed success`; `gh release view v0.3.2-r1` → `draft=false prerelease=false assets=flare-linux-amd64.tgz,flare-linux-arm64.tgz,flare-windows-amd64.zip,flare-windows-arm64.zip`
   discovery: the first `v0.3.2-r1` push landed on `f49312c7`, the commit before the automation, so no workflow matched the ref and nothing ran; the tag was deleted locally and on the remote and re-created at `de89d0c8fd` — fixed
