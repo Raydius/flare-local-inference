@@ -41,11 +41,12 @@ acceptance follows [signing](signing.md) as it does for a source build.
 
 Development checkouts use `0.0.0` in the three release manifests and their
 lockfiles. Do not commit a release-version bump. Tag the intended commit
-`vMAJOR.MINOR.PATCH` and push the tag. The build jobs use
-`scripts/set_release_version.py` to apply the tag's version to
-`flare-cli/Cargo.toml`, `flare-winui/bridge/Cargo.toml`,
-`flare-winui/launcher/Cargo.toml`, and their lockfiles in each runner's
-checkout.
+`vMAJOR.MINOR.PATCH`, or `vMAJOR.MINOR.PATCH-r<N>` for a fork revision of a base version
+upstream already tags, and push the tag; the workflow rejects any other tag name before a
+version is resolved. The release version is that tag without its leading `v`. The build jobs
+use `scripts/set_release_version.py` to apply it to `flare-cli/Cargo.toml`,
+`flare-winui/bridge/Cargo.toml`, `flare-winui/launcher/Cargo.toml`, and their lockfiles in
+each runner's checkout.
 
 The workflow publishes to the repository that received the tag. Running it
 through `workflow_dispatch` performs every build and check and uploads the four
@@ -61,9 +62,10 @@ order that setting requires.
 All builds use Rust 1.94.1 and the locked Cargo manifests. Every job must pass
 before anything is published; no target can be skipped.
 
-- **Version.** A tag push requires the tagged commit to be an ancestor of the
-  default branch and all three release manifests and lockfiles to contain
-  `0.0.0`. Each build job applies the tag's version before compiling. A
+- **Version.** A tag push requires a supported tag name (`vMAJOR.MINOR.PATCH` or
+  `vMAJOR.MINOR.PATCH-r<N>`), the tagged commit to be an ancestor of the default branch, and
+  all three release manifests and lockfiles to contain `0.0.0`. Each build job applies the
+  tag's version before compiling, and the unpacked archive must report that same string. A
   dispatched run builds `0.0.0` without publishing a release.
 - **Linux.** The runner builds `flare` with
   `cargo build --locked --release --manifest-path flare-cli/Cargo.toml` and

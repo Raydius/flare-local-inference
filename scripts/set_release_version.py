@@ -14,6 +14,7 @@ CRATES = (
     (Path("flare-winui/launcher"), "flare-launcher"),
 )
 STABLE_VERSION = re.compile(r"(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)")
+REVISION_SUFFIX = re.compile(r"-r(0|[1-9]\d*)$")
 PACKAGE_SECTION = re.compile(r"(?ms)^\[package\]\n(.*?)(?=^\[|\Z)")
 MANIFEST_VERSION = re.compile(r'(?m)^version = "[^"]+"')
 
@@ -100,11 +101,15 @@ def set_version(root: Path, version: str) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("version", help="stable MAJOR.MINOR.PATCH version")
+    parser.add_argument("version", help="stable MAJOR.MINOR.PATCH version or MAJOR.MINOR.PATCH-r<N> revision")
     parser.add_argument("--check", action="store_true", help="check without changing files")
     args = parser.parse_args()
-    if not STABLE_VERSION.fullmatch(args.version):
-        parser.error("version must be a stable MAJOR.MINOR.PATCH version")
+    suffix = REVISION_SUFFIX.search(args.version)
+    core = args.version[: suffix.start()] if suffix else args.version
+    if not STABLE_VERSION.fullmatch(core):
+        parser.error(
+            "version must be a stable MAJOR.MINOR.PATCH version or MAJOR.MINOR.PATCH-r<N> revision"
+        )
 
     root = Path(__file__).resolve().parent.parent
     try:

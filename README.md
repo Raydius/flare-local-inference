@@ -16,12 +16,15 @@ carried or retired, is recorded in [FORK.md](FORK.md#branch-model).
 Each row below is one local change: what it does, and whether upstream still lacks it.
 
 Published builds: the serving image `ghcr.io/raydius/hyperflare-inference`, published by
-[`.github/workflows/container.yml`](.github/workflows/container.yml) from each `vX.Y.Z`
-tag ([docs/container.md](docs/container.md#publish)), and the prepared Qwen 3.8 core
+[`.github/workflows/container.yml`](.github/workflows/container.yml) from each release tag
+(`vMAJOR.MINOR.PATCH`, or `vMAJOR.MINOR.PATCH-r<N>` for a fork revision of a base version
+upstream already tags;
+[docs/container.md](docs/container.md#publish)), and the prepared Qwen 3.8 core
 [`raydollete/Qwen3.8-Flash-Next-HyperFlare-A16-Abliterated-1M`](https://huggingface.co/raydollete/Qwen3.8-Flash-Next-HyperFlare-A16-Abliterated-1M),
 whose model card names the image tag and the launch options its core is served with.
-The workflow stamps the tag version into the image before building and publishes one
-`X.Y.Z` tag plus one `sha-<commit>` tag per release, with no `latest`; an image tag
+The workflow stamps the tag version into the image before building and publishes one tag for
+the version — that tag without its leading `v` — plus one `sha-<commit>` tag per release,
+with no `latest`; an image tag
 identifies its tagged commit, and `flare --version` alone does not identify the patch
 set, so a consumer pins the tag or digest it qualified against.
 
@@ -33,7 +36,7 @@ set, so a consumer pins the tag or digest it qualified against.
   - What it does: [FORK.md](FORK.md) and `scripts/fork/{sync,rebase}.sh`: the patch-stack workflow. Never upstreamed
   - **Still needed:** Yes — fork tooling, never upstreamed
 - **Serving image published to GHCR** — added 2026-11-16 · Release (`.github/workflows/container.yml`)
-  - What it does: On each `vX.Y.Z` tag on `deploy`, builds the repository's `Dockerfile` with the version stamped by `scripts/set_release_version.py`, pushes `ghcr.io/raydius/hyperflare-inference:X.Y.Z` and `:sha-<commit>`, then pulls the `sha-` tag back and requires `flare --version` to report the tag and `flare run --help` to list `--generation-defaults`, `--max-context-tokens` and `--chat-template`. A manual run on a version tag rebuilds that release; on a branch it pushes only `:sha-<commit>` at version `0.0.0`
+  - What it does: On each release tag on `deploy` (`vMAJOR.MINOR.PATCH`, or `vMAJOR.MINOR.PATCH-r<N>` so a fork release never borrows a tag name upstream uses), builds the repository's `Dockerfile` with the version stamped by `scripts/set_release_version.py`, pushes `ghcr.io/raydius/hyperflare-inference:X.Y.Z` or `…:X.Y.Z-r<N>` and `:sha-<commit>`, then pulls the `sha-` tag back and requires `flare --version` to report the tag's version and `flare run --help` to list `--generation-defaults`, `--max-context-tokens` and `--chat-template`. A manual run on a release tag rebuilds that release; on a branch it pushes only `:sha-<commit>` at version `0.0.0`
   - **Still needed:** Yes — upstream publishes no serving image
 - **`patch/01-generation-defaults`** — added 2026-10-21 · Serving
   - What it does: `flare run --generation-defaults <JSON>` merges sampling keys, `max_new_tokens` and `chat_template_kwargs` into the package's server config (unknown key or out-of-range value is a startup error naming it). Packages keep loading
