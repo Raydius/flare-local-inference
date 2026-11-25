@@ -182,9 +182,12 @@ base/current (tag → an upstream commit)
   record commit acknowledges `1af4`. Host CPU, image and Rust gates run after this commit and
   before the push. Pre-rebase refs: `backup/pre-rebase-20261119-*` tags.
   **2026-11-24: moved to upstream `c0c4f798`** (`v0.3.2`, 64 commits, including upstream's
-  core/recipes split `da037284`/`17bb3c4a`, the registry inversion and shared
-  `BasePreparationConfig` `1bf68649`, dense Qwen image input #386 and the Transformers 5.23.0
-  requirement #456; design checklist digest `eb2f`) and split the fork into this core stack
+  core/recipes split `da037284`/`17bb3c4a`, which moved every model recipe, the non-Helios
+  components, fixtures, reference implementations, model tests, `qualify/` and `uv.lock` out
+  of this repository, the registry inversion and shared `BasePreparationConfig` `1bf68649`,
+  dense Qwen image input #386, core-cache publish and readahead, TerminalPrefill and
+  persistent green-context workers, and the Transformers 5.23.0 requirement #456; design
+  checklist digest `eb2f`) and split the fork into this core stack
   and `Raydius/hyperflare-recipes`. The 154-commit stack was replayed once onto `c0c4f798`
   plus a revert of `17bb3c4a`, so every conflict resolved against upstream's moved files with
   core and recipes in one tree and one CPU gate; then a path rule split it: the recipe half
