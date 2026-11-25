@@ -7,7 +7,7 @@ bac2f93215dc9d3e655445e2b49200d2609458bb docs/release.md
 04f037fd09e2041a11992f321ba02b1c283e2221 openspec/changes/fork-revision-release-tags/design.md
 22e6ceed9bac82b4db60342093a13f8a8ba7b978 openspec/changes/fork-revision-release-tags/proposal.md
 c8ab2fa712dc54b65c3a213c01bdd2de745fc1a3 openspec/changes/fork-revision-release-tags/specs/release-versioning/spec.md
-2975b547b6ff427844365e2588dbb0289f7b3dd3 openspec/changes/fork-revision-release-tags/tasks.md
+d68e958fa2c913c994fb3b14cb148ca467e1b599 openspec/changes/fork-revision-release-tags/tasks.md
 29e297e7f1b2083616cac6f2afd9c442bfe991bf scripts/fork/sync.sh
 992fc9328a12071a563ddf534257f8e03fe81cf3 scripts/set_release_version.py
 5ebee003f82a61afa1ddf54be2838d3aa9b5ee6c tests/test_fork_sync.py
