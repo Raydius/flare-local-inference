@@ -68,7 +68,8 @@ if git rev-parse --verify --quiet "${BASE_REF}" >/dev/null; then
   behind_main="$(git rev-list --count "${BASE_REF}..${UPSTREAM_REMOTE}/${MIRROR_BRANCH}")"
   say "base/current is ${behind_main} commit(s) behind ${UPSTREAM_REMOTE}/${MIRROR_BRANCH}"
 
-  latest_tag="$(git tag --list 'v*' --sort=-v:refname | head -n1 || true)"
+  # Upstream's newest release: the fork's own vX.Y.Z-rN revision tags are not upstream releases.
+  latest_tag="$(git tag --list 'v*' --sort=-v:refname | grep -Ev -- '-r[0-9]+$' | head -n1 || true)"
   if [[ -n "${latest_tag}" ]]; then
     behind_tag="$(git rev-list --count "${BASE_REF}..${latest_tag}" 2>/dev/null || echo '?')"
     say "base/current is ${behind_tag} commit(s) behind newest release tag ${latest_tag}"
