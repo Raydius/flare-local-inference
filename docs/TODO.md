@@ -36,7 +36,7 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
       fabricated weights.
 
 - [ ] Prepare Elephant-1 with the dense Qwen decoder that reads rope scaling and image input.
-      Elephant-1 builds `ignition.recipes.qwen38_dense.decoder.PreparedDecoder` with its own
+      Elephant-1 builds `hyperflare_recipes.recipes.qwen38_dense.decoder.PreparedDecoder` with its own
       configuration, weights and pool, which declare no rope scaling, vision encoder or rotary
       offset region. `tests/preparation/test_weight_declarations.py` covers the weight roots on
       CPU; no test builds the decoder with Elephant-1's configuration, and no Elephant-1
@@ -49,7 +49,7 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
       of the dense recipe's preparation identity, or the frequency selection in
       `ignition/recipes/qwen38_dense/decoder.py`:
       `test_scaled_target_frequencies_interpolate_only_the_slow_pairs` calls
-      `ignition.components.rotary.interpolated_frequencies` directly. The served DaisyRose core
+      `hyperflare_recipes.components.rotary.interpolated_frequencies` directly. The served DaisyRose core
       exercises prefix reuse and the scaled decoder without asserting on them.
 
 - [ ] Decide what Elephant-1 does for an answer longer than one token. Decode after the question
