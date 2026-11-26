@@ -12,7 +12,7 @@ A PR branch SHALL be cut on the recorded `upstream/main` tip and SHALL contain o
 
 #### Scenario: A fork-only field is dropped
 - **WHEN** a recipe on the fork passes a `Recipe` field or reads a `Plan` attribute that `git grep` does not find at the upstream tip
-- **THEN** the branch copy omits it and `from ignition.recipes import recipes; recipes()` succeeds on the branch
+- **THEN** the branch copy omits it and `from hyperflare_recipes.recipes import recipes; recipes()` succeeds on the branch
 
 #### Scenario: A mixed-history file takes only the patch's hunks
 - **WHEN** `git log 585159c9..deploy -- <file>` names a commit outside the patch
