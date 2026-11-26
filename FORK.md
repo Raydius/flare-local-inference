@@ -167,10 +167,78 @@ base/current (tag → an upstream commit)
   continued with the hook off, so replayed commits keep their original acknowledgments; the
   record commit acknowledges `1af4`. Host CPU, image and Rust gates run after this commit and
   before the push. Pre-rebase refs: `backup/pre-rebase-20261119-*` tags.
-- **Moving to a newer upstream:** `scripts/fork/sync.sh`, then
-  `scripts/fork/rebase.sh upstream/main` (or a sha; the tip defaults to `deploy`). The script
-  refuses a tip that shares a commit with another branch (`--update-refs` would skip it).
-  `rerere` is enabled so conflict resolutions replay.
+- **Moving to a newer upstream:** follow [Moving to a newer upstream](#moving-to-a-newer-upstream).
+
+## Moving to a newer upstream
+
+A base move replays the patch stack onto a newer upstream commit. Follow every step in order. A
+replay that finishes without a conflict is not evidence that the result is correct: git merges
+silently into code upstream restructured, and only the checks below find it.
+
+**Before the replay**
+
+1. Move to each upstream release tag when it is published, and name the target by commit, never
+   by the moving `upstream/main`. A short range conflicts less than a long one.
+2. Work on a `wt/<change>` branch in its own worktree. `deploy` moves only after the gates below
+   pass. Tag `deploy`, every `patch/NN` branch and `base/current` as `backup/pre-rebase-<date>-*`.
+3. Record upstream baselines with no fork code: at the target, and at each intermediate commit of
+   step 4, run `.venv/bin/python -m pytest tests -q` in a fresh environment and the per-crate
+   `cargo test` commands of `AGENTS.md`. Keep the full logs and a sorted list of failing test ids.
+   Run them in a container from a `local/flare-ignition` image without a GPU; the host shell
+   cannot lock 64 MiB and has no `protoc`, OpenSSL or liburing headers. The container needs
+   `--ulimit memlock=-1:-1`, `--shm-size 8g` (the Selene manager tests fill the default 64 MiB),
+   a `zstd` binary (the legacy-core tests call it), `UV_PROJECT_ENVIRONMENT` set to the tree's own
+   `.venv` (the image points uv at `/opt/flare/.venv`), a memory limit of 14 GiB, and
+   `FLARE_TEST_TEMPLATE_DIR` filled by `tests/frontend/prepare_templates.py`, one recipe per call
+   so a gated repository fails alone.
+4. Read `git log --stat <base>..<target>` for commits that rename or move directories. Replay onto
+   each such commit first, then onto the target. Git follows a fork edit through a rename only at
+   the commit that performs it.
+
+**The replay**
+
+5. Run `scripts/fork/rebase.sh <commit>` from a copy outside the worktree, with `STACK_TIP` set to
+   the `wt/` branch: the script is part of the stack, and a shell reads a script while it runs.
+   For the same reason, never edit a script that a running container or shell is executing. When
+   the `wt/` branch still sits on `deploy`'s commit the script refuses the tip; run its
+   `git rebase --onto <commit> base/current <tip> --update-refs` and `git tag -f base/current
+   <commit>` directly, because `deploy` is meant to stay.
+6. Set `merge.renameLimit` above the number of renames in the range and `merge.conflictStyle` to
+   `diff3`, so every conflict shows the merge base. Keep `rerere` on, and first move aside the
+   `.git/rr-cache` entries recorded by any move that was not verified: `rerere` replays them unseen.
+7. Resolve each conflict to both sides on upstream's structure, and log one line per conflicted
+   commit. Continue a conflicted commit with the commit-msg hook off, so it keeps its original
+   acknowledgment.
+   - Apply a fork change where upstream moved the thing it changes. Git pairs a file with the
+     nearest similar file, which can be the wrong one, and leaves fork-added files at paths
+     upstream renamed away.
+   - Regenerate `ignition/preparation/runtime_core_pb2.py` from the merged
+     `helios/proto/runtime_core.proto` with the `protoc` release its header names. Never merge it
+     by hand. Confirm the fork's field and enum numbers are still free in upstream's proto.
+   - Leave the FlashInfer source and `uv.lock` at upstream's through the replay. The pin is
+     selected afterwards, by running the fork's FlashInfer cases on upstream's revision.
+   - Drop a commit that upstream supersedes, and name the upstream commit in the log. Compare the
+     two implementations file by file before dropping, and list what the fork's had that
+     upstream's lacks.
+
+**After the replay**
+
+8. Check what git merged without a conflict:
+   - every `ignition` and `hyperflare_recipes` import in the tree resolves to a module that exists;
+   - each fork-changed file that upstream did not touch equals its pre-move content, apart from
+     moved module paths;
+   - `git range-diff` of the old and new stacks shows no unexplained change;
+   - for each record upstream added in the range that enumerates what a patch extends
+     (preparation flags, the rebuild record, recipe registration, weight-container fields, tuning
+     identities, declared costs), the patch's item is in it.
+9. Run the commands of step 3 on the result. It must add no failing test id to the baseline; fix
+   and rerun until it adds none.
+10. Give every active patch in `README.md` a verdict on the new base: kept, adapted, or retired
+    with the superseding upstream commit. A kept or adapted verdict needs a probe that fails on
+    unpatched upstream.
+11. Build the preparation image from the result's commits, export the operator's profile with it,
+    and serve the core: a correct answer to a fixed prompt, a multi-turn chat, and an image request
+    when the replaced core accepted images. Move `deploy` and tag the release only after it serves.
 
 ## Before writing a patch: which layer?
 
