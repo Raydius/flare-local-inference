@@ -190,15 +190,29 @@ silently into code upstream restructured, and only the checks below find it.
    a `zstd` binary (the legacy-core tests call it), `UV_PROJECT_ENVIRONMENT` set to the tree's own
    `.venv` (the image points uv at `/opt/flare/.venv`), a memory limit of 14 GiB, and
    `FLARE_TEST_TEMPLATE_DIR` filled by `tests/frontend/prepare_templates.py`, one recipe per call
-   so a gated repository fails alone.
+   so a gated repository fails alone. Synchronize with `uv sync --extra prepare --extra test
+   --reinstall-package flare-heliopause`: uv reuses a path dependency's earlier build, so a kept
+   environment otherwise tests the previous base's extension. For the recipes fork, record the baseline of its upstream base installed against
+   the core target, with `uv sync --extra test` and its CPU `pytest tests -q`.
 4. Read `git log --stat <base>..<target>` for commits that rename or move directories. Replay onto
    each such commit first, then onto the target. Git follows a fork edit through a rename only at
    the commit that performs it.
+   - When upstream moves directories into the recipes repository, replay onto the core commit
+     that renames them while both trees are still in core, and gate that result (step 9).
+   - Divide the result by path: replay the core side onto the upstream commit that deletes the
+     moved trees, and the recipes side onto the recipes commit whose trees equal core's at the
+     rename commit (compare `git rev-parse <commit>:<directory>` in both repositories).
+   - Prove the division before going on: for every path in `git diff --name-only <rename commit>
+     <replayed tip>`, `git rev-parse <replayed tip>:<path>` equals the blob in exactly one result;
+     `git diff --name-only <delete commit> <core result>` names no moved path, and the recipes
+     result changes only moved paths. Keep a map from each replayed commit to its core commit,
+     its recipes commit, or both.
 
 **The replay**
 
-5. Run `scripts/fork/rebase.sh <commit>` from a copy outside the worktree, with `STACK_TIP` set to
-   the `wt/` branch: the script is part of the stack, and a shell reads a script while it runs.
+5. In each fork's clone, run `scripts/fork/rebase.sh <commit>` from a copy outside the worktree,
+   with `STACK_TIP` set to the `wt/` branch (the recipes fork has no copy of the script; core's
+   acts on the repository of the working directory): the script is part of the stack, and a shell reads a script while it runs.
    For the same reason, never edit a script that a running container or shell is executing. When
    the `wt/` branch still sits on `deploy`'s commit the script refuses the tip; run its
    `git rebase --onto <commit> base/current <tip> --update-refs` and `git tag -f base/current
@@ -217,6 +231,13 @@ silently into code upstream restructured, and only the checks below find it.
      by hand. Confirm the fork's field and enum numbers are still free in upstream's proto.
    - Leave the FlashInfer source and `uv.lock` at upstream's through the replay. The pin is
      selected afterwards, by running the fork's FlashInfer cases on upstream's revision.
+   - When upstream moves documentation to the recipes repository in a commit after the split,
+     take upstream's text in core, count the fork lines set aside in the conflict log, and port
+     them to the recipes fork's document in one commit above its replayed stack.
+   - In the recipes fork's `pyproject.toml`, name `ignition` by the core fork's URL and the exact
+     core commit, then `uv lock`. Until that commit is pushed, resolve it from the local clone
+     with a git `url.<local clone>.insteadOf` setting for that command only, so both files keep
+     the GitHub URL.
    - Drop a commit that upstream supersedes, and name the upstream commit in the log. Compare the
      two implementations file by file before dropping, and list what the fork's had that
      upstream's lacks.
@@ -227,7 +248,9 @@ silently into code upstream restructured, and only the checks below find it.
    - every `ignition` and `hyperflare_recipes` import in the tree resolves to a module that exists;
    - each fork-changed file that upstream did not touch equals its pre-move content, apart from
      moved module paths;
-   - `git range-diff` of the old and new stacks shows no unexplained change;
+   - `git range-diff <old base>..<old tip> <new base>..<new tip>`, for each replay that crosses
+     no rename, marks with `!` only commits that the conflict log names or whose difference is
+     confined to context lines;
    - for each record upstream added in the range that enumerates what a patch extends
      (preparation flags, the rebuild record, recipe registration, weight-container fields, tuning
      identities, declared costs), the patch's item is in it.
@@ -235,9 +258,12 @@ silently into code upstream restructured, and only the checks below find it.
    and rerun until it adds none.
 10. Give every active patch in `README.md` a verdict on the new base: kept, adapted, or retired
     with the superseding upstream commit. A kept or adapted verdict needs a probe that fails on
-    unpatched upstream.
-11. Build the preparation image from the result's commits, export the operator's profile with it,
-    and serve the core: a correct answer to a fixed prompt, a multi-turn chat, and an image request
+    unpatched upstream. Run `NO_PUSH=1 scripts/fork/sync.sh` in each clone as the probe for the
+    fork tooling.
+11. Set the recipes lock to the final core commit and build the preparation image from the two
+    commits with `build.sh <core> <recipes> <version>` in the image recipe, which refuses a lock
+    that names another core commit. Export the operator's profile with that image and serve the
+    core: a correct answer to a fixed prompt, a multi-turn chat, and an image request
     when the replaced core accepted images. Move `deploy` and tag the release only after it serves.
 
 ## Before writing a patch: which layer?
