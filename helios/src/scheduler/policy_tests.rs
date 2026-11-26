@@ -4523,6 +4523,26 @@ fn terminal_prefill_selects_last_chunk_and_protects_small_tail_window() {
 }
 
 #[test]
+fn terminal_prefill_chunks_never_divide_an_atomic_span() {
+    // A 512-token chunk from 0 would end inside 400..780, and one from 400 inside 810..1190.
+    let spans = [400..780, 810..1190];
+    for terminal in [&[256usize, 512][..], &[64, 128, 256, 512]] {
+        let mut s = engine_with_terminal_prefill(terminal);
+        let handle = add(&mut s, 1, 1536, 4);
+        s.set_prefill_spans(handle, &spans).unwrap();
+        let steps = run_prefill_sequence(&mut s, handle);
+        let mut end = 0;
+        for &(_, _, tokens) in &steps {
+            end += tokens;
+            assert!(spans.iter().all(|span| end <= span.start || end >= span.end),
+                "a chunk ends at {end}, inside an atomic span: {steps:?}");
+        }
+        assert_eq!(end, 1536);
+        assert_eq!(steps.last().unwrap().0, GraphKind::TerminalPrefill);
+    }
+}
+
+#[test]
 fn terminal_prefill_runs_at_checkpoint_boundary_cut() {
     let mut s = engine_with_terminal_prefill(&[256, 512]);
     let handle = s
