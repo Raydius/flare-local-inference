@@ -4510,6 +4510,7 @@ fn terminal_prefill_runs_at_checkpoint_boundary_cut() {
             host_stops: false,
             prompt_logprobs: false,
             growable_output: false,
+            atomic_spans: Vec::new(),
         })
         .unwrap();
     let init = s.plan().unwrap();
