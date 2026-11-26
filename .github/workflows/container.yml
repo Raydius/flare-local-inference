@@ -6,7 +6,7 @@ name: Container
 
 on:
   push:
-    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+    tags: ['v[0-9]+.[0-9]+.[0-9]+', 'v[0-9]+.[0-9]+.[0-9]+-r[0-9]+']
   workflow_dispatch:
 
 permissions:
@@ -23,6 +23,17 @@ jobs:
       - name: Require the tagged commit on the default branch
         if: github.ref_type == 'tag'
         run: git merge-base --is-ancestor "$GITHUB_SHA" "origin/${{ github.event.repository.default_branch }}"
+      - name: Require a release tag name
+        if: github.ref_type == 'tag'
+        run: |
+          # Tag filters are glob patterns that also admit leading zeros, so the
+          # exact forms are checked here: vMAJOR.MINOR.PATCH, or
+          # vMAJOR.MINOR.PATCH-rN for fork revision N of that upstream release.
+          number='(0|[1-9][0-9]*)'
+          if [[ ! "$GITHUB_REF_NAME" =~ ^v$number\.$number\.$number(-r[1-9][0-9]*)?$ ]]; then
+            echo "::error::Tag \"$GITHUB_REF_NAME\" is not vMAJOR.MINOR.PATCH or vMAJOR.MINOR.PATCH-rN without leading zeros."
+            exit 1
+          fi
       - name: Resolve the image name and tags
         id: image
         run: |

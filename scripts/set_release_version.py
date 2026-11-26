@@ -13,7 +13,9 @@ CRATES = (
     (Path("flare-winui/bridge"), "flare-winui-bridge"),
     (Path("flare-winui/launcher"), "flare-launcher"),
 )
-STABLE_VERSION = re.compile(r"(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)")
+# MAJOR.MINOR.PATCH, or MAJOR.MINOR.PATCH-rN for fork revision N (counted from 1)
+# of the upstream release MAJOR.MINOR.PATCH. No number has a leading zero.
+RELEASE_VERSION = re.compile(r"(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-r[1-9]\d*)?")
 PACKAGE_SECTION = re.compile(r"(?ms)^\[package\]\n(.*?)(?=^\[|\Z)")
 MANIFEST_VERSION = re.compile(r'(?m)^version = "[^"]+"')
 
@@ -100,11 +102,14 @@ def set_version(root: Path, version: str) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("version", help="stable MAJOR.MINOR.PATCH version")
+    parser.add_argument("version", help="MAJOR.MINOR.PATCH or MAJOR.MINOR.PATCH-rN version")
     parser.add_argument("--check", action="store_true", help="check without changing files")
     args = parser.parse_args()
-    if not STABLE_VERSION.fullmatch(args.version):
-        parser.error("version must be a stable MAJOR.MINOR.PATCH version")
+    if not RELEASE_VERSION.fullmatch(args.version):
+        parser.error(
+            "version must be MAJOR.MINOR.PATCH or MAJOR.MINOR.PATCH-rN, with N counted from 1 "
+            "and no leading zeros"
+        )
 
     root = Path(__file__).resolve().parent.parent
     try:

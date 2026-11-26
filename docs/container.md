@@ -35,9 +35,13 @@ deployment additionally requires the host's RDMA devices and network setup.
 
 ## Publish
 
-Pushing a `vX.Y.Z` tag on the default branch runs `.github/workflows/container.yml`,
-which builds this Dockerfile and publishes `ghcr.io/<owner>/hyperflare-inference:X.Y.Z` and
-`:sha-<commit>` to the GitHub container registry. The workflow stamps the tag
+Pushing a release tag on the default branch runs `.github/workflows/container.yml`,
+which builds this Dockerfile and publishes `ghcr.io/<owner>/hyperflare-inference:VERSION` and
+`:sha-<commit>` to the GitHub container registry. A release tag is
+`vMAJOR.MINOR.PATCH` or `vMAJOR.MINOR.PATCH-rN`, as
+[binary releases](release.md#release-tags) defines, and `VERSION` is the tag name
+without its `v`: tag `v0.3.2-r2` publishes `:0.3.2-r2`. The workflow refuses any
+other tag name before it resolves a version. It stamps the
 version with `scripts/set_release_version.py` before building, so `flare --version`
 in the image reports the release version. A `workflow_dispatch` run on a version
 tag rebuilds that release the same way; one on a branch publishes only the `sha-`

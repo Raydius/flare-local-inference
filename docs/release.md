@@ -40,8 +40,8 @@ acceptance follows [signing](signing.md) as it does for a source build.
 ## Publish a release
 
 Development checkouts use `0.0.0` in the three release manifests and their
-lockfiles. Do not commit a release-version bump. Tag the intended commit
-`vMAJOR.MINOR.PATCH` and push the tag. The build jobs use
+lockfiles. Do not commit a release-version bump. Tag the intended commit with a
+[release tag](#release-tags) and push the tag. The build jobs use
 `scripts/set_release_version.py` to apply the tag's version to
 `flare-cli/Cargo.toml`, `flare-winui/bridge/Cargo.toml`,
 `flare-winui/launcher/Cargo.toml`, and their lockfiles in each runner's
@@ -56,14 +56,37 @@ cannot be replaced and `gh release verify-asset` can check a downloaded file.
 The workflow attaches every asset to a draft and publishes the draft last, the
 order that setting requires.
 
+## Release tags
+
+A tag publishes a release only when its name has one of two forms. Each number
+is a decimal integer without leading zeros.
+
+| Tag | Meaning | Version |
+|---|---|---|
+| `vMAJOR.MINOR.PATCH` | The upstream release the fork is based on | `MAJOR.MINOR.PATCH` |
+| `vMAJOR.MINOR.PATCH-rN` | Fork revision `N` of that upstream release, counted from 1 | `MAJOR.MINOR.PATCH-rN` |
+
+The release version is the tag name without its `v`. `flare --version`, the
+Cargo version in the three release manifests, and the
+[serving image](container.md#publish) tag all equal it: tag `v0.3.2-r2` gives
+version `0.3.2-r2`. Cargo orders `0.3.2-r2` as a pre-release of `0.3.2`; no
+release crate is published to a registry, so that ordering selects nothing.
+The Python packages keep their own versions.
+
+The workflows' tag filters are glob patterns and also match numbers with
+leading zeros, so each workflow checks the exact form before it resolves a
+version and fails on any other name, such as `v0.3.2-r02`, `v0.3.2-rc1`, or `v0.3.2-r`.
+`scripts/set_release_version.py` refuses the same strings and then writes no
+manifest.
+
 ## Builds and checks
 
 All builds use Rust 1.94.1 and the locked Cargo manifests. Every job must pass
 before anything is published; no target can be skipped.
 
 - **Version.** A tag push requires the tagged commit to be an ancestor of the
-  default branch and all three release manifests and lockfiles to contain
-  `0.0.0`. Each build job applies the tag's version before compiling. A
+  default branch, the tag name to be a [release tag](#release-tags), and all
+  three release manifests and lockfiles to contain `0.0.0`. Each build job applies the tag's version before compiling. A
   dispatched run builds `0.0.0` without publishing a release.
 - **Linux.** The runner builds `flare` with
   `cargo build --locked --release --manifest-path flare-cli/Cargo.toml` and
@@ -97,10 +120,14 @@ on x86_64 Linux and x86_64 Windows only.
 
 Qualified on x86_64 Linux outside GitHub Actions: packaging the CLI with
 `packaging/archive.py` and the workflow's clean-container check, including its
-rejection of a version that differs from the expected one. The desktop archive
+rejection of a version that differs from the expected one. Stamping
+`0.3.2-r2` with `scripts/set_release_version.py` and reading the three stamped
+manifests with `cargo metadata --locked` are qualified on x86_64 Linux, as are
+the tag checks of both workflows run as shell scripts. The desktop archive
 layout is qualified with a placeholder in place of `Flare.exe` and the pinned
 NuGet packages downloaded from nuget.org.
 
-Not qualified: any run of the workflow on GitHub-hosted runners, the arm64
+Not qualified: any run of the workflow on GitHub-hosted runners, including one
+started by a `vMAJOR.MINOR.PATCH-rN` tag, the arm64
 Linux build and check, the Windows build and startup check on either
 architecture, and publication.
