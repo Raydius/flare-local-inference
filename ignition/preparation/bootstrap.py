@@ -55,7 +55,7 @@ def common_preparation_kwargs(plan, *, compile_forwards: bool, kernel_cache: Pat
         "native_dense_activations": plan.native_dense_activations,
         "lock_gpu_clocks": plan.lock_gpu_clocks and plan.autotune_effort != "off",
         "max_active": plan.concurrency,
-        "context": plan.recipe.context,
+        "context": plan.declared_context,
         "prefill_chunk_size": plan.prefill_chunk,
         "snapshot_budget_bytes": plan.snapshots * plan.costs.state_row_bytes,
         "headroom_bytes": plan.headroom_bytes + plan.reserve_bytes,

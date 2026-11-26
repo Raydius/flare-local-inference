@@ -50,7 +50,6 @@
       "required_end": "",
       "required_marker": ""
     },
-    "image_tokens": null,
-    "block_end_marker": []
+    "image_tokens": null
   }
 }

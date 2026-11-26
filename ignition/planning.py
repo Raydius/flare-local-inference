@@ -488,10 +488,11 @@ def fit(recipe: Recipe, checkpoint: Checkpoint, gpus: tuple[Gpu, ...], *, concur
             raise UsageError(
                 f"--vocabulary-parallel-sampling has no TP{len(gpus)} gather; select {allowed} GPUs"
             )
-        if speculation.method == "dspark" and speculation.draft_head_quantization is not None:
-            raise UsageError("--draft-head-quantization: the DSpark draft uses the target's vocabulary head")
-        if speculation.method == "dspark" and speculation.draft_body_quantization is not None:
-            raise UsageError("--draft-body-quantization: the DSpark draft keeps its checkpoint precision")
+        declared = recipe.speculative_methods.get(speculation.method)
+        if (declared is not None and declared.draft_head_quantizations is not None
+                and speculation.draft_head_quantization not in (None, *declared.draft_head_quantizations)):
+            raise UsageError(f"--draft-head-quantization {speculation.draft_head_quantization}: {checkpoint.alias}"
+                             f" does not prepare this proposal head format with --speculative-method {speculation.method}")
         for head in ("draft", "markov"):
             value = getattr(speculation, f"{head}_head_quantization")
             if value is not None and value not in getattr(recipe, f"{head}_head_quantizations"):
@@ -604,6 +605,8 @@ def plan(recipe: Recipe, checkpoint: Checkpoint, gpus: tuple[Gpu, ...], *, selec
     across the ranks of recipes that declare context-parallel page costs. Without
     `stream_overlap`, recipes that declare stream overlap run every branch serially.
     """
+    # A recipe copy with another context keeps its checkpoints, so a declaration is checked where it is planned.
+    recipe.check_rope_scaling(checkpoint)
     if mixed_prefill and speculation is not None and speculation.method == "dflash2":
         raise UsageError("--speculative-method dflash2 requires separate prefill and verification graphs")
     if mixed_prefill and not recipe.mixed_prefill:

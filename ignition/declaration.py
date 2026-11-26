@@ -72,7 +72,7 @@ class RopeScaling:
 
     `original_max_position_embeddings` is the checkpoint's trained context: the anchor
     the recipe's `context` declares for it. Serving context extends by `factor` through
-    the interpolation `hyperflare_recipes.components.rotary.interpolated_frequencies` applies, with
+    the frequency interpolation the recipe's rotary tables apply (`interpolated_frequencies`), with
     no attention-temperature change. A checkpoint that declares rope scaling also declares
     its extended serving `context`; recipes without a declaration serve the native context.
     """
@@ -245,6 +245,8 @@ class SpeculativeMethod:
     draft_files: tuple[str, ...] = ()
     # Most draft tokens the method prepares; None keeps the recipe's `max_draft_tokens`.
     max_draft_tokens: int | None = None
+    # Draft head formats the method prepares; None keeps the recipe's `draft_head_quantizations`.
+    draft_head_quantizations: tuple[str, ...] | None = None
 
 
 @dataclass(frozen=True)
@@ -380,7 +382,6 @@ class Recipe:
             if (checkpoint.ranks is None) != (checkpoint.plain_ranks is None) or (
                     checkpoint.ranks is not None and set(checkpoint.ranks) != set(checkpoint.plain_ranks)):
                 raise ValueError(f"{checkpoint.alias} declares costs with and without speculation for different sizes")
-            self.check_rope_scaling(checkpoint)
 
     def draft_token_limit(self, method: str | None) -> int:
         """Most draft tokens a plan may prepare with `method`: the method's own maximum, or the recipe's."""

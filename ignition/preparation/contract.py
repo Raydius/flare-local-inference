@@ -98,7 +98,8 @@ def frontend(*, tools, assistant_marker, message_end_markers, prefix_boundary, w
         image_preparation=image_preparation, image_layout=image_layout, position_dimensions=position_dimensions,
         rejected_tokens=list(rejected_tokens), assistant_marker=assistant_marker,
         message_end_markers=list(message_end_markers), prefix_boundary=prefix_boundary, image_tokens=image_tokens,
-        block_end_marker=list(block_end_marker))
+        # A contract without a marker stays the dictionary it was before the field existed.
+        **({"block_end_marker": list(block_end_marker)} if block_end_marker else {}))
 
 
 def prefix_boundary(roles, *, append_role=None, minimum_messages=1, required_start="", required_end="", required_marker=""):

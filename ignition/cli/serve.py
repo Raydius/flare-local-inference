@@ -16,7 +16,7 @@ from ignition.errors import CapacityError, FlareError, PreparationError, UsageEr
 
 from . import display, environment
 
-from .preparation import (Host, compiler_workers, context_parallel, derive, fetch, image_capacity_setting, resolve_model, speculation,
+from .preparation import (Host, model_overrides, compiler_workers, context_parallel, derive, fetch, image_capacity_setting, resolve_model, speculation,
                           stream_overlap, tuning_devices, tuning_effort)
 from .config import Configuration
 
@@ -129,8 +129,7 @@ def export(args) -> int:
     _check_host_shape(args)
     if args.ranks > 1 and args.draft_model is not None:
         raise UsageError("--draft-model applies to single-host export; multi-host ranks load no external draft")
-    model = resolve_model(configuration, args.model, getattr(args, "rope_parameters", None),
-                          getattr(args, "recipe_name", None))
+    model = resolve_model(configuration, args.model, **model_overrides(args))
     repository = getattr(args, 'repo_id', None) or model.recipe.export_repository
     if repository:
         validate_repository(repository)
@@ -177,8 +176,7 @@ def _export_hosts(args):
     progress = _serving_progress(args.verbose)
     configuration = Configuration.load(args.config)
     hub_cache = configuration.directory("hub_cache")
-    model = resolve_model(configuration, args.model, getattr(args, "rope_parameters", None),
-                          getattr(args, "recipe_name", None))
+    model = resolve_model(configuration, args.model, **model_overrides(args))
     if not model.cached(hub_cache):
         raise UsageError(f"{model.checkpoint.alias} is not cached; a single-host export downloads it")
     concurrency = configuration.max_concurrency(model.checkpoint.alias, model.recipe.concurrency,
@@ -269,8 +267,7 @@ def _prepare(args):
     _publisher(configuration, args)
     hub_cache = configuration.directory("hub_cache")
     with phase(progress, "Resolve checkpoint") as stage:
-        model = resolve_model(configuration, args.model, getattr(args, "rope_parameters", None),
-                              getattr(args, "recipe_name", None))
+        model = resolve_model(configuration, args.model, **model_overrides(args))
         cached = model.cached(hub_cache)
         stage.update(f"{model.checkpoint.alias} · {model.source} · {'cached' if cached else 'not cached'}")
     with phase(progress, "Select GPUs") as stage:
@@ -434,8 +431,7 @@ def debug_serve(args) -> int:
     progress = _serving_progress(args.verbose)
     configuration = Configuration.load(args.config)
     hub_cache = configuration.directory("hub_cache")
-    model = resolve_model(configuration, args.model, getattr(args, "rope_parameters", None),
-                          getattr(args, "recipe_name", None))
+    model = resolve_model(configuration, args.model, **model_overrides(args))
     if not model.cached(hub_cache):
         raise UsageError(f"{model.checkpoint.alias} is not cached; ignition export downloads it")
     concurrency = configuration.max_concurrency(model.checkpoint.alias, model.recipe.concurrency,

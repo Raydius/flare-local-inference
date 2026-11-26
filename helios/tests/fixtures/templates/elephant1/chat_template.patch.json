@@ -1,0 +1,13 @@
+{
+  "source": {
+    "repository": "baselabs/elephant-1",
+    "revision": "b3f8a93462fb1051a9de031e94a7ff380e254072",
+    "filename": "chat_template.jinja"
+  },
+  "source_sha256": "a4aee8afcf2e0711942cf848899be66016f8d14a889ff9ede07bca099c28f715",
+  "result_sha256": "c5d0f3e45205670fd96b60dc97d51d6f5ffcbd7daf95dd8a070688756eb8f2be",
+  "insertions": [
+    3598,
+    7490
+  ]
+}

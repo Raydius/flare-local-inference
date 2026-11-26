@@ -565,7 +565,7 @@ def test_worker_publishes_the_ignition_triton_program_it_planned(monkeypatch, tm
         monkeypatch.setenv(variable, str(tmp_path / variable.lower()))
     from b12x._lib.compile_plan import compiled_program_available
     from b12x._lib.compile_pool import CompileJob, CompilePool
-    from ignition.components.gated_norm_preparation import CONTRACT, Query
+    from hyperflare_recipes.components.gated_norm_preparation import CONTRACT, Query
 
     rows, heads, dim = 8, 64, 64
     activation = ((rows, heads, dim), (heads * dim, dim, 1), "bfloat16")
@@ -574,7 +574,7 @@ def test_worker_publishes_the_ignition_triton_program_it_planned(monkeypatch, tm
         options=(("EPS", 1e-5), ("HEADS", heads), ("DIM", dim), ("HEAD_BLOCK", 8), ("ROUND_NORMALIZED", False),
                  ("BF16_WEIGHT", True), ("SILU_GATE", False), ("NORM_BEFORE_GATE", True),
                  ("WEIGHT_PER_HEAD", False)))
-    job = CompileJob.create("ignition.components.gated_norm_preparation:compile_norm",
+    job = CompileJob.create("hyperflare_recipes.components.gated_norm_preparation:compile_norm",
                             CONTRACT.encode_query(query), 4, CompileJob.DEVICE_ORDINAL)
     pool = CompilePool(device_ordinal=0, compute_capability=(12, 0),
                        device_uuid="GPU-00000000-0000-0000-0000-000000000000", product_name="NVIDIA test target",

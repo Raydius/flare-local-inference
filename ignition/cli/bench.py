@@ -13,7 +13,7 @@ from ignition.errors import FlareError, PreparationError, UsageError
 
 from . import environment
 from .config import Configuration
-from .preparation import Host, context_parallel, derive, fetch, resolve_model, speculation, stream_overlap
+from .preparation import Host, context_parallel, derive, fetch, model_overrides, resolve_model, speculation, stream_overlap
 
 
 def _integers(text):
@@ -142,7 +142,7 @@ def table(result):
 def run(args):
     settings = Settings.from_args(args)
     configuration = Configuration.load(args.config)
-    model = resolve_model(configuration, args.model, getattr(args, "rope_parameters", None))
+    model = resolve_model(configuration, args.model, **model_overrides(args))
     if not model.recipe.benchmark_world_sizes:
         raise UsageError(f"ignition bench is not supported by recipe {model.recipe.name!r}")
     if settings.speculation_study and not model.recipe.speculation_study:

@@ -34,6 +34,17 @@ class Host:
         return cls(gpus, restriction)
 
 
+def model_overrides(args) -> dict:
+    """The `resolve_model` keyword arguments for the checkpoint overrides a command line sets.
+
+    An override the command does not set is left out, so a call without overrides is the plain
+    two-argument resolution.
+    """
+    overrides = {"rope_parameters": getattr(args, "rope_parameters", None),
+                 "recipe_name": getattr(args, "recipe_name", None)}
+    return {name: value for name, value in overrides.items() if value is not None}
+
+
 def resolve_model(configuration: Configuration, name: str | None,
                   rope_parameters: dict | None = None, recipe_name: str | None = None,
                   *, recipes=None) -> ResolvedModel:
