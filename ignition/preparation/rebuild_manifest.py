@@ -230,6 +230,7 @@ def _members(value):
 
 def reproduction_arguments(model, plan, *, compiled_forwards, multi_host=False):
     """Build canonical `ignition export` arguments reproducing `plan` without host-local paths."""
+    import json
     from pathlib import Path
 
     if model.directory is not None:
@@ -239,6 +240,18 @@ def reproduction_arguments(model, plan, *, compiled_forwards, multi_host=False):
     else:
         target = plan.checkpoint.repository
     args = ['ignition', 'export', target]
+    if model.directory is not None:
+        # A directory names no recipe, and several recipes may declare its architecture.
+        args.extend(['--recipe', plan.recipe.name])
+    if (scaling := plan.checkpoint.rope_scaling) is not None:
+        # Aliases that declare rope scaling share their repository and revision with the unscaled checkpoint.
+        parameters = {'factor': scaling.factor,
+                      'original_max_position_embeddings': scaling.original_max_position_embeddings}
+        if (scaling.beta_fast, scaling.beta_slow) != (32., 1.):
+            parameters.update(beta_fast=scaling.beta_fast, beta_slow=scaling.beta_slow)
+        if plan.checkpoint.context != scaling.context:
+            parameters['max_position_embeddings'] = plan.checkpoint.context
+        args.extend(['--rope-parameters', json.dumps(parameters)])
     if multi_host:
         args.extend(['--ranks', str(plan.world_size)])
         if plan.roce_ring:
@@ -291,6 +304,8 @@ def reproduction_arguments(model, plan, *, compiled_forwards, multi_host=False):
                     args.extend(['--markov-head-quantization', s.markov_head_quantization])
                 if s.vocabulary_parallel_sampling:
                     args.append('--vocabulary-parallel-sampling')
+    if (draft := getattr(plan, 'draft_model', None)) is not None:
+        args.extend(['--draft-model', Path(draft).name])
     if plan.online_mxfp8:
         args.append('--online-mxfp8')
         if plan.online_mxfp8_scope:
