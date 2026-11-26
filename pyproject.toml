@@ -44,7 +44,7 @@ explicit = true
 torch = { index = "pytorch-cu132" }
 torchvision = { index = "pytorch-cu132" }
 flare-heliopause = { path = "heliopause" }
-flashinfer-python = { git = "https://github.com/local-inference-lab/flashinfer.git", branch = "main" }
+flashinfer-python = { git = "https://github.com/Raydius/flashinfer.git", rev = "675984cda42c2e8dbd62d9117cb131c2e232ea59" }
 
 [tool.setuptools.packages.find]
 include = ["ignition*"]
