@@ -2,94 +2,65 @@
 
 Miscellaneous follow-up work. Keep entries brief and link to the design or performance note that holds the detail; remove entries as work completes (see [AGENTS.md](../AGENTS.md#task-tracking)).
 
+Recipe-specific items are in the recipes fork's [`docs/TODO.txt`](https://github.com/Raydius/hyperflare-recipes/blob/deploy/docs/TODO.txt).
+
 ## Open
 
-- [ ] Compare the prepared Qwen3.8-27B DSpark draft with the eager reference on the pinned draft
-      weights. `tests/reference/test_qwen38_dense_dspark.py::test_prepared_draft_matches_the_reference_on_the_pinned_weights`
-      is unrun: it needs an SM120 GPU with about 12 GiB free, `FLARE_QWEN38_DSPARK_SNAPSHOT` naming
-      `RadixArk/Qwen3.8-27B-DSpark` at `b9a5dbdf`, and `FLARE_QWEN38_DENSE_SNAPSHOT` naming a dense Qwen
-      checkpoint that stores `lm_head.weight` in BF16, such as `qwen3.8-27b-qad`. The same comparison
-      passes on fabricated weights (two layers, hidden size 512) on an RTX 5060 Ti.
+- [ ] Load a core on a GPU whose maximum persisting L2 cache size is below the size the core
+      records, on each path that applies context limits: a context Helios creates, a retained
+      primary context, and the worker and compute contexts of a persistent-worker partition
+      (`apply_context_limits` in `helios/src/runtime_core/mod.rs`). The unit tests drive that
+      function with recording closures. On upstream v0.3.2 no core has been loaded on such a device
+      on any of the three paths. An RTX 5060 Ti (maximum 20,971,520 bytes) loading a core exported
+      on an RTX PRO 6000 (25,165,824) is one such pair.
 
-- [ ] Measure the served dense Qwen DSpark core at fixed concurrency. The exported DaisyRose
-      core (16 sequences, 1,048,576-token context) has no code-edit throughput or acceptance
-      trials at concurrency 1 and 8 (`qualify/dflash2_console_probe.py`, one fresh start per
-      trial). The DSpark state-row, page and draft bytes and the `daisyrose-27b` checkpoint bytes
-      in `ignition/recipes/qwen38_dense/recipe.py` are computed from the layouts and not replaced
-      by `flare inspect` figures. Loading a DFlash2 core exported before the DSpark method was
-      declared is also unrun.
+- [ ] Decide whether a depth that offered a history copy belongs in the acceptance population fed
+      from GPU confidence (`observe_packed_forecasts` in `helios/src/scheduler/rounds.rs`). The
+      host-estimated population leaves copied depths out; the GPU-confidence path records the
+      confidence head's prediction for every reported depth, and the effect of copies on it is not
+      measured.
 
-- [ ] Qualify the rope-scaled dense Qwen core past 262,144 tokens beyond passkey retrieval. The
-      served DaisyRose core retrieves a passkey from 319,795- and 1,009,836-token prompts; no
-      task-quality measurement exists at those lengths. The DSpark draft attends the whole request
-      with unscaled rotary frequencies whose YaRN configuration covers 262,144 positions; its
-      acceptance past that length is known only from the probe's short replies (1.9 to 3.2
-      accepted drafts per round), not from long outputs.
+- [ ] Serve a core that declares a block-end marker and prepares terminal prefill graphs.
+      `scheduler::policy_tests::terminal_prefill_chunks_never_divide_an_atomic_span` checks the
+      chunk ends on CPU; no served request has run atomic prefill spans through a `TerminalPrefill`
+      graph.
 
-- [ ] Decide whether to execute the Qwen3.8-27B DSpark confidence head. The head is validated for
-      shape and not loaded; prefix selection uses completed acceptance on the host.
+- [ ] Read the rebuild record of a rope-scaled core. `tests/cli/test_reproduction_arguments.py`
+      checks on a locally declared recipe that the reproduction arguments carry `--rope-parameters`,
+      `--draft-model` and `--recipe`; no exported core's record has been read, and no core has been
+      prepared from recorded arguments.
 
-- [ ] Run a complete DSpark round for the dense Qwen recipe below the export. The CUDA tests in
-      `tests/recipes/test_qwen38_dense_dspark_cuda.py` capture the draft's context writer and proposal
-      block and supply the accepted counts a round would produce; no test runs
-      `PreparedParallelDraftRound` with the target decoder, sampling, verification and commit on
-      fabricated weights.
+- [ ] Run `.github/workflows/container.yml` and `.github/workflows/release.yml` on GitHub from a
+      `vMAJOR.MINOR.PATCH-rN` tag. The tag checks of both workflows are tested as shell scripts and
+      `scripts/set_release_version.py` stamps `0.3.2-r2` on x86_64 Linux; unobserved are the second
+      tag filter matching a revision tag, the image build and its version check, the arm64 Linux and
+      both Windows build jobs with a revision version, publication, and whether `gh release create
+      --generate-notes` marks a revision release as the latest.
 
-- [ ] Prepare Elephant-1 with the dense Qwen decoder that reads rope scaling and image input.
-      Elephant-1 builds `hyperflare_recipes.recipes.qwen38_dense.decoder.PreparedDecoder` with its own
-      configuration, weights and pool, which declare no rope scaling, vision encoder or rotary
-      offset region. `tests/preparation/test_weight_declarations.py` covers the weight roots on
-      CPU; no test builds the decoder with Elephant-1's configuration, and no Elephant-1
-      preparation or export has run against this decoder.
+- [ ] Measure the peak memory of a cold build of the serving image (`docker build` of `Dockerfile`).
+      The build of the tree stamped `0.3.2-r2` reused a cached Cargo target directory and finished
+      in 33 seconds, so it does not bound a build without that cache.
 
-- [ ] Test the dense Qwen DSpark and rope-scaling paths that no test reaches.
-      No test continues a request from a cached prefix or a resumed request and compares its
-      draft pages. For rope scaling, no test reaches
-      the anchor refusal in `ignition/recipes/qwen38_dense/weights.py`, the `rope_scaling` entry
-      of the dense recipe's preparation identity, or the frequency selection in
-      `ignition/recipes/qwen38_dense/decoder.py`:
-      `test_scaled_target_frequencies_interpolate_only_the_slow_pairs` calls
-      `hyperflare_recipes.components.rotary.interpolated_frequencies` directly. The served DaisyRose core
-      exercises prefix reuse and the scaled decoder without asserting on them.
+- [ ] Run the GPU tests on upstream v0.3.2 (`c0c4f798`). The fork's suites ran on that base in
+      CPU-only containers: `pytest tests -q` skips 460 tests and the six `cargo test` commands
+      ignore 83. Tests that need `FLARE_RUN_CUDA_TESTS=1`, assigned devices, a checkpoint or a
+      running service have not run on this base.
 
-- [ ] Decide what Elephant-1 does for an answer longer than one token. Decode after the question
-      block is causal. A request readmitted after preemption takes its generated tokens into the
-      question block, and ends with an error when they repeat the block-end marker; no test drives
-      a preempted marker prompt through the worker. The model was trained for a one-token read,
-      which none of this touches.
-      See the Elephant-1 section of [model preparation](model-preparation.md#elephant-1).
+- [ ] Fetch the Muse Spark chat template for the frontend tests.
+      `tests/frontend/prepare_templates.py --recipe muse_spark` fails because the model repository
+      is gated, so every test that needs that template fails in each run, on unpatched upstream and
+      on the fork alike. Remove this entry when the suites run with a token that can read the
+      repository.
 
-- [ ] Reduce the Elephant-1 core's NVFP4 deviation. The served core differs from the BF16 forward
-      under the served mask by a 0.021 mean probability delta against a 0.01 bound (0.956 argmax
-      agreement), and that comparison does not
-      separate packed-weight rounding from the prepared kernels or from the BF16 logits: in
-      `qualify/results/elephant1-decision-parity/stage-b-precision.json` every difference between two
-      option log-probabilities on the core side is a multiple of 1/32, and the reference head is FP32.
-      Measure which packed projections carry the error, and the share of the logit precision, before
-      changing `packed_plan` in `ignition/recipes/elephant1/config.py`.
+- [ ] Make `a_freed_window_credit_is_granted_without_waiting_for_the_clock` in the Selene manager
+      tests independent of timing. It failed in one run of `cargo test --manifest-path
+      selene-manager/Cargo.toml --features test-support` in a container limited to 8 CPUs and passed
+      in every other run of that command, on a tree that changes no file of that crate.
 
-- [ ] Run `flare inspect` on Elephant-1 cores `gb202-tp1-202611171634` and `gb202-tp1-202611200624` and state their fixed device
-      allocations in the Elephant-1 section of [model preparation](model-preparation.md#elephant-1).
-      That core was exported with `pack_body_nvfp4` storing only the swizzled block scales and with
-      the 16,384-token prefill chunk, so the serving process's 10,428 MiB does not isolate the
-      432,406,528 bytes of row-major scales the earlier core `gb202-tp1-202611161942` held.
-
-- [ ] Pin a FlashInfer revision whose Gated DeltaNet prefill and decode operators accept two value
-      heads per key head. Elephant-1 preparation fails with the revision in `pyproject.toml`, which
-      requires three.
-
-- [ ] Run the checks the Elephant-1 recipe left unrun: the
-      complete Helios test suite with the persisting L2 cache size bounded by the serving device
-      (`helios/src/runtime_core/mod.rs`); and, for the shared `ignition/components/weights.py`,
-      `linear.py` and `gated_delta.py` changes, `tests/components/test_vocabulary_cuda.py`
-      (needs assigned tensor-parallel devices) and `tests/recipes/test_qwen38_exact_checkpoints.py`
-      (needs `FLARE_QWEN38_SNAPSHOT`).
-
-- [ ] Fold Muse Glimmer's attention back onto Muse Spark's. `ignition/recipes/muse_glimmer_nvfp4/attention.py`
-      takes packed metadata per forward and returns local values, which `PreparedGeneration` and
-      `PreparedParallelDraftRound` require; `ignition/recipes/muse_spark/attention.py` binds its metadata
-      and scratch at construction. Remove the Glimmer module when Spark's attention accepts per-forward
-      metadata, by importing it with Glimmer's separate gate projection and unnormalized gate input.
+- [ ] Make `test_pool_and_compiler_entry_pass_policy_without_mutating_defaults` in
+      `tests/preparation/test_forward_compile_options.py` independent of the container's free
+      memory, which it reads. It failed in one CPU container run and passed in the following run,
+      between which no preparation code changed.
 
 - [ ] Fix native TP4 shutdown reporting "free(): double free detected in tcache 2"
       after server drain with Inkling 2 cores. Reproduces with compiled and
@@ -115,26 +86,6 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
       leaves each rank's rebuild_weights unset, so the JSON reports null. Remove
       when payload and logical-resource cores report the same per-rank counts
       for one rebuild manifest.
-
-- [ ] qwen38's `_identity` (`ignition/recipes/qwen38/bootstrap.py:247`) records the DFlash2 draft as
-      the pinned repository and revision plus the draft's `config.json` text, also when
-      `--draft-model` supplied a folder. Two packages prepared from draft folders with the same
-      configuration and different weights share an identity, and Helios seeds prefix-cache digests
-      from it (`helios/src/cache/hash.rs:37`). Hashing the draft's shard headers into the identity
-      re-keys every existing DFlash2 package of this recipe.
-
-- [ ] Declare the history-draft copy inputs on the remaining recipes that use the shared
-      parallel-draft round: DeepSeek V4 (`ignition/recipes/deepseek4/bootstrap.py:387`),
-      DeepSeek V4.1 (`ignition/recipes/deepseek41/bootstrap.py:260`), Kimi K3
-      (`ignition/recipes/kimi3/bootstrap.py:360`), MiniMax M3.1
-      (`ignition/recipes/minimax_m3/bootstrap.py:384`), Gemma 4
-      (`ignition/recipes/gemma4/bootstrap.py:425`), Step-5
-      (`ignition/recipes/step5/bootstrap.py:262`). Each needs a served qualification before its
-      package admits `--history-drafts`.
-
-- [ ] Packed-prefix confidence is recorded from the learned token at positions a copy later
-      replaces (`ignition/components/split_draft.py:103` via
-      `ignition/components/parallel_draft.py:401`), biasing prefix allocation for copies.
 
 - [ ] Preflight file-descriptor capacity before TP core assembly opens every
       payload file and cache lease. Report the required limit before partially
@@ -166,17 +117,6 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
       readiness, completion identity/order, partial dispatch, and drain/release
       invariants. TLA+ correspondence covers the threaded helpers; extend coverage
       to the socket coordinator and peer control loop.
-
-- [ ] Qualify qwen3.8-flash-yarn4 long-context serving: prepare and export the rope-scaled
-      package, measure the extended score-workspace chunking and graph bytes, and validate
-      needle/passkey retrieval, image requests, and speculation past the native 262,144-token
-      context against native-quality baselines. Both yarn4 packages were prepared, exported
-      (2026-11-04 and 2026-11-05) and served in the Ignition container on the RTX PRO 6000.
-      Passkey retrieval measured 2026-11-05 (`qualify/long_context_passkey.py`, results in
-      `qualify/results/yarn4-passkey/`): the `qwen3.8-flash-yarn4` MTP package exported from
-      `pr/rope-scaling` and the DFlash2 yarn4 package each pass 12/12 cells (200k, 320k, 520k and
-      1,000k prompt tokens × needle depths 0.1, 0.5, 0.9) and the native 262k MTP package passes its
-      3/3 cells at 200k; image requests and score-workspace measurements remain open.
 
 - [ ] Qualify measured-work checkpoint selection and history-rewrite reuse through
       Qwen, GLM, DeepSeek, MiMo, Step, and Nemotron services with warm timing
@@ -441,11 +381,6 @@ Miscellaneous follow-up work. Keep entries brief and link to the design or perfo
 - [ ] Gate the Triton kernel-resolution freeze guard on planning state rather than module name:
       `b12x/compile_plan.py:548-556` and `:587-593` only check `b12x.*` JITs, so an unprepared
       Ignition kernel can lower during capture without `raise_if_kernel_resolution_frozen` firing.
-
-- [ ] Retire the manual `_NATIVE_JITS` registrations in `ignition/components/moe_sm103.py:353,383`
-      and `ignition/components/sm103_projection.py:254` now that planning eviction covers every
-      JIT module (`_PLANNED_TRITON_JITS`); they opt those kernels into retention reclaim, which other
-      Ignition kernels do not get.
 
 - [ ] Retention reclaim (`b12x/compile_plan.py:141-156`, `evict_unretained_triton`) skips
       non-registered Ignition Triton kernels, so losing warp candidates stay module-loaded after
