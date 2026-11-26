@@ -408,6 +408,14 @@ def from_plan(model, plan, *, compiled_forwards, multi_host=False):
     add('shard_hyperconnections', SCOPE_DEPLOYMENT, bool(plan.shard_hyperconnections))
     add('stream_overlap', SCOPE_DEPLOYMENT, bool(plan.stream_overlap))
     add('tensor_parallel', SCOPE_DEPLOYMENT, int(plan.world_size))
+    if (scaling := plan.checkpoint.rope_scaling) is not None:
+        # Rope scaling changes the prepared rotary tables and the served context, not a weight.
+        add('rope_scaling.beta_fast', SCOPE_DEPLOYMENT, float(scaling.beta_fast))
+        add('rope_scaling.beta_slow', SCOPE_DEPLOYMENT, float(scaling.beta_slow))
+        add('rope_scaling.context', SCOPE_DEPLOYMENT, int(plan.checkpoint.context))
+        add('rope_scaling.factor', SCOPE_DEPLOYMENT, float(scaling.factor))
+        add('rope_scaling.original_max_position_embeddings', SCOPE_DEPLOYMENT,
+            int(scaling.original_max_position_embeddings))
 
     if (s := plan.speculation) is not None:
         if s.packed_verification and s.draft_tokens > 0 and s.graph_budget is None:

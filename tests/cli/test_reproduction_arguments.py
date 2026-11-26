@@ -31,12 +31,10 @@ RECIPE = Recipe(
 
 # `ignition export` options that reproduction arguments omit. Each selects where the export reads or
 # writes, who signs it, how many host resources preparation uses, or what the terminal shows; none
-# changes the prepared model. `--collective-ladder` names a host-local file whose content the rebuild
-# record stores in `collective_ladder_json`.
+# changes the prepared model.
 NOT_REPRODUCED = frozenset({
     "--help", "--config", "--verbose", "--no-weights", "--reuse-weights", "--publisher-key", "--repo-id",
-    "--official-source", "--compile-workers", "--tuning-gpus", "--transfer-streams", "--rendezvous",
-    "--collective-ladder"})
+    "--official-source", "--compile-workers", "--tuning-gpus", "--transfer-streams", "--rendezvous"})
 
 
 def _plan(checkpoint):
@@ -86,6 +84,29 @@ def test_unscaled_export_records_no_rope_parameters():
     assert "--rope-parameters" not in arguments and "--draft-model" not in arguments and "--recipe" not in arguments
 
 
+def test_preparation_manifest_lists_rope_scaling_as_deployment_parameters():
+    from google.protobuf import json_format
+
+    from ignition.preparation import runtime_core_pb2 as proto
+
+    def parameters(alias):
+        model = resolve(alias, recipes=(RECIPE,))
+        manifest = rebuild_manifest.from_plan(model, _plan(model.checkpoint), compiled_forwards=True)
+        decoded = json_format.ParseDict(manifest, proto.PreparationManifest())
+        keys = [parameter.key for parameter in decoded.parameters]
+        assert keys == sorted(keys)
+        return {parameter.key: parameter for parameter in decoded.parameters}
+
+    scaled = {key: value for key, value in parameters("toy-yarn4").items() if key.startswith("rope_scaling.")}
+    assert {key: value.scope for key, value in scaled.items()} == dict.fromkeys(
+        ("rope_scaling.beta_fast", "rope_scaling.beta_slow", "rope_scaling.context", "rope_scaling.factor",
+         "rope_scaling.original_max_position_embeddings"), proto.PREPARATION_PARAMETER_SCOPE_DEPLOYMENT)
+    assert scaled["rope_scaling.factor"].value.float_value == 4.
+    assert scaled["rope_scaling.context"].value.uint_value == 1_048_576
+    assert scaled["rope_scaling.original_max_position_embeddings"].value.uint_value == 262144
+    assert not [key for key in parameters("toy") if key.startswith("rope_scaling.")]
+
+
 def test_draft_folder_is_recorded_by_name_without_its_host_path():
     model = resolve("toy", recipes=(RECIPE,))
     plan = replace(_plan(model.checkpoint), draft_model=Path("/host/drafts/toy-draft"))
@@ -122,7 +143,7 @@ def _recorded_flags(reproduction_arguments):
         prefill_chunk=4096, expert_scale_compression="rank1", prompt_logprobs=True, mixed_prefill=True,
         speculation=speculation, speculative_token_capacity=16, online_mxfp8=True, online_mxfp8_scope="all",
         mla_compute_mode="dense", force_moe_decode_a16=True, native_dense_activations=True,
-        shard_hyperconnections=True, joint_tuning=True, stream_overlap=False, collective_tuning="static",
+        shard_hyperconnections=True, row_shard_prefill=True, joint_tuning=True, stream_overlap=False,
         autotune_effort="default", lock_gpu_clocks=True, draft_model=Path("/host/drafts/toy-draft"))
     multi = SimpleNamespace(**{**vars(single), "context_parallel": False, "language_model_only": True,
                                "speculation": None})

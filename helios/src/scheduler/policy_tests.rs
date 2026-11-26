@@ -4797,6 +4797,7 @@ fn mixed_graphs_excluded_for_deferred_prefill_and_prompt_logprobs() {
             host_stops: false,
             prompt_logprobs: true,
             growable_output: false,
+            atomic_spans: Vec::new(),
         })
         .unwrap();
     let (scored_rate, _) = s.service_rates(s.request(scored).unwrap());
