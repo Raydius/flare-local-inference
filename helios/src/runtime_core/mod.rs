@@ -101,6 +101,54 @@ fn persisting_l2_limit(recorded: usize, device_maximum: i32) -> usize {
     recorded.min(usize::try_from(device_maximum).unwrap_or(0))
 }
 
+/// Applies a core's recorded context limits to the current context.
+///
+/// Every context Helios configures takes its limits through this function:
+/// the context it creates, a retained primary context, and the worker and
+/// compute contexts of a persistent-worker partition. `device_maximum` reads
+/// the serving device's maximum persisting L2 cache size and is called only
+/// when the core records that limit; `set` requests one limit.
+fn apply_context_limits(
+    limits: &[[usize; 2]],
+    mut device_maximum: impl FnMut() -> Result<i32>,
+    mut set: impl FnMut(i32, usize) -> Result<()>,
+) -> Result<()> {
+    for [limit, value] in limits {
+        let value = if *limit == PERSISTING_L2_CACHE_LIMIT {
+            persisting_l2_limit(*value, device_maximum()?)
+        } else {
+            *value
+        };
+        set(*limit as i32, value)?;
+    }
+    Ok(())
+}
+
+/// Applies a core's recorded context limits through the CUDA driver.
+///
+/// # Safety
+///
+/// The context being configured is current on the calling thread.
+unsafe fn apply_driver_context_limits(
+    driver: &Driver,
+    device: i32,
+    limits: &[[usize; 2]],
+) -> Result<()> {
+    apply_context_limits(
+        limits,
+        || {
+            let mut maximum = 0;
+            // SAFETY: `maximum` outlives the call and the attribute is an integer.
+            driver.check("cuDeviceGetAttribute", unsafe {
+                (driver.device_attribute)(&mut maximum, MAX_PERSISTING_L2_CACHE_ATTRIBUTE, device)
+            })?;
+            Ok(maximum)
+        },
+        // SAFETY: The caller made the configured context current.
+        |limit, value| driver.check("cuCtxSetLimit", unsafe { (driver.context_limit)(limit, value) }),
+    )
+}
+
 struct Storage {
     base: u64,
     address: u64,
@@ -435,25 +483,7 @@ impl NativeResources {
             };
             if !primary_context {
                 let configured = (|| -> Result<()> {
-                    for [limit, value] in &core.context.limits {
-                        let mut value = *value;
-                        if *limit == PERSISTING_L2_CACHE_LIMIT {
-                            let mut maximum = 0;
-                            owner.driver.check(
-                                "cuDeviceGetAttribute",
-                                (owner.driver.device_attribute)(
-                                    &mut maximum,
-                                    MAX_PERSISTING_L2_CACHE_ATTRIBUTE,
-                                    device,
-                                ),
-                            )?;
-                            value = persisting_l2_limit(value, maximum);
-                        }
-                        owner.driver.check(
-                            "cuCtxSetLimit",
-                            (owner.driver.context_limit)(*limit as i32, value),
-                        )?;
-                    }
+                    apply_driver_context_limits(&owner.driver, device, &core.context.limits)?;
                     owner.driver.check(
                         "cuCtxSetCacheConfig",
                         (owner.driver.context_cache)(core.context.cache),
@@ -784,7 +814,7 @@ impl NativeResources {
             // Configure recorded limits and Green Context partitions after VA
             // reservations and mappings so cuCtxSetLimit cannot claim core VA.
             if self.primary_context {
-                apply_context_settings(&driver, self.context, &core.context)?;
+                apply_context_settings(&driver, self.device, self.context, &core.context)?;
                 if let Some(worker) = core
                     .execution
                     .as_ref()
@@ -798,8 +828,8 @@ impl NativeResources {
                     let (worker_context, compute_context) =
                         (partition.worker_context, partition.compute_context);
                     self.green_partition = Some(partition);
-                    apply_context_settings(&driver, worker_context, &core.context)?;
-                    apply_context_settings(&driver, compute_context, &core.context)?;
+                    apply_context_settings(&driver, self.device, worker_context, &core.context)?;
+                    apply_context_settings(&driver, self.device, compute_context, &core.context)?;
                 }
             }
             driver.check("cuCtxSetCurrent", (driver.context_set)(self.context))?;
@@ -1590,6 +1620,7 @@ impl Drop for NativeResources {
 
 unsafe fn apply_context_settings(
     driver: &Driver,
+    device: i32,
     context: Handle,
     settings: &format::Context,
 ) -> Result<()> {
@@ -1598,12 +1629,7 @@ unsafe fn apply_context_settings(
         let had_previous = (driver.context_get)(&mut previous) == 0;
         driver.check("cuCtxSetCurrent", (driver.context_set)(context))?;
         let configured = (|| -> Result<()> {
-            for [limit, value] in &settings.limits {
-                driver.check(
-                    "cuCtxSetLimit",
-                    (driver.context_limit)(*limit as i32, *value),
-                )?;
-            }
+            apply_driver_context_limits(driver, device, &settings.limits)?;
             driver.check(
                 "cuCtxSetCacheConfig",
                 (driver.context_cache)(settings.cache),
@@ -1618,7 +1644,7 @@ unsafe fn apply_context_settings(
 
 #[cfg(test)]
 mod persisting_l2_limit_tests {
-    use super::persisting_l2_limit;
+    use super::{PERSISTING_L2_CACHE_LIMIT, apply_context_limits, persisting_l2_limit};
 
     #[test]
     fn recorded_size_is_bounded_by_the_serving_device() {
@@ -1627,5 +1653,40 @@ mod persisting_l2_limit_tests {
         assert_eq!(persisting_l2_limit(6_291_456, 20_971_520), 6_291_456);
         assert_eq!(persisting_l2_limit(25_165_824, 83_886_080), 25_165_824);
         assert_eq!(persisting_l2_limit(25_165_824, 0), 0);
+    }
+
+    #[test]
+    fn applied_limits_bound_only_the_persisting_l2_size() {
+        // CU_LIMIT_STACK_SIZE is 0; its recorded value passes through unchanged.
+        let recorded = [[0, 4096], [PERSISTING_L2_CACHE_LIMIT, 25_165_824]];
+        let mut requested = Vec::new();
+        apply_context_limits(
+            &recorded,
+            || Ok(20_971_520),
+            |limit, value| {
+                requested.push((limit, value));
+                Ok(())
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            requested,
+            [(0, 4096), (PERSISTING_L2_CACHE_LIMIT as i32, 20_971_520)]
+        );
+    }
+
+    #[test]
+    fn the_device_maximum_is_read_only_for_a_recorded_persisting_l2_size() {
+        let mut requested = Vec::new();
+        apply_context_limits(
+            &[[0, 4096]],
+            || panic!("no persisting L2 size is recorded"),
+            |limit, value| {
+                requested.push((limit, value));
+                Ok(())
+            },
+        )
+        .unwrap();
+        assert_eq!(requested, [(0, 4096)]);
     }
 }
