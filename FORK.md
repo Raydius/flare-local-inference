@@ -210,6 +210,30 @@ base/current (tag → an upstream commit)
   lacks. The export of the served profile, its served checks, the move of `deploy` in both
   forks and the release tag follow this record; GPU tests have not run on this base.
   Pre-rebase refs: `backup/pre-rebase-20261125-*` tags.
+  **2026-11-26: moved to upstream `c915b5f0`** (27 commits past tag `v0.3.2`, which is still
+  upstream's newest tag; the recipes fork to upstream recipes `7d70e230`, 10 commits past
+  `07d7bb3`). No export ran on `c0c4f798`: the first core exported on it failed every request,
+  because FlashInfer `d73da5c4` builds the prepared grouped RMSNorm kernel without its FP32-gain
+  setting, which upstream FlashInfer `c3ab1d04` corrects. In the range `27716185` replaces the
+  rebuild record with a preparation manifest, `1e78f080` and `e30d55db` calibrate GPU confidence
+  forecasts, #504 adds lossless KV-cache checkpoint compression (off by default), `84ac035c`
+  removes `--collective-tuning`, and upstream recipes fuse query and key normalization and
+  rotation in both Qwen recipes. The range moves no directory between repositories, so each
+  fork was replayed once: 152 commits here (8 conflicted; the commit that pinned FlashInfer
+  `49efc285` dropped) and 80 in the recipes fork (18 conflicted, 9 of them only in a test's
+  alias list; three lock-only commits dropped). Fitted to upstream's mechanisms: upstream's
+  lower bound on an index's `total_size` replaces the fork's check, the copy-depth exclusion
+  sits inside upstream's calibration loop, the preparation manifest lists rope scaling as
+  deployment parameters, and the fork-only `elephant1` and `muse_glimmer_nvfp4` recipes no
+  longer pass the collective settings upstream removed. The FlashInfer pin is re-cut on
+  `0d48af53` as `Raydius/flashinfer@675984cd`: two of the fork's three eviction cases fail on
+  unmodified `0d48af53`, and all three pass on the re-cut together with FlashInfer's RMSNorm
+  gain test on an RTX 5060 Ti. The `gdn-head-ratio` image patch applies unchanged. No patch
+  retired. On both bases the CPU suites add no failing test to upstream's, apart from one
+  recipes module that needs a support file a recipes-only checkout lacks. The release keeps the
+  name `v0.3.2-r2`. The export of the served profile, its served checks, the move of `deploy`
+  in both forks and the release tag follow this record; GPU tests have not run on this base.
+  Pre-rebase refs: `backup/pre-rebase-20261126-*` tags.
 - **Moving to a newer upstream:** follow [Moving to a newer upstream](#moving-to-a-newer-upstream).
 
 ### The recipes fork
@@ -224,7 +248,7 @@ base/current (tag → an upstream recipes commit)
 - **`main`** mirrors `upstream/main` of `local-inference-lab/hyperflare-recipes` and is only
   fast-forwarded.
 - **`base/current`** names the upstream recipes commit `deploy` sits on. Upstream recipes has no
-  release tags; choose the last upstream recipes commit dated before the core release tag.
+  release tags; choose the last upstream recipes commit dated before the core base commit.
 - **`deploy`** carries the fork's recipes and recipe changes. Its `pyproject.toml` names
   `ignition` by the core fork's URL and one exact core commit, and FlashInfer by the fork's
   revision; `uv.lock` records both. Upstream's own lock floats on core's `main`.
@@ -232,8 +256,9 @@ base/current (tag → an upstream recipes commit)
   repository of the working directory, so run core's from the recipes clone:
   `cd ~/dev/hyperflare-recipes && NO_PUSH=1 bash ~/dev/flare-local-inference/scripts/fork/sync.sh`,
   and `rebase.sh` the same way.
-- **Pairing.** A release is one tag name, `vX.Y.Z-rN`, in both forks: `vX.Y.Z` is the upstream
-  core release the stack sits on and `N` counts fork revisions of it from 1
+- **Pairing.** A release is one tag name, `vX.Y.Z-rN`, in both forks: `vX.Y.Z` is the newest
+  upstream core release tag that is an ancestor of the stack's base commit, which may lie past
+  that tag, and `N` counts fork revisions of it from 1
   ([docs/release.md](docs/release.md#release-tags)). The recipes fork's tagged commit locks
   `ignition` at the core fork's tagged commit. Change the core commit in the recipes fork's
   `pyproject.toml`, then `uv lock`; the image build below refuses a lock that names another
@@ -248,8 +273,9 @@ silently into code upstream restructured, and only the checks below find it.
 
 **Before the replay**
 
-1. Move to each upstream release tag when it is published, and name the target by commit, never
-   by the moving `upstream/main`. A short range conflicts less than a long one.
+1. Move to each upstream release tag when it is published, or to a commit past the newest tag
+   when the owner chooses one, and name the target by commit, never by the moving
+   `upstream/main`. A short range conflicts less than a long one.
 2. Work on a `wt/<change>` branch in its own worktree. `deploy` moves only after the gates below
    pass. Tag `deploy`, every `patch/NN` branch and `base/current` as `backup/pre-rebase-<date>-*`.
 3. Record upstream baselines with no fork code: at the target, and at each intermediate commit of

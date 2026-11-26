@@ -10,7 +10,7 @@ Recipe-specific items are in the recipes fork's [`docs/TODO.txt`](https://github
       records, on each path that applies context limits: a context Helios creates, a retained
       primary context, and the worker and compute contexts of a persistent-worker partition
       (`apply_context_limits` in `helios/src/runtime_core/mod.rs`). The unit tests drive that
-      function with recording closures. On upstream v0.3.2 no core has been loaded on such a device
+      function with recording closures. On upstream `c915b5f0` no core has been loaded on such a device
       on any of the three paths. An RTX 5060 Ti (maximum 20,971,520 bytes) loading a core exported
       on an RTX PRO 6000 (25,165,824) is one such pair.
 
@@ -18,7 +18,9 @@ Recipe-specific items are in the recipes fork's [`docs/TODO.txt`](https://github
       from GPU confidence (`observe_packed_forecasts` in `helios/src/scheduler/rounds.rs`). The
       host-estimated population leaves copied depths out; the GPU-confidence path records the
       confidence head's prediction for every reported depth, and the effect of copies on it is not
-      measured.
+      measured. The per-request confidence calibration collected beside the host population in
+      `helios/src/scheduler.rs` pairs each offered depth's outcome with that prediction and also
+      takes copied depths; the same decision covers it.
 
 - [ ] Serve a core that declares a block-end marker and prepares terminal prefill graphs.
       `scheduler::policy_tests::terminal_prefill_chunks_never_divide_an_atomic_span` checks the
@@ -41,9 +43,9 @@ Recipe-specific items are in the recipes fork's [`docs/TODO.txt`](https://github
       The build of the tree stamped `0.3.2-r2` reused a cached Cargo target directory and finished
       in 33 seconds, so it does not bound a build without that cache.
 
-- [ ] Run the GPU tests on upstream v0.3.2 (`c0c4f798`). The fork's suites ran on that base in
-      CPU-only containers: `pytest tests -q` skips 460 tests and the six `cargo test` commands
-      ignore 83. Tests that need `FLARE_RUN_CUDA_TESTS=1`, assigned devices, a checkpoint or a
+- [ ] Run the GPU tests on upstream `c915b5f0`. The fork's suites ran on that base in
+      CPU-only containers: `pytest tests -q` skips 457 tests and the six `cargo test` commands
+      ignore 88. Tests that need `FLARE_RUN_CUDA_TESTS=1`, assigned devices, a checkpoint or a
       running service have not run on this base.
 
 - [ ] Fetch the Muse Spark chat template for the frontend tests.
