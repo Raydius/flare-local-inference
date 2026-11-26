@@ -2712,6 +2712,31 @@ fn rejected_and_survival_rounds_move_the_population_by_the_observed_values() {
     assert_eq!(s.request(handle).unwrap().acceptance.rounds(), 2);
 }
 
+#[test]
+fn a_copied_depth_moves_the_copy_curve_and_leaves_the_population_unchanged() {
+    let mut s = engine(1, true);
+    s.fixed_speculative_width(Some(4)).unwrap();
+    let handle = add(&mut s, 1, 64, 4096);
+    ready(&mut s, &[handle]);
+    let start = s.forecasts.population.clone();
+    let copy = |s: &RequestScheduler, depth| s.request(handle).unwrap().acceptance
+        .prefix_probability(speculation::ProposalSource::Copy, depth).unwrap();
+    let copy_start: Vec<f64> = (0..3).map(|depth| copy(&s, depth)).collect();
+    // Three drafts offered and accepted; the draft at depth 1 is a history copy.
+    let plan = s.plan().unwrap();
+    let fence = Fence(s.submitted.0 + 1);
+    s.commit(&plan, fence).unwrap();
+    s.advance_to(s.now_ns + plan.estimated_duration_ns()).unwrap();
+    let mut records = completion_records(&s, &plan, fence, 3);
+    records[handle.slot as usize].vector.as_mut().unwrap().copy_offered_mask = 0b010;
+    s.complete(fence, &records, gpu_time(plan.estimated_duration_ns())).unwrap();
+    let population = s.forecasts.population.clone();
+    assert_eq!(population[..3], [moved(start[0], 1.0), start[1], moved(start[2], 1.0)]);
+    assert_eq!(population[3..], start[3..]);
+    assert!(copy(&s, 1) > copy_start[1]);
+    assert_eq!([copy(&s, 0), copy(&s, 2)], [copy_start[0], copy_start[2]]);
+}
+
 /// Completes a round whose request was cancelled in flight, with the lane's record built by `record`.
 fn cancelled_lane_round(record: impl Fn(&RequestScheduler, &ScheduledPlan, Fence) -> Vec<CompletionRecord>) {
     let mut s = engine(1, true);

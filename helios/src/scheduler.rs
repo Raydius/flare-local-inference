@@ -2742,6 +2742,9 @@ impl RequestScheduler {
                 );
                 // The population and GPU confidence calibration learn from the exact
                 // offered, determined prefix outcomes that update the request's profile.
+                // The population seeds the MTP curve of later requests, so a depth that
+                // offered a history copy is left out of it, as the request's profile
+                // attributes that depth to the copy curve.
                 if host_population || collect_calibration {
                     for (depth, realized) in speculation::observed_prefixes(
                         offered,
@@ -2749,7 +2752,7 @@ impl RequestScheduler {
                         vector.emitted_count > vector.accepted_drafts,
                         survival,
                     ) {
-                        if host_population {
+                        if host_population && !speculation::copied(vector.copy_offered_mask, depth) {
                             population.push((depth, realized));
                         }
                         if collect_calibration {

@@ -158,15 +158,16 @@ impl AcceptanceProfile {
             return;
         }
         for (depth, value) in observed_prefixes(offered, accepted, rejected, survival) {
-            let curve = if depth < COPY_DRAFT_CAPACITY && copy_mask & (1i64 << depth) != 0 {
-                ProposalSource::Copy
-            } else {
-                source
-            };
+            let curve = if copied(copy_mask, depth) { ProposalSource::Copy } else { source };
             self.prefixes[curve as usize][depth].observe(value, generated);
         }
         self.rounds = self.rounds.saturating_add(1);
     }
+}
+
+/// Whether a round's copy mask marks the draft at `depth` as a history copy.
+pub(super) fn copied(copy_mask: i64, depth: usize) -> bool {
+    depth < COPY_DRAFT_CAPACITY && copy_mask & (1i64 << depth) != 0
 }
 
 /// Offered prefix depths whose survival a round determined, with the observed value.
