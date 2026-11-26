@@ -6,6 +6,12 @@ This fork carries local changes as a **rebaseable patch stack** on top of
 (`git -C ~/dev/vllm show patch/00-fork-tooling:FORK.md`); this file is the Flare
 specifics and the live patch index.
 
+The fork is two repositories, because upstream keeps model recipes in a repository of their own:
+the **core fork** (this repository: the Rust runtime, the `flare` CLI and the `ignition`
+library) and the **recipes fork** (`Raydius/hyperflare-recipes`: `hyperflare_recipes/`,
+`qualify/`, the model tests and the lock that a preparation environment installs from). This
+file specifies the workflow for both.
+
 **Scope (operator decision, 2026-10-20):** useful local builds first. Upstreaming to
 NVIDIA is out of scope until a patch proves worth it, so the upstream contribution gates
 in `AGENTS.md` (maintainer-request scope, the `.githooks/commit-msg` design-review hook,
@@ -20,10 +26,19 @@ break them knowingly, not by accident.
 
 ## Remotes
 
+Core fork, clone `~/dev/flare-local-inference`:
+
 | Remote     | URL                                                  | Role                      |
 | ---------- | ---------------------------------------------------- | ------------------------- |
 | `origin`   | `git@github.com:Raydius/flare-local-inference.git`   | our fork (push here)      |
 | `upstream` | `https://github.com/NVIDIA/flare-local-inference.git` | NVIDIA (fetch-only; push URL is `DISABLE`); GitHub redirects it to `NVIDIA/spark-local-inference` |
+
+Recipes fork, clone `~/dev/hyperflare-recipes`:
+
+| Remote     | URL                                                             | Role                      |
+| ---------- | --------------------------------------------------------------- | ------------------------- |
+| `origin`   | `git@github.com:Raydius/hyperflare-recipes.git`                 | our fork (push here)      |
+| `upstream` | `https://github.com/local-inference-lab/hyperflare-recipes.git` | upstream recipes (fetch-only; push URL is `DISABLE`) |
 
 ## Branch model
 
@@ -167,7 +182,63 @@ base/current (tag → an upstream commit)
   continued with the hook off, so replayed commits keep their original acknowledgments; the
   record commit acknowledges `1af4`. Host CPU, image and Rust gates run after this commit and
   before the push. Pre-rebase refs: `backup/pre-rebase-20261119-*` tags.
+  **2026-11-25: moved to upstream `c0c4f798`** (tag `v0.3.2`, 64 commits; `da037284` and
+  `17bb3c4a` move Ignition's recipe, reference and model-component packages, `qualify/` and the
+  model tests to the recipes repository as `hyperflare_recipes/`, #430 persistent workers on
+  Green Contexts, `e091689b` the optional `TerminalPrefill` graph, #414 a host acceptance
+  estimate seeded from earlier requests, `1bf68649` inverted recipe registries, a consolidated
+  `PreparationConfig` and a rebuild record of export arguments, #386 image input for Qwen3.8
+  27B, #456 the locked Transformers release, design checklist digest `eb2f`). The stack was
+  replayed onto `da037284`, where both trees are still in core (149 commits, 41 conflicted,
+  four dropped as superseded), then divided by path: 136 commits here, replayed onto
+  `c0c4f798` (20 conflicted, two of them in code: `flare-cli/src/cli.rs` and
+  `helios/src/runtime_core/mod.rs`), and 74 in the recipes fork, replayed from recipes
+  `4541fcb` onto `07d7bb3` (one conflicted: upstream's `tile_masses` beside the fork's
+  `copy_mask`). Every path the fork changes has its content in exactly one of the two results.
+  Upstream `568aeca0` moved the per-model sections of `docs/model-preparation.md` and the
+  recipe entries of its follow-up list to the recipes repository; the fork's sections and
+  entries moved with them. Three patches retired because upstream provides them: image input
+  for the dense Qwen recipe (`0d45b17a`), the `kv_tile_ranges` call (`db4ba3d3`) and the locked
+  Transformers acceptance (`173eb256`). Three were fitted to mechanisms upstream added: the
+  persisting L2 bound covers the contexts of upstream's `apply_context_settings`, copied draft
+  depths stay out of upstream's host acceptance population, and upstream's rebuild record
+  carries `--rope-parameters`, `--draft-model` and `--recipe`. The FlashInfer pin is re-cut on
+  `0aa01681` as `Raydius/flashinfer@d73da5c4`: two of the fork's three eviction cases fail on
+  unmodified `0aa01681` and all pass on the re-cut. The `gdn-head-ratio` image patch applies
+  unchanged. Release tags gain the form `vX.Y.Z-rN`. On both bases the CPU suites add no failing
+  test to upstream's, apart from three recipes cases that need an input a recipes-only checkout
+  lacks. The export of the served profile, its served checks, the move of `deploy` in both
+  forks and the release tag follow this record; GPU tests have not run on this base.
+  Pre-rebase refs: `backup/pre-rebase-20261125-*` tags.
 - **Moving to a newer upstream:** follow [Moving to a newer upstream](#moving-to-a-newer-upstream).
+
+### The recipes fork
+
+The recipes fork has the same mirror, base tag and `deploy` branch, and no `patch/NN` branches:
+
+```text
+base/current (tag → an upstream recipes commit)
+  └─ deploy      # the fork's recipe commits, then its lock on one core commit
+```
+
+- **`main`** mirrors `upstream/main` of `local-inference-lab/hyperflare-recipes` and is only
+  fast-forwarded.
+- **`base/current`** names the upstream recipes commit `deploy` sits on. Upstream recipes has no
+  release tags; choose the last upstream recipes commit dated before the core release tag.
+- **`deploy`** carries the fork's recipes and recipe changes. Its `pyproject.toml` names
+  `ignition` by the core fork's URL and one exact core commit, and FlashInfer by the fork's
+  revision; `uv.lock` records both. Upstream's own lock floats on core's `main`.
+- **Scripts.** The recipes fork has no copy of `scripts/fork/`. Both scripts act on the
+  repository of the working directory, so run core's from the recipes clone:
+  `cd ~/dev/hyperflare-recipes && NO_PUSH=1 bash ~/dev/flare-local-inference/scripts/fork/sync.sh`,
+  and `rebase.sh` the same way.
+- **Pairing.** A release is one tag name, `vX.Y.Z-rN`, in both forks: `vX.Y.Z` is the upstream
+  core release the stack sits on and `N` counts fork revisions of it from 1
+  ([docs/release.md](docs/release.md#release-tags)). The recipes fork's tagged commit locks
+  `ignition` at the core fork's tagged commit. Change the core commit in the recipes fork's
+  `pyproject.toml`, then `uv lock`; the image build below refuses a lock that names another
+  core commit. The core fork's tag publishes the serving image and the release binaries; the
+  recipes fork has no workflow, and its release is the tag.
 
 ## Moving to a newer upstream
 
@@ -271,24 +342,27 @@ silently into code upstream restructured, and only the checks below find it.
 | Layer | Paths | What a change costs |
 |---|---|---|
 | Serving | `flare/` (CLI), `helios/` (Rust runtime: scheduling, caches, HTTP) | Rebuild the image; the existing 107 GB format-4 packages keep loading |
-| Prepared | `ignition/` (recipes, components, kernels, capture), package format | Re-prepare + export from the original checkpoint (PyTorch / FlashInfer env), signed with your own key → a new trust-store approval; older packages must still load |
+| Prepared | `ignition/` (planning, capture, core export) here and `hyperflare_recipes/` (recipes, components, kernels) in the recipes fork; package format | Re-prepare + export from the original checkpoint (PyTorch / FlashInfer env), signed with your own key → a new trust-store approval; older packages must still load |
 
 ## Build a local image
 
-Serving images are `local/flare-ignition:<sha8>`, built by the console's recipe from a
-committed ref, never the working tree:
+Preparation images are `local/flare-ignition:<core8>-<recipes8>`, built by the console's recipe
+from one committed ref of each fork, never from a working tree:
 
 ```bash
-~/LocalApps/vllm-env/build/flare-ignition/build.sh deploy
+~/LocalApps/vllm-env/build/flare-ignition/build.sh <core-ref> <recipes-ref> [<version>]
 ```
 
-The script archives the ref with its Dockerfile, tags the image with the commit's first eight
-hex digits, and labels it `org.opencontainers.image.revision`. With no ref it builds
-`deploy` (since vllm-env `931be1f`; it used to build `patch/07-rope-parameters`, which lacks the
-DFlash2 work).
+The script archives both refs, tags the image with the first eight hex digits of each commit, and
+labels it with both commits. With a version (the release tag without its `v`, such as
+`0.3.2-r2`) it also tags `local/flare-ignition:<version>` and sets the image version label. It
+stops before any layer builds when the recipes ref's `uv.lock` names another core commit than the
+core ref. With no arguments it builds both forks' `deploy`. The build applies the FlashInfer
+patches in its directory to the installed package and fails when one no longer applies, and it
+fails unless the `ignition` entry point is the recipes fork's CLI.
 
-Then in the console: duplicate a Flare profile into a dated one, set its Docker image to
-`local/flare-ignition:<sha>`, record the image in `~/LocalApps/vllm-env/build/README.md`, and
+Then in the console: duplicate a Flare profile into a dated one, set its Docker image to the
+image tag, record the image in `~/LocalApps/vllm-env/build/README.md`, and
 log the outcome in `docs/models/qwen3-flash-next.md`'s Tuning-findings table.
 
 ## Tests
@@ -305,6 +379,7 @@ cargo test --locked --release --manifest-path helios/Cargo.toml \
 The inventory lives in [README.md](README.md#raydius-fork-patch-notes) on `deploy`, so it shows on
 the fork's GitHub page. Keep both tables current there:
 
-- **Active patches** — add a row when a patch lands.
+- **Active patches** — add a row when a patch lands. A patch whose code is in the recipes fork
+  is listed here too, marked "recipes fork"; that fork's README carries a summary table.
 - **Retired patches** — when upstream absorbs a patch or makes it obsolete, delete its branch and
   move its row to that table with the retirement date and why. Never drop a row.
