@@ -1,7 +1,7 @@
 # Fork maintenance — local Flare builds
 
 This fork carries local changes as a **rebaseable patch stack** on top of
-`NVIDIA/flare-local-inference`, to produce local `flare` images for the vLLM console
+`NVIDIA/hyperflare-inference` (formerly `NVIDIA/flare-local-inference`), to produce local `flare` images for the vLLM console
 (`~/LocalApps/vllm-env`). The doctrine is the same as `~/dev/vllm`'s
 (`git -C ~/dev/vllm show patch/00-fork-tooling:FORK.md`); this file is the Flare
 specifics and the live patch index.
@@ -31,7 +31,7 @@ Core fork, clone `~/dev/flare-local-inference`:
 | Remote     | URL                                                  | Role                      |
 | ---------- | ---------------------------------------------------- | ------------------------- |
 | `origin`   | `git@github.com:Raydius/flare-local-inference.git`   | our fork (push here)      |
-| `upstream` | `https://github.com/NVIDIA/flare-local-inference.git` | NVIDIA (fetch-only; push URL is `DISABLE`); GitHub redirects it to `NVIDIA/spark-local-inference` |
+| `upstream` | `https://github.com/NVIDIA/hyperflare-inference.git` | NVIDIA (fetch-only; push URL is `DISABLE`); the repository was named `flare-local-inference`, then `spark-local-inference`, and GitHub redirects both names |
 
 Recipes fork, clone `~/dev/hyperflare-recipes`:
 
@@ -186,7 +186,8 @@ base/current (tag → an upstream commit)
   `17bb3c4a` move Ignition's recipe, reference and model-component packages, `qualify/` and the
   model tests to the recipes repository as `hyperflare_recipes/`, #430 persistent workers on
   Green Contexts, `e091689b` the optional `TerminalPrefill` graph, #414 a host acceptance
-  estimate seeded from earlier requests, `1bf68649` inverted recipe registries, a consolidated
+  estimate seeded from earlier requests, #405 declared markers treated as controls, `1bf68649`
+  inverted recipe registries, a consolidated
   `PreparationConfig` and a rebuild record of export arguments, #386 image input for Qwen3.8
   27B, #456 the locked Transformers release, design checklist digest `eb2f`). The stack was
   replayed onto `da037284`, where both trees are still in core (149 commits, 41 conflicted,
@@ -214,11 +215,16 @@ base/current (tag → an upstream commit)
   upstream's newest tag; the recipes fork to upstream recipes `7d70e230`, 10 commits past
   `07d7bb3`). No export ran on `c0c4f798`: the first core exported on it failed every request,
   because FlashInfer `d73da5c4` builds the prepared grouped RMSNorm kernel without its FP32-gain
-  setting, which upstream FlashInfer `c3ab1d04` corrects. In the range `27716185` replaces the
-  rebuild record with a preparation manifest, `1e78f080` and `e30d55db` calibrate GPU confidence
-  forecasts, #504 adds lossless KV-cache checkpoint compression (off by default), `84ac035c`
-  removes `--collective-tuning`, and upstream recipes fuse query and key normalization and
-  rotation in both Qwen recipes. The range moves no directory between repositories, so each
+  setting, which upstream FlashInfer `c3ab1d04` corrects. In the core range `27716185` replaces
+  the rebuild record with a preparation manifest of scoped parameters; `1e78f080` and `e30d55db`
+  calibrate GPU confidence forecasts per request; #504 adds lossless KV-cache checkpoint
+  compression, off unless `--lossless-kv-compression` or `[prefix_cache] compression` selects
+  it; `84ac035c` removes `--collective-tuning` and the offline ladders; `d0adb958` adds
+  `--row-shard-prefill`; `0a4a6eb1` bounds an index's `total_size` from below; #431 and #507
+  extend persistent workers; #532 aligns the compute green context; the design checklist digest
+  stays `eb2f`. In the recipes range #18, #21 and `a2746f49` fuse query and key normalization and
+  rotation in both Qwen recipes and add terminal prefill graphs, and `be1a9a11` removes the
+  collective settings from every recipe. The range moves no directory between repositories, so each
   fork was replayed once: 152 commits here (8 conflicted; the commit that pinned FlashInfer
   `49efc285` dropped) and 80 in the recipes fork (18 conflicted, 9 of them only in a test's
   alias list; three lock-only commits dropped). Fitted to upstream's mechanisms: upstream's
@@ -231,9 +237,9 @@ base/current (tag → an upstream commit)
   gain test on an RTX 5060 Ti. The `gdn-head-ratio` image patch applies unchanged. No patch
   retired. On both bases the CPU suites add no failing test to upstream's, apart from one
   recipes module that needs a support file a recipes-only checkout lacks. The release keeps the
-  name `v0.3.2-r2`. The export of the served profile, its served checks, the move of `deploy`
-  in both forks and the release tag follow this record; GPU tests have not run on this base.
-  Pre-rebase refs: `backup/pre-rebase-20261126-*` tags.
+  name `v0.3.2-r2`. The operator's Qwen profile, Muse Glimmer and Elephant-1 were exported on
+  this base and passed their served checks before `deploy` moved in both forks; the GPU test
+  suites have not run on it. Pre-rebase refs: `backup/pre-rebase-20261126-*` tags.
 - **Moving to a newer upstream:** follow [Moving to a newer upstream](#moving-to-a-newer-upstream).
 
 ### The recipes fork
