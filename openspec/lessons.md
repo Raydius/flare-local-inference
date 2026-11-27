@@ -46,3 +46,35 @@ entries you consulted.
 - Resolution: the declaration is the planning reservation for the widest verification the recipe supports (`max_draft_tokens + 1` positions); narrower preparations allocate a smaller row. The test compares the declaration with the layout at that maximum and requires the prepared row to be smaller.
 - Accelerator: before reporting a declared constant as wrong, run `git log -S<constant>` for the commit that set it and grep `docs/` for the number; a recipe comment beside the constant is part of the declaration.
 - Source: tie-dense-qwen-row-to-reserved-maximum (2026-11-22)
+
+## check-upstream-for-the-fix-before-writing-it
+
+- Scenario: a Qwen core exported on the `v0.3.2` stack failed every request with device error 1, and the cause was traced to FlashInfer's plan compiler at the fork's pin `d73da5c4`, which builds the prepared grouped RMSNorm kernel without its FP32-gain setting.
+- Trap: the plan read the defect only at the pinned revision and at older ones, and scheduled a hand-written kernel-construction fix, a model switch, a pin, an image and an export. FlashInfer's `origin/main` had not been fetched since the pin was cut. Upstream had fixed the same line one day earlier in `c3ab1d04`, with a cache-version bump the planned fix did not include, and upstream's recipes already locked a revision containing it.
+- Resolution: the fix commit is a cherry-pick of `c3ab1d04`; once upstream's newer commits were listed, the operator moved both forks to upstream `main`, where the fix arrives with the base.
+- Accelerator: when a defect is located in a pinned dependency, run `git fetch` and `git log <pin>..origin/main -- <file>` before designing a fix, and compare the pin with the revision upstream's own lock names.
+- Source: debug-v0-3-2-device-error-1 (2026-11-26)
+
+## a-base-move-is-proven-by-a-served-export
+
+- Scenario: moving both forks to a newer upstream base and releasing the result as a fork revision.
+- Trap: the 2026-11-24 move took baseline-relative CPU and component gates as proof and put exports out of scope. Those gates compare the fork with unpatched upstream, so a defect upstream's own locked dependency carries cannot fail them: FlashInfer `0aa01681` built the grouped RMSNorm kernel wrongly, and every request of the first export failed after the tag was published. A second, independent replay on the same base and pin failed identically.
+- Resolution: the `fork-base-move` capability requires the operator's profile to export and serve before a release; `FORK.md` "Moving to a newer upstream" ends with that step.
+- Accelerator: write the operator's export and its served checks into the proposal as tasks that precede any tag; before the first export, run the pinned dependency's own GPU tests for the kernels the served recipe prepares on the spare GPU (`openspec/changes/debug-v0-3-2-device-error-1/handoff.md` holds the recipe).
+- Source: rebase-forks-onto-upstream-v0-3-2 (2026-11-26)
+
+## judge-a-patch-against-what-upstream-added-not-what-it-lacks
+
+- Scenario: deciding after a base move whether each fork patch is still needed and still whole.
+- Trap: the 2026-11-24 move marked a patch "Still needed: Yes" when upstream lacked its flag or feature. Three patches merged without a textual conflict next to a mechanism upstream added in the range and were bypassed by it: the rebuild record never emitted `--rope-parameters`, a second context-limit site skipped the persisting L2 bound, and the host acceptance population took history-copy depths. In this change's own second move, two fork recipes kept passing settings upstream had removed, again with no conflict and no failing CPU test.
+- Resolution: each verdict shows the need on unpatched upstream and searches every upstream enumeration of the thing the patch extends; `tests/cli/test_reproduction_arguments.py` fails when an export flag is neither recorded nor listed as not prepared.
+- Accelerator: for each patch run `git log <old base>..<new base>` over its files, grep the range for enumerations (preparation flags, context-limit sites, acceptance estimates, shared configuration fields), and run `~/models/.cache/rebase-v0.3.2/tools/check-kwargs.py` over the fork-changed files before any gate.
+- Source: rebase-forks-onto-upstream-v0-3-2 (2026-11-26)
+
+## a-console-script-runs-again-in-spawned-workers
+
+- Scenario: the preparation image installs two packages that both declare the `ignition` script, so the image recipe writes the launcher by hand.
+- Trap: the launcher called `main()` at import. FlashInfer starts compiler workers with `multiprocessing` spawn, which imports the parent's main script as `__mp_main__`; every worker re-ran the export command and exited, and every export died in "Prepare and tune kernels". No test starts those workers; only an export does.
+- Resolution: the launcher calls `main()` under `if __name__ == "__main__"`, and the image build imports it as `__mp_main__` and fails when the argument parser is reached (`build/flare-ignition/check_ignition_launcher.py` in `vllm-env`).
+- Accelerator: when a build step writes an entry-point script, add a build-time import of it under the name `__mp_main__` before trusting the image.
+- Source: rebase-forks-onto-upstream-v0-3-2 (2026-11-26)
