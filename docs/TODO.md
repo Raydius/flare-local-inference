@@ -27,10 +27,11 @@ Recipe-specific items are in the recipes fork's [`docs/TODO.txt`](https://github
       chunk ends on CPU; no served request has run atomic prefill spans through a `TerminalPrefill`
       graph.
 
-- [ ] Read the rebuild record of a rope-scaled core. `tests/cli/test_reproduction_arguments.py`
-      checks on a locally declared recipe that the reproduction arguments carry `--rope-parameters`,
-      `--draft-model` and `--recipe`; no exported core's record has been read, and no core has been
-      prepared from recorded arguments.
+- [ ] Prepare a core from the reproduction arguments a rope-scaled core records. The preparation
+      record of a Flash Next core exported on `c915b5f0` with `--rope-parameters`, `--recipe` and
+      `--draft-model` holds all three flags, and `tests/cli/test_reproduction_arguments.py` checks
+      them on a locally declared recipe; no core has been prepared from recorded arguments and
+      compared with the core that recorded them.
 
 - [ ] Run `.github/workflows/container.yml` and `.github/workflows/release.yml` on GitHub from a
       `vMAJOR.MINOR.PATCH-rN` tag. The tag checks of both workflows are tested as shell scripts and

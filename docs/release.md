@@ -71,6 +71,12 @@ Cargo version in the three release manifests, and the
 [serving image](container.md#publish) tag all equal it: tag `v0.3.2-r2` gives
 version `0.3.2-r2`. Cargo orders `0.3.2-r2` as a pre-release of `0.3.2`; no
 release crate is published to a registry, so that ordering selects nothing.
+
+A revision tag names the newest upstream release tag that is an ancestor of the
+fork's base; it does not state that the base is that tag's commit. The base of
+`v0.3.2-r2` is upstream `c915b5f0`, 27 commits past `v0.3.2`. The "Stack base"
+line of [README.md](../README.md) and the record of bases in
+[FORK.md](../FORK.md) give the base commit of each revision.
 The Python packages keep their own versions.
 
 The workflows' tag filters are glob patterns and also match numbers with
