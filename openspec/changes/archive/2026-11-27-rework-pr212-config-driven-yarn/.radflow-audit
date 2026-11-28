@@ -1,0 +1,7 @@
+deltas 0
+66121d01e9c960ee8bfb457352d4cc4fe34b4ca8 openspec/changes/rework-pr212-config-driven-yarn/design.md
+d0342a54dc61473719b4b131aba90f149c181709 openspec/changes/rework-pr212-config-driven-yarn/proposal.md
+2b66f910e7b1bead19c60d1523ba0536601c8c88 openspec/changes/rework-pr212-config-driven-yarn/specs/config-driven-rope-scaling/spec.md
+11cb1b5f5363f02419491b360869169c56bae22e openspec/changes/rework-pr212-config-driven-yarn/specs/long-context-passkey-retrieval/spec.md
+18280888f9658f01680bb833aeab4b1c900d45e7 openspec/changes/rework-pr212-config-driven-yarn/specs/rope-scaled-export/spec.md
+7f7e6345e5f22ab98f78a0d36e02d8f4fbc63a69 openspec/changes/rework-pr212-config-driven-yarn/tasks.md
